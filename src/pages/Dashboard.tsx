@@ -14,6 +14,7 @@ import AdminDeliveryZones from './admin/AdminDeliveryZones';
 import AdminDeliverySlots from './admin/AdminDeliverySlots';
 import AdminDeliverySettings from './admin/AdminDeliverySettings';
 import AdminProductAvailability from './admin/AdminProductAvailability';
+import AdminPaymentIntents from './admin/AdminPaymentIntents';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -78,6 +79,7 @@ export default function Dashboard() {
         <Route path="categories" element={<AdminCategories tenantId={tenant.id} disabled={isTrialExpired} />} />
         <Route path="orders" element={<AdminOrders tenantId={tenant.id} />} />
         <Route path="orders/:orderId" element={<AdminOrderDetail tenantId={tenant.id} disabled={isTrialExpired} />} />
+        <Route path="payment-intents" element={<AdminPaymentIntents tenantId={tenant.id} />} />
         <Route path="settings" element={<AdminSettings tenant={tenant} disabled={isTrialExpired} />} />
         <Route path="integrations" element={<AdminIntegrations tenantId={tenant.id} disabled={isTrialExpired} />} />
         {isGrocery && (

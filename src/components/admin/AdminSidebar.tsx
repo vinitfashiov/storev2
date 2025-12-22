@@ -12,7 +12,8 @@ import {
   MapPin,
   Clock,
   Truck,
-  Grid
+  Grid,
+  CreditCard
 } from 'lucide-react';
 
 const baseNavItems = [
@@ -20,6 +21,7 @@ const baseNavItems = [
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/categories', label: 'Categories', icon: FolderTree },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/dashboard/payment-intents', label: 'Payment Intents', icon: CreditCard },
 ];
 
 const groceryNavItems = [
