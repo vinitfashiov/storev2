@@ -168,6 +168,89 @@ export type Database = {
           },
         ]
       }
+      delivery_slots: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_active: boolean
+          label: string
+          start_time: string
+          tenant_id: string
+          zone_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          label: string
+          start_time: string
+          tenant_id: string
+          zone_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          start_time?: string
+          tenant_id?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_slots_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_zones: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          pincodes: string[]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pincodes?: string[]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pincodes?: string[]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -233,6 +316,9 @@ export type Database = {
           customer_name: string
           customer_phone: string
           delivery_fee: number
+          delivery_option: string
+          delivery_slot_id: string | null
+          delivery_zone_id: string | null
           discount_total: number
           id: string
           order_number: string
@@ -240,6 +326,7 @@ export type Database = {
           payment_status: string
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          requested_delivery_time: string | null
           shipping_address: Json
           status: string
           subtotal: number
@@ -253,6 +340,9 @@ export type Database = {
           customer_name: string
           customer_phone: string
           delivery_fee?: number
+          delivery_option?: string
+          delivery_slot_id?: string | null
+          delivery_zone_id?: string | null
           discount_total?: number
           id?: string
           order_number: string
@@ -260,6 +350,7 @@ export type Database = {
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          requested_delivery_time?: string | null
           shipping_address?: Json
           status?: string
           subtotal?: number
@@ -273,6 +364,9 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           delivery_fee?: number
+          delivery_option?: string
+          delivery_slot_id?: string | null
+          delivery_zone_id?: string | null
           discount_total?: number
           id?: string
           order_number?: string
@@ -280,6 +374,7 @@ export type Database = {
           payment_status?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          requested_delivery_time?: string | null
           shipping_address?: Json
           status?: string
           subtotal?: number
@@ -289,10 +384,73 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_delivery_slot_id_fkey"
+            columns: ["delivery_slot_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_delivery_zone_id_fkey"
+            columns: ["delivery_zone_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_zones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_zone_availability: {
+        Row: {
+          created_at: string
+          id: string
+          is_available: boolean
+          product_id: string
+          tenant_id: string
+          zone_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          product_id: string
+          tenant_id: string
+          zone_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_available?: boolean
+          product_id?: string
+          tenant_id?: string
+          zone_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_zone_availability_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_zone_availability_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_zone_availability_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -404,6 +562,60 @@ export type Database = {
           },
         ]
       }
+      shiprocket_shipments: {
+        Row: {
+          awb_code: string | null
+          courier_name: string | null
+          created_at: string
+          id: string
+          order_id: string
+          raw_response: Json | null
+          shipment_id: string | null
+          shiprocket_order_id: string | null
+          status: string | null
+          tenant_id: string
+        }
+        Insert: {
+          awb_code?: string | null
+          courier_name?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          raw_response?: Json | null
+          shipment_id?: string | null
+          shiprocket_order_id?: string | null
+          status?: string | null
+          tenant_id: string
+        }
+        Update: {
+          awb_code?: string | null
+          courier_name?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          raw_response?: Json | null
+          shipment_id?: string | null
+          shiprocket_order_id?: string | null
+          status?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shiprocket_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shiprocket_shipments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           amount: number
@@ -440,6 +652,44 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_delivery_settings: {
+        Row: {
+          asap_eta_minutes: number
+          created_at: string
+          delivery_fee: number
+          delivery_mode: string
+          free_delivery_above: number | null
+          min_order_amount: number
+          tenant_id: string
+        }
+        Insert: {
+          asap_eta_minutes?: number
+          created_at?: string
+          delivery_fee?: number
+          delivery_mode?: string
+          free_delivery_above?: number | null
+          min_order_amount?: number
+          tenant_id: string
+        }
+        Update: {
+          asap_eta_minutes?: number
+          created_at?: string
+          delivery_fee?: number
+          delivery_mode?: string
+          free_delivery_above?: number | null
+          min_order_amount?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

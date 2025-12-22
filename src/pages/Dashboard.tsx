@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -10,6 +10,10 @@ import AdminOrders from './admin/AdminOrders';
 import AdminOrderDetail from './admin/AdminOrderDetail';
 import AdminSettings from './admin/AdminSettings';
 import AdminIntegrations from './admin/AdminIntegrations';
+import AdminDeliveryZones from './admin/AdminDeliveryZones';
+import AdminDeliverySlots from './admin/AdminDeliverySlots';
+import AdminDeliverySettings from './admin/AdminDeliverySettings';
+import AdminProductAvailability from './admin/AdminProductAvailability';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -57,10 +61,13 @@ export default function Dashboard() {
 
   if (!tenant) return null;
 
+  const isGrocery = tenant.business_type === 'grocery';
+
   return (
     <AdminLayout
       storeName={tenant.store_name}
       storeSlug={tenant.store_slug}
+      businessType={tenant.business_type}
       onSignOut={handleSignOut}
       isTrialExpired={isTrialExpired}
       onUpgrade={handleUpgrade}
@@ -73,6 +80,14 @@ export default function Dashboard() {
         <Route path="orders/:orderId" element={<AdminOrderDetail tenantId={tenant.id} disabled={isTrialExpired} />} />
         <Route path="settings" element={<AdminSettings tenant={tenant} disabled={isTrialExpired} />} />
         <Route path="integrations" element={<AdminIntegrations tenantId={tenant.id} disabled={isTrialExpired} />} />
+        {isGrocery && (
+          <>
+            <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />
+            <Route path="delivery-slots" element={<AdminDeliverySlots tenantId={tenant.id} disabled={isTrialExpired} />} />
+            <Route path="delivery-settings" element={<AdminDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />
+            <Route path="product-availability" element={<AdminProductAvailability tenantId={tenant.id} disabled={isTrialExpired} />} />
+          </>
+        )}
       </Routes>
     </AdminLayout>
   );

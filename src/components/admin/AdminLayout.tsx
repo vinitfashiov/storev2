@@ -9,6 +9,7 @@ interface AdminLayoutProps {
   children: ReactNode;
   storeName: string;
   storeSlug: string;
+  businessType?: 'ecommerce' | 'grocery';
   onSignOut: () => void;
   isTrialExpired: boolean;
   onUpgrade: () => void;
@@ -18,13 +19,14 @@ export function AdminLayout({
   children, 
   storeName, 
   storeSlug, 
+  businessType,
   onSignOut,
   isTrialExpired,
   onUpgrade
 }: AdminLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex">
-      <AdminSidebar storeSlug={storeSlug} storeName={storeName} />
+      <AdminSidebar storeSlug={storeSlug} storeName={storeName} businessType={businessType} />
       
       <div className="flex-1 flex flex-col">
         <AdminHeader storeName={storeName} onSignOut={onSignOut} />

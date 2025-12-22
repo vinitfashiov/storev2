@@ -8,14 +8,28 @@ import {
   Settings,
   Plug,
   Store,
-  ExternalLink
+  ExternalLink,
+  MapPin,
+  Clock,
+  Truck,
+  Grid
 } from 'lucide-react';
 
-const navItems = [
+const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/categories', label: 'Categories', icon: FolderTree },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
+];
+
+const groceryNavItems = [
+  { href: '/dashboard/delivery-zones', label: 'Delivery Zones', icon: MapPin },
+  { href: '/dashboard/delivery-slots', label: 'Delivery Slots', icon: Clock },
+  { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
+  { href: '/dashboard/product-availability', label: 'Zone Availability', icon: Grid },
+];
+
+const settingsNavItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
 ];
@@ -23,10 +37,18 @@ const navItems = [
 interface AdminSidebarProps {
   storeSlug: string;
   storeName: string;
+  businessType?: 'ecommerce' | 'grocery';
 }
 
-export function AdminSidebar({ storeSlug, storeName }: AdminSidebarProps) {
+export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSidebarProps) {
   const location = useLocation();
+  const isGrocery = businessType === 'grocery';
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isGrocery ? groceryNavItems : []),
+    ...settingsNavItems
+  ];
 
   return (
     <aside className="w-64 border-r border-border bg-card min-h-screen p-4 hidden md:block">
