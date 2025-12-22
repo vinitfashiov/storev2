@@ -10,6 +10,7 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import StoreHome from "./pages/store/StoreHome";
 import ProductList from "./pages/store/ProductList";
+import ProductDetail from "./pages/store/ProductDetail";
 import CartPage from "./pages/store/CartPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
 import OrderConfirmation from "./pages/store/OrderConfirmation";
