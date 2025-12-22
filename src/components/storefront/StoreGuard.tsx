@@ -1,6 +1,7 @@
 import { useEffect, useState, ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { StoreAuthProvider } from '@/contexts/StoreAuthContext';
 import { AlertTriangle } from 'lucide-react';
 
 interface StoreGuardProps {
@@ -10,6 +11,8 @@ interface StoreGuardProps {
 interface TenantStatus {
   id: string;
   store_name: string;
+  store_slug: string;
+  business_type: 'ecommerce' | 'grocery';
   is_active: boolean;
   plan: 'trial' | 'pro';
   trial_ends_at: string;
@@ -19,6 +22,7 @@ export default function StoreGuard({ children }: StoreGuardProps) {
   const { slug } = useParams<{ slug: string }>();
   const [loading, setLoading] = useState(true);
   const [isActive, setIsActive] = useState(false);
+  const [tenant, setTenant] = useState<TenantStatus | null>(null);
 
   useEffect(() => {
     const checkTenant = async () => {
@@ -27,22 +31,23 @@ export default function StoreGuard({ children }: StoreGuardProps) {
         return;
       }
 
-      const { data: tenant } = await supabase
+      const { data: tenantData } = await supabase
         .from('tenants')
-        .select('id, store_name, is_active, plan, trial_ends_at')
+        .select('id, store_name, store_slug, business_type, is_active, plan, trial_ends_at')
         .eq('store_slug', slug)
         .maybeSingle();
 
-      if (!tenant) {
+      if (!tenantData) {
         setIsActive(false);
         setLoading(false);
         return;
       }
 
       const now = new Date();
-      const trialEndsAt = new Date(tenant.trial_ends_at);
-      const active = tenant.is_active && (tenant.plan === 'pro' || now < trialEndsAt);
+      const trialEndsAt = new Date(tenantData.trial_ends_at);
+      const active = tenantData.is_active && (tenantData.plan === 'pro' || now < trialEndsAt);
       
+      setTenant(tenantData as TenantStatus);
       setIsActive(active);
       setLoading(false);
     };
@@ -58,7 +63,7 @@ export default function StoreGuard({ children }: StoreGuardProps) {
     );
   }
 
-  if (!isActive) {
+  if (!isActive || !tenant) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center max-w-md mx-auto px-4">
@@ -74,5 +79,12 @@ export default function StoreGuard({ children }: StoreGuardProps) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <StoreAuthProvider tenantId={tenant.id}>
+      {children}
+    </StoreAuthProvider>
+  );
 }
+
+// Export tenant context hook for child components
+export { useStoreTenant } from '@/hooks/useStoreTenant';

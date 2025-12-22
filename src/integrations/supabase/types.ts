@@ -133,30 +133,93 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          city: string
+          created_at: string
+          customer_id: string
+          id: string
+          is_default: boolean
+          label: string
+          line1: string
+          line2: string | null
+          pincode: string
+          state: string
+          tenant_id: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          line1: string
+          line2?: string | null
+          pincode: string
+          state: string
+          tenant_id: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          is_default?: boolean
+          label?: string
+          line1?: string
+          line2?: string | null
+          pincode?: string
+          state?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_addresses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           created_at: string
           email: string
           id: string
           name: string
+          password_hash: string | null
           phone: string | null
           tenant_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           email: string
           id?: string
           name: string
+          password_hash?: string | null
           phone?: string | null
           tenant_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           email?: string
           id?: string
           name?: string
+          password_hash?: string | null
           phone?: string | null
           tenant_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -313,6 +376,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_email: string | null
+          customer_id: string | null
           customer_name: string
           customer_phone: string
           delivery_fee: number
@@ -337,6 +401,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_phone: string
           delivery_fee?: number
@@ -361,6 +426,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_phone?: string
           delivery_fee?: number
@@ -383,6 +449,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_delivery_slot_id_fkey"
             columns: ["delivery_slot_id"]

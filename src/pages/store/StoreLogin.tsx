@@ -1,0 +1,94 @@
+import { useState } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { Loader2, Store, ArrowLeft } from 'lucide-react';
+
+interface StoreLoginProps {
+  tenantId: string;
+  storeName: string;
+}
+
+export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const { signIn } = useStoreAuth();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '' });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await signIn(form.email, form.password, tenantId);
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success('Logged in successfully!');
+    navigate(`/store/${slug}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Link to={`/store/${slug}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="w-4 h-4" />
+          Back to store
+        </Link>
+        
+        <Card>
+          <CardHeader className="text-center">
+            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
+              <Store className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <CardTitle>Welcome back</CardTitle>
+            <CardDescription>Sign in to your {storeName} account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="you@example.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="••••••••"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in...</> : 'Sign In'}
+              </Button>
+            </form>
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              Don't have an account?{' '}
+              <Link to={`/store/${slug}/signup`} className="text-primary hover:underline">
+                Sign up
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
