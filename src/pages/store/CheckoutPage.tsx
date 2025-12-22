@@ -85,8 +85,15 @@ export default function CheckoutPage() {
       const { data } = await supabase.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
       if (data) {
         setTenant(data as Tenant);
-        const { data: integration } = await supabase.from('tenant_integrations').select('razorpay_key_id').eq('tenant_id', data.id).maybeSingle();
-        setRazorpayConfigured(!!integration?.razorpay_key_id);
+        // Check if Razorpay is configured - must have both key_id AND key_secret
+        const { data: integration } = await supabase
+          .from('tenant_integrations')
+          .select('razorpay_key_id, razorpay_key_secret')
+          .eq('tenant_id', data.id)
+          .maybeSingle();
+        const hasRazorpay = !!(integration?.razorpay_key_id && integration?.razorpay_key_secret);
+        setRazorpayConfigured(hasRazorpay);
+        console.log('Razorpay configured:', hasRazorpay, integration);
         
         // Fetch grocery-specific data
         if (data.business_type === 'grocery') {

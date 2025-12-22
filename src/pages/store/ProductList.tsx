@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
@@ -13,7 +15,7 @@ import { ProductCard } from '@/components/storefront/ProductCard';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { toast } from 'sonner';
-import { Package, Search, SlidersHorizontal, MapPin } from 'lucide-react';
+import { Package, Search, SlidersHorizontal, MapPin, X } from 'lucide-react';
 
 interface Tenant {
   id: string;
@@ -36,6 +38,8 @@ interface Product {
   compare_at_price: number | null;
   images: string[];
   stock_qty: number;
+  has_variants: boolean;
+  total_variant_stock?: number;
   category: { name: string } | null;
   brand: { name: string } | null;
 }
@@ -59,6 +63,13 @@ export default function ProductList() {
   const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || 'all');
   const [sortBy, setSortBy] = useState('name');
   const [addingProduct, setAddingProduct] = useState<string | null>(null);
+  
+  // Price filter state
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [maxPrice, setMaxPrice] = useState(100000);
+  
+  // Live search results
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const { itemCount, addToCart } = useCart(slug || '', tenant?.id || null);
 
@@ -144,7 +155,7 @@ export default function ProductList() {
       setLoading(true);
       let query = supabase
         .from('products')
-        .select('id, name, slug, price, compare_at_price, images, stock_qty, category:categories(name), brand:brands(name)')
+        .select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants, category:categories(name), brand:brands(name)')
         .eq('tenant_id', tenant.id)
         .eq('is_active', true);
 
@@ -158,19 +169,45 @@ export default function ProductList() {
         if (brand) query = query.eq('brand_id', brand.id);
       }
 
-      if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
-
       if (sortBy === 'price-asc') query = query.order('price', { ascending: true });
       else if (sortBy === 'price-desc') query = query.order('price', { ascending: false });
       else query = query.order('name', { ascending: true });
 
       const { data } = await query;
-      setProducts(data as Product[] || []);
+      
+      // Fetch variant stock for products with variants
+      const productsWithStock: Product[] = [];
+      for (const p of (data || [])) {
+        let totalVariantStock = 0;
+        if (p.has_variants) {
+          const { data: variants } = await supabase
+            .from('product_variants')
+            .select('stock_qty')
+            .eq('product_id', p.id)
+            .eq('is_active', true);
+          totalVariantStock = variants?.reduce((sum, v) => sum + v.stock_qty, 0) || 0;
+        }
+        productsWithStock.push({
+          ...p,
+          images: Array.isArray(p.images) ? p.images : [],
+          total_variant_stock: totalVariantStock
+        } as Product);
+      }
+      
+      // Update max price for filter
+      const prices = productsWithStock.map(p => p.price);
+      if (prices.length > 0) {
+        const max = Math.ceil(Math.max(...prices) / 100) * 100;
+        setMaxPrice(max || 100000);
+        setPriceRange([0, max || 100000]);
+      }
+      
+      setProducts(productsWithStock);
       setLoading(false);
     };
 
     fetchProducts();
-  }, [tenant, selectedCategory, selectedBrand, searchQuery, sortBy, categories, brands]);
+  }, [tenant, selectedCategory, selectedBrand, sortBy, categories, brands]);
 
   const handleAddToCart = async (productId: string, price: number) => {
     setAddingProduct(productId);
@@ -187,7 +224,6 @@ export default function ProductList() {
     }
 
     if (wishlistedIds.has(productId)) {
-      // Remove from wishlist
       const { error } = await supabase
         .from('wishlists')
         .delete()
@@ -204,7 +240,6 @@ export default function ProductList() {
         toast.success('Removed from wishlist');
       }
     } else {
-      // Add to wishlist
       const { error } = await supabase.from('wishlists').insert({
         tenant_id: tenant.id,
         customer_id: customer.id,
@@ -220,10 +255,7 @@ export default function ProductList() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    const params = new URLSearchParams(searchParams);
-    if (query) params.set('q', query);
-    else params.delete('q');
-    setSearchParams(params);
+    setShowSearchResults(query.length > 0);
   };
 
   const handleCategoryChange = (cat: string) => {
@@ -250,11 +282,43 @@ export default function ProductList() {
     setSearchParams(params);
   };
 
-  // Filter out unavailable products for grocery stores with zone selected
-  const filteredProducts = products.filter(p => !unavailableProductIds.has(p.id));
+  const clearFilters = () => {
+    setSelectedCategory('all');
+    setSelectedBrand('all');
+    setPriceRange([0, maxPrice]);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    setSearchParams({});
+  };
+
+  // Filter products by search, price, and zone availability
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      // Zone availability filter
+      if (unavailableProductIds.has(p.id)) return false;
+      
+      // Search filter
+      if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      
+      // Price filter
+      if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
+      
+      return true;
+    });
+  }, [products, unavailableProductIds, searchQuery, priceRange]);
+
+  // Live search results (top 5)
+  const searchResults = useMemo(() => {
+    if (!searchQuery) return [];
+    return products
+      .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 5);
+  }, [products, searchQuery]);
 
   // Get parent categories for display
   const parentCategories = categories.filter(c => !c.parent_id);
+  
+  const hasActiveFilters = selectedCategory !== 'all' || selectedBrand !== 'all' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice;
 
   if (!tenant) {
     return (
@@ -309,59 +373,121 @@ export default function ProductList() {
           </div>
         )}
 
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1 relative md:hidden">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          <div className="flex gap-3 flex-wrap">
-            <Select value={selectedCategory} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {parentCategories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
+        {/* Live Search Dropdown */}
+        {showSearchResults && searchResults.length > 0 && (
+          <div className="relative mb-4">
+            <Card className="absolute z-50 w-full max-w-md shadow-lg">
+              <CardContent className="p-2">
+                {searchResults.map(product => (
+                  <a
+                    key={product.id}
+                    href={`/store/${slug}/product/${product.slug}`}
+                    className="flex items-center gap-3 p-2 hover:bg-muted rounded-md"
+                    onClick={() => setShowSearchResults(false)}
+                  >
+                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                      {product.images?.[0] ? (
+                        <img 
+                          src={supabase.storage.from('product-images').getPublicUrl(product.images[0]).data.publicUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover rounded"
+                        />
+                      ) : (
+                        <Package className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{product.name}</p>
+                      <p className="text-xs text-primary">₹{product.price}</p>
+                    </div>
+                  </a>
                 ))}
-              </SelectContent>
-            </Select>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-            {brands.length > 0 && (
-              <Select value={selectedBrand} onValueChange={handleBrandChange}>
+        {/* Filters */}
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative md:hidden">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <div className="flex gap-3 flex-wrap">
+              <Select value={selectedCategory} onValueChange={handleCategoryChange}>
                 <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Brand" />
+                  <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Brands</SelectItem>
-                  {brands.map(brand => (
-                    <SelectItem key={brand.id} value={brand.slug}>{brand.name}</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {parentCategories.map(cat => (
+                    <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
 
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[160px]">
-                <SlidersHorizontal className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
-                <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                <SelectItem value="price-desc">Price: High to Low</SelectItem>
-              </SelectContent>
-            </Select>
+              {brands.length > 0 && (
+                <Select value={selectedBrand} onValueChange={handleBrandChange}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Brands</SelectItem>
+                    {brands.map(brand => (
+                      <SelectItem key={brand.id} value={brand.slug}>{brand.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[160px]">
+                  <SlidersHorizontal className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Name (A-Z)</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Price Filter */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
+            <Label className="whitespace-nowrap font-medium">Price Range:</Label>
+            <div className="flex-1 w-full sm:max-w-xs">
+              <Slider
+                value={priceRange}
+                onValueChange={(value) => setPriceRange(value as [number, number])}
+                max={maxPrice}
+                min={0}
+                step={100}
+                className="w-full"
+              />
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span>₹{priceRange[0]}</span>
+              <span>-</span>
+              <span>₹{priceRange[1]}</span>
+            </div>
+            
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="w-4 h-4 mr-1" /> Clear Filters
+              </Button>
+            )}
           </div>
 
-          <div className="text-sm text-muted-foreground self-center">
+          <div className="text-sm text-muted-foreground">
             {filteredProducts.length} products
           </div>
         </div>
@@ -395,9 +521,9 @@ export default function ProductList() {
               <p className="text-sm text-muted-foreground">
                 {searchQuery ? 'Try a different search term' : selectedZone ? 'No products available in this zone' : 'Products will appear here soon!'}
               </p>
-              {searchQuery && (
-                <Button variant="outline" className="mt-4" onClick={() => handleSearch('')}>
-                  Clear Search
+              {hasActiveFilters && (
+                <Button variant="outline" className="mt-4" onClick={clearFilters}>
+                  Clear Filters
                 </Button>
               )}
             </CardContent>

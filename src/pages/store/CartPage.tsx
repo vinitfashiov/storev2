@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { useCart } from '@/hooks/useCart';
-import { toast } from 'sonner';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package } from 'lucide-react';
 
 interface Tenant {
   id: string;
@@ -38,6 +37,18 @@ export default function CartPage() {
     };
     fetchTenant();
   }, [slug]);
+
+  const getImageUrl = (images: any) => {
+    if (!images) return null;
+    const imageArray = Array.isArray(images) ? images : (typeof images === 'string' ? [images] : []);
+    if (imageArray.length === 0) return null;
+    const img = imageArray[0];
+    if (typeof img === 'string') {
+      if (img.startsWith('http')) return img;
+      return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+    }
+    return null;
+  };
 
   if (!tenant) return null;
 
@@ -71,30 +82,43 @@ export default function CartPage() {
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {cart.items.map((item) => (
-                <Card key={item.id}>
-                  <CardContent className="p-4 flex gap-4">
-                    <div className="w-20 h-20 bg-muted rounded-lg shrink-0" />
-                    <div className="flex-1">
-                      <h3 className="font-medium">{item.product?.name || 'Product'}</h3>
-                      <p className="text-primary font-bold">₹{item.unit_price.toFixed(2)}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty - 1)}>
-                          <Minus className="w-3 h-3" />
-                        </Button>
-                        <span className="w-8 text-center">{item.qty}</span>
-                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty + 1)}>
-                          <Plus className="w-3 h-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 ml-2 text-destructive" onClick={() => removeItem(item.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+              {cart.items.map((item) => {
+                const imageUrl = getImageUrl(item.product?.images);
+                return (
+                  <Card key={item.id}>
+                    <CardContent className="p-4 flex gap-4">
+                      <div className="w-20 h-20 bg-muted rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={item.product?.name || 'Product'} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Package className="w-8 h-8 text-muted-foreground/30" />
+                        )}
                       </div>
-                    </div>
-                    <div className="text-right font-bold">₹{(item.unit_price * item.qty).toFixed(2)}</div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.product?.name || 'Product'}</h3>
+                        <p className="text-primary font-bold">₹{item.unit_price.toFixed(2)}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty - 1)}>
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-8 text-center">{item.qty}</span>
+                          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty + 1)}>
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 ml-2 text-destructive" onClick={() => removeItem(item.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="text-right font-bold">₹{(item.unit_price * item.qty).toFixed(2)}</div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             <Card className="h-fit">
