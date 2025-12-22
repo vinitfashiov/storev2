@@ -20,6 +20,9 @@ import AdminDeliverySlots from './admin/AdminDeliverySlots';
 import AdminDeliverySettings from './admin/AdminDeliverySettings';
 import AdminProductAvailability from './admin/AdminProductAvailability';
 import AdminPaymentIntents from './admin/AdminPaymentIntents';
+import AdminStoreSettings from './admin/AdminStoreSettings';
+import AdminStoreBanners from './admin/AdminStoreBanners';
+import AdminStorePages from './admin/AdminStorePages';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -99,6 +102,9 @@ export default function Dashboard() {
         <Route path="payment-intents" element={<AdminPaymentIntents tenantId={tenant.id} />} />
         <Route path="settings" element={<AdminSettings tenant={tenant} disabled={isTrialExpired} />} />
         <Route path="integrations" element={<AdminIntegrations tenantId={tenant.id} disabled={isTrialExpired} />} />
+        <Route path="store-settings" element={<AdminStoreSettings tenantId={tenant.id} disabled={isTrialExpired} />} />
+        <Route path="banners" element={<AdminStoreBanners tenantId={tenant.id} disabled={isTrialExpired} />} />
+        <Route path="pages" element={<AdminStorePages tenantId={tenant.id} storeSlug={tenant.store_slug} disabled={isTrialExpired} />} />
         {isGrocery && (
           <>
             <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />

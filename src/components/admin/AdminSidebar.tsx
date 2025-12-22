@@ -17,7 +17,10 @@ import {
   Tag,
   Layers,
   Ticket,
-  Users
+  Users,
+  Image,
+  FileText,
+  Palette
 } from 'lucide-react';
 
 const baseNavItems = [
@@ -39,6 +42,12 @@ const groceryNavItems = [
   { href: '/dashboard/product-availability', label: 'Zone Availability', icon: Grid },
 ];
 
+const storeNavItems = [
+  { href: '/dashboard/store-settings', label: 'Store Settings', icon: Palette },
+  { href: '/dashboard/banners', label: 'Banners', icon: Image },
+  { href: '/dashboard/pages', label: 'Pages', icon: FileText },
+];
+
 const settingsNavItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
@@ -57,6 +66,7 @@ export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSideba
   const navItems = [
     ...baseNavItems,
     ...(isGrocery ? groceryNavItems : []),
+    ...storeNavItems,
     ...settingsNavItems
   ];
 
