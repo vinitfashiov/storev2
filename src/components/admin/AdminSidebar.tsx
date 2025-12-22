@@ -1,0 +1,78 @@
+import { Link, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import { 
+  LayoutDashboard, 
+  Package, 
+  FolderTree, 
+  ShoppingBag, 
+  Settings,
+  Plug,
+  Store,
+  ExternalLink
+} from 'lucide-react';
+
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/products', label: 'Products', icon: Package },
+  { href: '/dashboard/categories', label: 'Categories', icon: FolderTree },
+  { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
+];
+
+interface AdminSidebarProps {
+  storeSlug: string;
+  storeName: string;
+}
+
+export function AdminSidebar({ storeSlug, storeName }: AdminSidebarProps) {
+  const location = useLocation();
+
+  return (
+    <aside className="w-64 border-r border-border bg-card min-h-screen p-4 hidden md:block">
+      <div className="flex items-center gap-3 mb-8 px-2">
+        <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+          <Store className="w-5 h-5 text-primary-foreground" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-display font-semibold text-foreground truncate">{storeName}</h1>
+          <p className="text-xs text-muted-foreground">Admin Panel</p>
+        </div>
+      </div>
+
+      <nav className="space-y-1">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.href || 
+            (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+          
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="absolute bottom-4 left-4 right-4">
+        <Link 
+          to={`/store/${storeSlug}`} 
+          target="_blank"
+          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <ExternalLink className="w-4 h-4" />
+          View Storefront
+        </Link>
+      </div>
+    </aside>
+  );
+}
