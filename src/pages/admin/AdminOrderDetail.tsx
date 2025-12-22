@@ -101,29 +101,42 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
 
   const createShipment = async () => {
     if (!order || disabled || !shiprocketConfigured) return;
-    
+
     setCreatingShipment(true);
     try {
       const { data, error } = await supabase.functions.invoke('shiprocket-create-shipment', {
         body: { order_id: order.id }
       });
 
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || 'Failed to create shipment');
+      if (error) {
+        // Supabase edge-function errors often include useful context
+        const status = (error as any)?.context?.status;
+        const body = (error as any)?.context?.body;
+
+        console.error('Shiprocket invoke error:', error, { status, body });
+        throw new Error(
+          typeof body === 'string' && body
+            ? `Shiprocket error${status ? ` (${status})` : ''}: ${body}`
+            : error.message || 'Failed to create shipment'
+        );
+      }
+
+      if (data?.error) {
+        console.error('Shiprocket function returned error:', data);
+        throw new Error(data.error);
       }
 
       toast.success('Shipment created successfully!');
-      
-      // Refetch shipment data
+
       const { data: newShipment } = await supabase
         .from('shiprocket_shipments')
         .select('*')
         .eq('order_id', order.id)
         .maybeSingle();
-      
+
       if (newShipment) setShipment(newShipment);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to create shipment');
+      toast.error(err?.message || 'Failed to create shipment');
     } finally {
       setCreatingShipment(false);
     }
@@ -138,9 +151,11 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
   }
 
   const address = order.shipping_address;
-  const canCreateShipment = shiprocketConfigured && !shipment && 
+  const canCreateShipment =
+    shiprocketConfigured &&
+    !shipment &&
     ['confirmed', 'packed', 'shipped', 'delivered'].includes(order.status) &&
-    order.payment_status === 'paid' || order.payment_method === 'cod';
+    (order.payment_status === 'paid' || order.payment_method === 'cod');
 
   return (
     <div className="space-y-6">
