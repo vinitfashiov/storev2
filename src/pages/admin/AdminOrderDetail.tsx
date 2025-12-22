@@ -104,20 +104,37 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
 
     setCreatingShipment(true);
     try {
+      // Ensure we have a valid session (otherwise the function will 401 before it even runs)
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        throw new Error('You are not logged in (session missing). Please log in again and retry.');
+      }
+
       const { data, error } = await supabase.functions.invoke('shiprocket-create-shipment', {
         body: { order_id: order.id }
       });
 
       if (error) {
-        // Supabase edge-function errors often include useful context
         const status = (error as any)?.context?.status;
         const body = (error as any)?.context?.body;
+        const bodyText =
+          typeof body === 'string'
+            ? body
+            : body
+              ? JSON.stringify(body)
+              : '';
 
         console.error('Shiprocket invoke error:', error, { status, body });
+
+        // Special-case auth failures for clarity
+        if (status === 401 || status === 403) {
+          throw new Error('Not authorized to create shipment. Please log in again and retry.');
+        }
+
         throw new Error(
-          typeof body === 'string' && body
-            ? `Shiprocket error${status ? ` (${status})` : ''}: ${body}`
-            : error.message || 'Failed to create shipment'
+          bodyText
+            ? `Shiprocket error${status ? ` (${status})` : ''}: ${bodyText}`
+            : `Shiprocket error${status ? ` (${status})` : ''}: ${error.message || 'Failed to create shipment'}`
         );
       }
 
