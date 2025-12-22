@@ -96,7 +96,7 @@ serve(async (req) => {
     // Get Shiprocket credentials
     const { data: integration, error: integrationError } = await supabaseClient
       .from('tenant_integrations')
-      .select('shiprocket_email, shiprocket_password')
+      .select('shiprocket_email, shiprocket_password, shiprocket_pickup_location')
       .eq('tenant_id', profile.tenant_id)
       .single();
     
@@ -109,7 +109,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Shiprocket not configured. Please add your Shiprocket email and password in Integrations settings.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log('Shiprocket credentials found for:', integration.shiprocket_email);
+    const pickupLocation = integration.shiprocket_pickup_location || 'Primary';
+    console.log('Shiprocket credentials found for:', integration.shiprocket_email, 'Pickup location:', pickupLocation);
 
     // Check if shipment already exists
     const { data: existingShipment } = await supabaseClient
@@ -208,7 +209,7 @@ serve(async (req) => {
     const shipmentPayload = {
       order_id: order.order_number,
       order_date: orderDate,
-      pickup_location: 'Primary',
+      pickup_location: pickupLocation,
       billing_customer_name: order.customer_name || 'Customer',
       billing_last_name: '',
       billing_address: address.line1 || 'Address',

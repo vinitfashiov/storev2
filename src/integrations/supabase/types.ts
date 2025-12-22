@@ -703,6 +703,7 @@ export type Database = {
           razorpay_key_secret: string | null
           shiprocket_email: string | null
           shiprocket_password: string | null
+          shiprocket_pickup_location: string | null
           tenant_id: string
           updated_at: string
         }
@@ -713,6 +714,7 @@ export type Database = {
           razorpay_key_secret?: string | null
           shiprocket_email?: string | null
           shiprocket_password?: string | null
+          shiprocket_pickup_location?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -723,6 +725,7 @@ export type Database = {
           razorpay_key_secret?: string | null
           shiprocket_email?: string | null
           shiprocket_password?: string | null
+          shiprocket_pickup_location?: string | null
           tenant_id?: string
           updated_at?: string
         }
