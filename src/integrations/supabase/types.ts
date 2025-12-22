@@ -14,6 +14,109 @@ export type Database = {
   }
   public: {
     Tables: {
+      attribute_values: {
+        Row: {
+          attribute_id: string
+          created_at: string
+          id: string
+          tenant_id: string
+          value: string
+        }
+        Insert: {
+          attribute_id: string
+          created_at?: string
+          id?: string
+          tenant_id: string
+          value: string
+        }
+        Update: {
+          attribute_id?: string
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribute_values_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attribute_values_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attributes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attributes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brands: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          slug: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          slug: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          slug?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           cart_id: string
@@ -23,6 +126,7 @@ export type Database = {
           qty: number
           tenant_id: string
           unit_price: number
+          variant_id: string | null
         }
         Insert: {
           cart_id: string
@@ -32,6 +136,7 @@ export type Database = {
           qty?: number
           tenant_id: string
           unit_price: number
+          variant_id?: string | null
         }
         Update: {
           cart_id?: string
@@ -41,6 +146,7 @@ export type Database = {
           qty?: number
           tenant_id?: string
           unit_price?: number
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -62,6 +168,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -104,6 +217,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          parent_id: string | null
           slug: string
           tenant_id: string
         }
@@ -112,6 +226,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          parent_id?: string | null
           slug: string
           tenant_id: string
         }
@@ -120,12 +235,135 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          parent_id?: string | null
           slug?: string
           tenant_id?: string
         }
         Relationships: [
           {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string
+          customer_id: string | null
+          discount_amount: number
+          id: string
+          order_id: string
+          tenant_id: string
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string
+          customer_id?: string | null
+          discount_amount: number
+          id?: string
+          order_id: string
+          tenant_id: string
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string
+          customer_id?: string | null
+          discount_amount?: number
+          id?: string
+          order_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          max_discount_amount: number | null
+          min_cart_amount: number
+          starts_at: string | null
+          tenant_id: string
+          type: string
+          usage_limit: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_cart_amount?: number
+          starts_at?: string | null
+          tenant_id: string
+          type: string
+          usage_limit?: number | null
+          used_count?: number
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_discount_amount?: number | null
+          min_cart_amount?: number
+          starts_at?: string | null
+          tenant_id?: string
+          type?: string
+          usage_limit?: number | null
+          used_count?: number
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -325,6 +563,8 @@ export type Database = {
           qty: number
           tenant_id: string
           unit_price: number
+          variant_attributes: Json | null
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -336,6 +576,8 @@ export type Database = {
           qty: number
           tenant_id: string
           unit_price: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -347,6 +589,8 @@ export type Database = {
           qty?: number
           tenant_id?: string
           unit_price?: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -370,10 +614,19 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       orders: {
         Row: {
+          coupon_code: string | null
+          coupon_id: string | null
           created_at: string
           customer_email: string | null
           customer_id: string | null
@@ -399,6 +652,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          coupon_code?: string | null
+          coupon_id?: string | null
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -424,6 +679,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          coupon_code?: string | null
+          coupon_id?: string | null
           created_at?: string
           customer_email?: string | null
           customer_id?: string | null
@@ -449,6 +706,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
@@ -539,6 +803,60 @@ export type Database = {
           },
         ]
       }
+      product_variants: {
+        Row: {
+          compare_at_price: number | null
+          created_at: string
+          id: string
+          is_active: boolean
+          price: number
+          product_id: string
+          sku: string | null
+          stock_qty: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price: number
+          product_id: string
+          sku?: string | null
+          stock_qty?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          compare_at_price?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price?: number
+          product_id?: string
+          sku?: string | null
+          stock_qty?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_variants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_zone_availability: {
         Row: {
           created_at: string
@@ -590,10 +908,12 @@ export type Database = {
       }
       products: {
         Row: {
+          brand_id: string | null
           category_id: string | null
           compare_at_price: number | null
           created_at: string
           description: string | null
+          has_variants: boolean
           id: string
           images: Json | null
           is_active: boolean
@@ -606,10 +926,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          brand_id?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           created_at?: string
           description?: string | null
+          has_variants?: boolean
           id?: string
           images?: Json | null
           is_active?: boolean
@@ -622,10 +944,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          brand_id?: string | null
           category_id?: string | null
           compare_at_price?: number | null
           created_at?: string
           description?: string | null
+          has_variants?: boolean
           id?: string
           images?: Json | null
           is_active?: boolean
@@ -638,6 +962,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_category_id_fkey"
             columns: ["category_id"]
@@ -913,6 +1244,95 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      variant_attributes: {
+        Row: {
+          attribute_id: string
+          attribute_value_id: string
+          id: string
+          variant_id: string
+        }
+        Insert: {
+          attribute_id: string
+          attribute_value_id: string
+          id?: string
+          variant_id: string
+        }
+        Update: {
+          attribute_id?: string
+          attribute_value_id?: string
+          id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "variant_attributes_attribute_id_fkey"
+            columns: ["attribute_id"]
+            isOneToOne: false
+            referencedRelation: "attributes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variant_attributes_attribute_value_id_fkey"
+            columns: ["attribute_value_id"]
+            isOneToOne: false
+            referencedRelation: "attribute_values"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "variant_attributes_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlists: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          product_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          product_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          product_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
