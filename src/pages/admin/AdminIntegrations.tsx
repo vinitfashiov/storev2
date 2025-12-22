@@ -20,7 +20,8 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
     razorpay_key_id: '',
     razorpay_key_secret: '',
     shiprocket_email: '',
-    shiprocket_password: ''
+    shiprocket_password: '',
+    shiprocket_pickup_location: ''
   });
   const [hasExisting, setHasExisting] = useState(false);
 
@@ -28,7 +29,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
     const fetchIntegrations = async () => {
       const { data } = await supabase
         .from('tenant_integrations')
-        .select('razorpay_key_id, shiprocket_email')
+        .select('razorpay_key_id, shiprocket_email, shiprocket_pickup_location')
         .eq('tenant_id', tenantId)
         .maybeSingle();
 
@@ -37,7 +38,8 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
         setForm(prev => ({
           ...prev,
           razorpay_key_id: data.razorpay_key_id || '',
-          shiprocket_email: data.shiprocket_email || ''
+          shiprocket_email: data.shiprocket_email || '',
+          shiprocket_pickup_location: data.shiprocket_pickup_location || ''
         }));
       }
       setLoading(false);
@@ -57,6 +59,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
     } else {
       if (form.shiprocket_email) updateData.shiprocket_email = form.shiprocket_email;
       if (form.shiprocket_password) updateData.shiprocket_password = form.shiprocket_password;
+      if (form.shiprocket_pickup_location) updateData.shiprocket_pickup_location = form.shiprocket_pickup_location;
     }
 
     let error;
@@ -118,7 +121,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Truck className="w-5 h-5" /> Shiprocket</CardTitle>
-          <CardDescription>Shipping integration (coming soon)</CardDescription>
+          <CardDescription>Shipping integration for order fulfillment</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
@@ -128,6 +131,18 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
           <div>
             <Label>Password</Label>
             <Input type="password" value={form.shiprocket_password} onChange={e => setForm({ ...form, shiprocket_password: e.target.value })} placeholder={hasExisting ? '••••••••' : ''} disabled={disabled} />
+          </div>
+          <div>
+            <Label>Pickup Location Name</Label>
+            <Input 
+              value={form.shiprocket_pickup_location} 
+              onChange={e => setForm({ ...form, shiprocket_pickup_location: e.target.value })} 
+              placeholder="e.g., Primary, Warehouse, Office" 
+              disabled={disabled} 
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter the exact pickup location name as configured in your Shiprocket dashboard
+            </p>
           </div>
           <Button onClick={() => handleSave('shiprocket')} disabled={disabled || saving}>{saving ? 'Saving...' : 'Save Shiprocket'}</Button>
         </CardContent>
