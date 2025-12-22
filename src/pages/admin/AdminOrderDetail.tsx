@@ -3,11 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { ArrowLeft, Truck, Package } from 'lucide-react';
+import { ArrowLeft, Truck, Package, Loader2, CheckCircle, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface Order {
@@ -26,6 +25,7 @@ interface Order {
   payment_method: string;
   razorpay_order_id: string | null;
   razorpay_payment_id: string | null;
+  delivery_option: string;
   created_at: string;
 }
 
@@ -35,6 +35,15 @@ interface OrderItem {
   qty: number;
   unit_price: number;
   line_total: number;
+}
+
+interface ShiprocketShipment {
+  id: string;
+  shiprocket_order_id: string | null;
+  shipment_id: string | null;
+  awb_code: string | null;
+  courier_name: string | null;
+  status: string | null;
 }
 
 interface AdminOrderDetailProps {
@@ -48,15 +57,20 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
   const { orderId } = useParams();
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
+  const [shipment, setShipment] = useState<ShiprocketShipment | null>(null);
+  const [shiprocketConfigured, setShiprocketConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [creatingShipment, setCreatingShipment] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
       
-      const [orderRes, itemsRes] = await Promise.all([
+      const [orderRes, itemsRes, shipmentRes, integrationRes] = await Promise.all([
         supabase.from('orders').select('*').eq('id', orderId).eq('tenant_id', tenantId).single(),
-        supabase.from('order_items').select('*').eq('order_id', orderId)
+        supabase.from('order_items').select('*').eq('order_id', orderId),
+        supabase.from('shiprocket_shipments').select('*').eq('order_id', orderId).maybeSingle(),
+        supabase.from('tenant_integrations').select('shiprocket_email').eq('tenant_id', tenantId).maybeSingle()
       ]);
 
       if (orderRes.data) {
@@ -64,9 +78,11 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
         const shippingAddr = typeof orderData.shipping_address === 'object' && orderData.shipping_address !== null 
           ? orderData.shipping_address as Record<string, string>
           : {};
-        setOrder({ ...orderData, shipping_address: shippingAddr });
+        setOrder({ ...orderData, shipping_address: shippingAddr } as Order);
       }
       if (itemsRes.data) setItems(itemsRes.data);
+      if (shipmentRes.data) setShipment(shipmentRes.data);
+      setShiprocketConfigured(!!integrationRes.data?.shiprocket_email);
       setLoading(false);
     };
 
@@ -83,6 +99,36 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
     setOrder({ ...order, status: newStatus });
   };
 
+  const createShipment = async () => {
+    if (!order || disabled || !shiprocketConfigured) return;
+    
+    setCreatingShipment(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('shiprocket-create-shipment', {
+        body: { order_id: order.id }
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || 'Failed to create shipment');
+      }
+
+      toast.success('Shipment created successfully!');
+      
+      // Refetch shipment data
+      const { data: newShipment } = await supabase
+        .from('shiprocket_shipments')
+        .select('*')
+        .eq('order_id', order.id)
+        .maybeSingle();
+      
+      if (newShipment) setShipment(newShipment);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create shipment');
+    } finally {
+      setCreatingShipment(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
   }
@@ -92,6 +138,9 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
   }
 
   const address = order.shipping_address;
+  const canCreateShipment = shiprocketConfigured && !shipment && 
+    ['confirmed', 'packed', 'shipped', 'delivered'].includes(order.status) &&
+    order.payment_status === 'paid' || order.payment_method === 'cod';
 
   return (
     <div className="space-y-6">
@@ -183,6 +232,13 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
           </Card>
 
           <Card>
+            <CardHeader><CardTitle>Delivery</CardTitle></CardHeader>
+            <CardContent>
+              <Badge variant="outline" className="capitalize">{order.delivery_option || 'standard'}</Badge>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle>Payment</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between">
@@ -205,11 +261,69 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
 
           <Card>
             <CardHeader><CardTitle>Shipping</CardTitle></CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full" disabled>
-                <Truck className="w-4 h-4 mr-2" />
-                Create Shipment (Coming Soon)
-              </Button>
+            <CardContent className="space-y-4">
+              {shipment ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-green-600">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="font-medium">Shipment Created</span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {shipment.shiprocket_order_id && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Order ID</span>
+                        <span>{shipment.shiprocket_order_id}</span>
+                      </div>
+                    )}
+                    {shipment.awb_code && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">AWB Code</span>
+                        <span className="font-mono">{shipment.awb_code}</span>
+                      </div>
+                    )}
+                    {shipment.courier_name && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Courier</span>
+                        <span>{shipment.courier_name}</span>
+                      </div>
+                    )}
+                    {shipment.status && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status</span>
+                        <Badge variant="outline">{shipment.status}</Badge>
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <a href="https://app.shiprocket.in/orders" target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" /> View in Shiprocket
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {!shiprocketConfigured && (
+                    <p className="text-sm text-muted-foreground">
+                      Configure Shiprocket in Integrations to create shipments.
+                    </p>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    disabled={disabled || !canCreateShipment || creatingShipment}
+                    onClick={createShipment}
+                  >
+                    {creatingShipment ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating...</>
+                    ) : (
+                      <><Truck className="w-4 h-4 mr-2" /> Create Shiprocket Shipment</>
+                    )}
+                  </Button>
+                  {!canCreateShipment && shiprocketConfigured && order.status === 'pending' && (
+                    <p className="text-xs text-muted-foreground">Confirm the order first to create a shipment.</p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
