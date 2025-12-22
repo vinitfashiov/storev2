@@ -144,12 +144,12 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
               </div>
               <div>
                 <Label>Parent Category</Label>
-                <Select value={form.parent_id} onValueChange={v => setForm({ ...form, parent_id: v })}>
+                <Select value={form.parent_id || 'none'} onValueChange={v => setForm({ ...form, parent_id: v === 'none' ? '' : v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="None (top-level category)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (top-level category)</SelectItem>
+                    <SelectItem value="none">None (top-level category)</SelectItem>
                     {parentOptions.map(cat => (
                       <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                     ))}
