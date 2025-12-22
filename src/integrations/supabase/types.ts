@@ -87,6 +87,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          logo_path: string | null
           name: string
           slug: string
           tenant_id: string
@@ -95,6 +96,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          logo_path?: string | null
           name: string
           slug: string
           tenant_id: string
@@ -103,6 +105,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          logo_path?: string | null
           name?: string
           slug?: string
           tenant_id?: string
@@ -1075,6 +1078,147 @@ export type Database = {
             foreignKeyName: "shiprocket_shipments_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_banners: {
+        Row: {
+          created_at: string
+          cta_text: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          image_path: string
+          is_active: boolean
+          position: number
+          starts_at: string | null
+          subtitle: string | null
+          tenant_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path: string
+          is_active?: boolean
+          position?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          tenant_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          image_path?: string
+          is_active?: boolean
+          position?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          tenant_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_banners_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_pages: {
+        Row: {
+          content_html: string
+          created_at: string
+          id: string
+          is_published: boolean
+          slug: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_html?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_html?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_settings: {
+        Row: {
+          created_at: string
+          favicon_path: string | null
+          logo_path: string | null
+          store_address: string | null
+          store_email: string | null
+          store_phone: string | null
+          tenant_id: string
+          updated_at: string
+          website_description: string | null
+          website_title: string | null
+        }
+        Insert: {
+          created_at?: string
+          favicon_path?: string | null
+          logo_path?: string | null
+          store_address?: string | null
+          store_email?: string | null
+          store_phone?: string | null
+          tenant_id: string
+          updated_at?: string
+          website_description?: string | null
+          website_title?: string | null
+        }
+        Update: {
+          created_at?: string
+          favicon_path?: string | null
+          logo_path?: string | null
+          store_address?: string | null
+          store_email?: string | null
+          store_phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          website_description?: string | null
+          website_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
