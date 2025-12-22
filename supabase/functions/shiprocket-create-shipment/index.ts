@@ -143,20 +143,44 @@ serve(async (req) => {
     const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        email: integration.shiprocket_email, 
-        password: integration.shiprocket_password 
-      })
+      body: JSON.stringify({
+        email: integration.shiprocket_email,
+        password: integration.shiprocket_password,
+      }),
     });
-    
-    const authData = await authRes.json();
+
+    const authRaw = await authRes.text();
+    let authData: any = {};
+    try {
+      authData = authRaw ? JSON.parse(authRaw) : {};
+    } catch {
+      authData = { raw: authRaw };
+    }
+
     console.log('Shiprocket auth response status:', authRes.status);
-    
-    if (!authData.token) {
+    console.log('Shiprocket auth response body:', JSON.stringify(authData));
+
+    if (!authRes.ok || !authData?.token) {
+      const message =
+        authData?.message ||
+        authData?.error ||
+        (typeof authData === 'string' ? authData : '') ||
+        'Shiprocket authentication failed. Please check your credentials in Integrations.';
+
       console.error('Shiprocket auth failed:', JSON.stringify(authData));
-      return new Response(JSON.stringify({ 
-        error: authData.message || 'Shiprocket authentication failed. Please check your credentials.' 
-      }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+      // Return the real HTTP status from Shiprocket for easier debugging
+      return new Response(
+        JSON.stringify({
+          error: message,
+          shiprocket_status: authRes.status,
+          shiprocket_response: authData,
+        }),
+        {
+          status: authRes.status === 401 || authRes.status === 403 ? authRes.status : 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     console.log('Shiprocket authentication successful');
