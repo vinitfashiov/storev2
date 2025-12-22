@@ -180,14 +180,19 @@ export default function AdminDeliverySlots({ tenantId, disabled }: Props) {
               </div>
               <div>
                 <Label>Zone (optional)</Label>
-                <Select value={form.zone_id} onValueChange={v => setForm({...form, zone_id: v})}>
+                <Select
+                  value={form.zone_id || "__all__"}
+                  onValueChange={(v) => setForm({ ...form, zone_id: v === "__all__" ? "" : v })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="All zones" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Zones</SelectItem>
-                    {zones.map(zone => (
-                      <SelectItem key={zone.id} value={zone.id}>{zone.name}</SelectItem>
+                    <SelectItem value="__all__">All Zones</SelectItem>
+                    {zones.map((zone) => (
+                      <SelectItem key={zone.id} value={zone.id}>
+                        {zone.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
