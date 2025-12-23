@@ -23,6 +23,7 @@ import AdminPaymentIntents from './admin/AdminPaymentIntents';
 import AdminStoreSettings from './admin/AdminStoreSettings';
 import AdminStoreBanners from './admin/AdminStoreBanners';
 import AdminStorePages from './admin/AdminStorePages';
+import AdminUpgrade from './admin/AdminUpgrade';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -58,9 +59,8 @@ export default function Dashboard() {
 
   const isTrialExpired = tenant?.plan === 'trial' && getDaysRemaining() <= 0;
 
-  const handleUpgrade = async () => {
-    toast.info('Please configure Razorpay in Integrations to enable payments.');
-    navigate('/dashboard/integrations');
+  const handleUpgrade = () => {
+    navigate('/dashboard/upgrade');
   };
 
   if (loading) {
@@ -105,6 +105,7 @@ export default function Dashboard() {
         <Route path="store-settings" element={<AdminStoreSettings tenantId={tenant.id} disabled={isTrialExpired} />} />
         <Route path="banners" element={<AdminStoreBanners tenantId={tenant.id} disabled={isTrialExpired} />} />
         <Route path="pages" element={<AdminStorePages tenantId={tenant.id} storeSlug={tenant.store_slug} disabled={isTrialExpired} />} />
+        <Route path="upgrade" element={<AdminUpgrade />} />
         {isGrocery && (
           <>
             <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />

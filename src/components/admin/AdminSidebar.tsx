@@ -20,7 +20,8 @@ import {
   Users,
   Image,
   FileText,
-  Palette
+  Palette,
+  Crown
 } from 'lucide-react';
 
 const baseNavItems = [
@@ -51,6 +52,7 @@ const storeNavItems = [
 const settingsNavItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
+  { href: '/dashboard/upgrade', label: 'Upgrade Plan', icon: Crown },
 ];
 
 interface AdminSidebarProps {

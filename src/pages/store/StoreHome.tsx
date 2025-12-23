@@ -266,11 +266,14 @@ export default function StoreHome() {
                 key={banner.id}
                 className={`transition-opacity duration-500 ${index === currentBanner ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
               >
-                <div className="relative h-[300px] md:h-[400px] lg:h-[500px]">
+                <div className="relative h-[300px] md:h-[400px] lg:h-[500px] bg-gradient-to-br from-primary/20 to-accent/20">
                   <img
                     src={banner.image_path}
                     alt={banner.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-r from-background/90 via-background/50 to-transparent" />
                   <div className="absolute inset-0 flex items-center">
