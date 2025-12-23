@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Package, Heart } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { ShoppingCart, Package, Heart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface Product {
   id: string;
@@ -28,7 +27,14 @@ interface ProductCardProps {
   onToggleWishlist?: (productId: string) => void;
 }
 
-export function ProductCard({ product, storeSlug, onAddToCart, isAdding, isWishlisted, onToggleWishlist }: ProductCardProps) {
+export function ProductCard({ 
+  product, 
+  storeSlug, 
+  onAddToCart, 
+  isAdding, 
+  isWishlisted, 
+  onToggleWishlist 
+}: ProductCardProps) {
   const discount = product.compare_at_price 
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
@@ -49,78 +55,113 @@ export function ProductCard({ product, storeSlug, onAddToCart, isAdding, isWishl
   const imageUrl = getImageUrl(product.images);
 
   return (
-    <Card className="overflow-hidden group hover:shadow-lg transition-shadow">
+    <div className="group bg-white rounded-xl overflow-hidden border border-neutral-100 hover:shadow-lg transition-all duration-300">
       <Link to={`/store/${storeSlug}/product/${product.slug}`}>
-        <div className="aspect-square bg-muted relative overflow-hidden">
+        <div className="aspect-square bg-neutral-50 relative overflow-hidden">
           {imageUrl ? (
             <img 
               src={imageUrl} 
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-12 h-12 text-muted-foreground/30" />
+              <Package className="w-12 h-12 text-neutral-300" />
             </div>
           )}
+          
+          {/* Discount Badge */}
           {discount > 0 && (
-            <Badge className="absolute top-2 left-2 bg-destructive">
+            <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-2 py-1 rounded">
               -{discount}%
-            </Badge>
+            </span>
           )}
+          
+          {/* Out of Stock Overlay */}
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-              <Badge variant="secondary">Out of Stock</Badge>
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+              <span className="bg-neutral-900 text-white text-sm font-medium px-4 py-2 rounded">
+                Out of Stock
+              </span>
             </div>
           )}
+
+          {/* Wishlist Button */}
           {onToggleWishlist && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 bg-background/80 hover:bg-background"
+            <button
               onClick={(e) => {
                 e.preventDefault();
                 onToggleWishlist(product.id);
               }}
+              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:scale-110 transition-transform"
             >
-              <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-destructive text-destructive' : ''}`} />
-            </Button>
+              <Heart 
+                className={cn(
+                  "w-4 h-4 transition-colors",
+                  isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-400"
+                )} 
+              />
+            </button>
+          )}
+
+          {/* Quick Add Button - Shows on Hover */}
+          {!isOutOfStock && (
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button 
+                size="sm" 
+                className="w-full bg-white text-neutral-900 hover:bg-neutral-100"
+                disabled={isAdding}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAddToCart(product.id, product.price);
+                }}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                {isAdding ? 'Adding...' : 'Add to Cart'}
+              </Button>
+            </div>
           )}
         </div>
       </Link>
-      <CardContent className="p-4">
+
+      <div className="p-4">
+        {/* Brand */}
         {product.brand && (
-          <p className="text-xs text-primary font-medium mb-1">{product.brand.name}</p>
+          <p className="text-xs text-amber-700 font-medium mb-1 uppercase tracking-wide">
+            {product.brand.name}
+          </p>
         )}
-        {product.category && !product.brand && (
-          <p className="text-xs text-muted-foreground mb-1">{product.category.name}</p>
-        )}
+        
+        {/* Product Name */}
         <Link to={`/store/${storeSlug}/product/${product.slug}`}>
-          <h3 className="font-medium line-clamp-2 hover:text-primary transition-colors">
+          <h3 className="font-medium text-neutral-800 line-clamp-2 hover:text-amber-700 transition-colors text-sm md:text-base">
             {product.name}
           </h3>
         </Link>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="font-display font-bold text-primary">₹{product.price.toFixed(2)}</span>
+
+        {/* Rating - Placeholder */}
+        <div className="flex items-center gap-1 my-2">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Star 
+              key={star} 
+              className="w-3 h-3 fill-amber-400 text-amber-400" 
+            />
+          ))}
+          <span className="text-xs text-neutral-500 ml-1">4.5</span>
+        </div>
+
+        {/* Price */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-neutral-900">
+            ₹{product.price.toLocaleString('en-IN')}
+          </span>
           {product.compare_at_price && (
-            <span className="text-sm text-muted-foreground line-through">
-              ₹{product.compare_at_price.toFixed(2)}
+            <span className="text-sm text-neutral-400 line-through">
+              ₹{product.compare_at_price.toLocaleString('en-IN')}
             </span>
           )}
         </div>
-        <Button 
-          size="sm" 
-          className="w-full mt-3"
-          disabled={isOutOfStock || isAdding}
-          onClick={(e) => {
-            e.preventDefault();
-            onAddToCart(product.id, product.price);
-          }}
-        >
-          <ShoppingCart className="w-4 h-4 mr-2" />
-          {isAdding ? 'Adding...' : 'Add to Cart'}
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
