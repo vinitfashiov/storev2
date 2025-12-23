@@ -42,7 +42,7 @@ serve(async (req) => {
       body: JSON.stringify({
         amount: amount * 100, // Razorpay expects amount in paise
         currency: 'INR',
-        receipt: `upgrade_${tenant_id}_${Date.now()}`,
+        receipt: `upg_${Date.now()}`, // Max 40 chars
         notes: {
           tenant_id: tenant_id,
           type: 'plan_upgrade'
