@@ -74,8 +74,8 @@ export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSideba
   ];
 
   return (
-    <aside className="w-64 border-r border-border bg-card min-h-screen p-4 hidden md:block">
-      <div className="flex items-center gap-3 mb-8 px-2">
+    <aside className="w-64 border-r border-border bg-card h-screen hidden md:flex flex-col sticky top-0">
+      <div className="flex items-center gap-3 p-4 px-6 border-b border-border flex-shrink-0">
         <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
           <Store className="w-5 h-5 text-primary-foreground" />
         </div>
@@ -85,7 +85,7 @@ export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSideba
         </div>
       </div>
 
-      <nav className="space-y-1">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-hide">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href || 
             (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
@@ -108,11 +108,11 @@ export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSideba
         })}
       </nav>
 
-      <div className="absolute bottom-4 left-4 right-4">
+      <div className="p-4 border-t border-border flex-shrink-0">
         <Link 
           to={`/store/${storeSlug}`} 
           target="_blank"
-          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors w-full"
         >
           <ExternalLink className="w-4 h-4" />
           View Storefront
