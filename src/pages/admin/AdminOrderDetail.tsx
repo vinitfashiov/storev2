@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { ArrowLeft, Truck, Package, Loader2, CheckCircle, ExternalLink, IndianRupee } from 'lucide-react';
 import { format } from 'date-fns';
+import OrderInvoice from '@/components/admin/OrderInvoice';
 
 interface Order {
   id: string;
@@ -27,6 +28,7 @@ interface Order {
   razorpay_payment_id: string | null;
   delivery_option: string;
   created_at: string;
+  coupon_code: string | null;
 }
 
 interface OrderItem {
@@ -51,6 +53,13 @@ interface AdminOrderDetailProps {
   disabled?: boolean;
 }
 
+interface StoreSettings {
+  website_title: string | null;
+  store_address: string | null;
+  store_phone: string | null;
+  store_email: string | null;
+}
+
 const statusFlow = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
 
 export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetailProps) {
@@ -58,6 +67,7 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [shipment, setShipment] = useState<ShiprocketShipment | null>(null);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [shiprocketConfigured, setShiprocketConfigured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [creatingShipment, setCreatingShipment] = useState(false);
@@ -67,11 +77,12 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
     const fetchOrder = async () => {
       if (!orderId) return;
       
-      const [orderRes, itemsRes, shipmentRes, integrationRes] = await Promise.all([
+      const [orderRes, itemsRes, shipmentRes, integrationRes, storeSettingsRes] = await Promise.all([
         supabase.from('orders').select('*').eq('id', orderId).eq('tenant_id', tenantId).single(),
         supabase.from('order_items').select('*').eq('order_id', orderId),
         supabase.from('shiprocket_shipments').select('*').eq('order_id', orderId).maybeSingle(),
-        supabase.from('tenant_integrations').select('shiprocket_email').eq('tenant_id', tenantId).maybeSingle()
+        supabase.from('tenant_integrations').select('shiprocket_email').eq('tenant_id', tenantId).maybeSingle(),
+        supabase.from('store_settings').select('website_title, store_address, store_phone, store_email').eq('tenant_id', tenantId).maybeSingle()
       ]);
 
       if (orderRes.data) {
@@ -84,6 +95,7 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
       if (itemsRes.data) setItems(itemsRes.data);
       if (shipmentRes.data) setShipment(shipmentRes.data);
       setShiprocketConfigured(!!integrationRes.data?.shiprocket_email);
+      if (storeSettingsRes.data) setStoreSettings(storeSettingsRes.data);
       setLoading(false);
     };
 
@@ -201,14 +213,24 @@ export default function AdminOrderDetail({ tenantId, disabled }: AdminOrderDetai
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard/orders">
-          <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-display font-bold">{order.order_number}</h1>
-          <p className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard/orders">
+            <Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-display font-bold">{order.order_number}</h1>
+            <p className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
+          </div>
         </div>
+        <OrderInvoice 
+          order={order}
+          items={items}
+          storeName={storeSettings?.website_title || 'Store'}
+          storeAddress={storeSettings?.store_address || undefined}
+          storePhone={storeSettings?.store_phone || undefined}
+          storeEmail={storeSettings?.store_email || undefined}
+        />
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">

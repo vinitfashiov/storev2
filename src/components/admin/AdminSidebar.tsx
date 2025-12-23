@@ -52,6 +52,7 @@ const storeNavItems = [
 const settingsNavItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
+  { href: '/dashboard/subscription', label: 'Subscription', icon: CreditCard },
   { href: '/dashboard/upgrade', label: 'Upgrade Plan', icon: Crown },
 ];
 

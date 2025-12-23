@@ -42,7 +42,7 @@ const PRO_FEATURES = [
   'Multiple delivery zones',
 ];
 
-const PLAN_PRICE = 999; // ₹999
+const PLAN_PRICE = 249; // ₹249
 
 export default function AdminUpgrade() {
   const navigate = useNavigate();
@@ -96,7 +96,7 @@ export default function AdminUpgrade() {
         currency: data.currency,
         order_id: data.order_id,
         name: 'Sellify Pro',
-        description: 'Upgrade to Pro Plan - ₹999/month',
+        description: 'Upgrade to Pro Plan - ₹249/month',
         handler: async function (response: any) {
           try {
             // Verify payment
@@ -253,7 +253,7 @@ export default function AdminUpgrade() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-3xl font-bold">
-                ₹999 <span className="text-base font-normal text-muted-foreground">/month</span>
+                ₹249 <span className="text-base font-normal text-muted-foreground">/month</span>
               </div>
               <ul className="space-y-2 text-sm">
                 {PRO_FEATURES.map((feature, index) => (
