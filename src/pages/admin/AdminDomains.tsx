@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -17,7 +17,9 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Info
+  Info,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +54,7 @@ export default function AdminDomains() {
   const [domains, setDomains] = useState<CustomDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [verifying, setVerifying] = useState<string | null>(null);
   const [newDomain, setNewDomain] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
@@ -94,12 +97,12 @@ export default function AdminDomains() {
   const handleAddDomain = async () => {
     if (!newDomain.trim() || !tenantId) return;
 
-    // Basic domain validation
+    // Updated pattern to support subdomains (e.g., shop.example.com)
     const domainPattern = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i;
     const cleanDomain = newDomain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
     
     if (!domainPattern.test(cleanDomain)) {
-      toast.error('Please enter a valid domain (e.g., example.com)');
+      toast.error('Please enter a valid domain (e.g., example.com or shop.example.com)');
       return;
     }
 
@@ -129,10 +132,36 @@ export default function AdminDomains() {
       setDomains([newDomainData, ...domains]);
       setNewDomain('');
       setDialogOpen(false);
-      toast.success('Domain added! Follow the DNS instructions to activate it.');
+      toast.success('Domain added! Configure DNS and verify to activate.');
     }
 
     setAdding(false);
+  };
+
+  const handleVerifyDomain = async (domain: CustomDomain) => {
+    setVerifying(domain.id);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-domain-dns', {
+        body: { domain: domain.domain, domain_id: domain.id }
+      });
+
+      if (error) {
+        toast.error('Failed to verify domain');
+        return;
+      }
+
+      if (data.verified && data.activated) {
+        setDomains(domains.map(d => d.id === domain.id ? { ...d, status: 'active' } : d));
+        toast.success('Domain verified and activated!');
+      } else {
+        toast.error(data.message || 'DNS verification failed');
+      }
+    } catch (err) {
+      toast.error('Failed to verify domain');
+    } finally {
+      setVerifying(null);
+    }
   };
 
   const handleDeleteDomain = async (id: string) => {
@@ -149,23 +178,25 @@ export default function AdminDomains() {
     }
   };
 
-  const handleActivateDomain = async (id: string) => {
-    const { error } = await supabase
-      .from('custom_domains')
-      .update({ status: 'active' })
-      .eq('id', id);
-
-    if (error) {
-      toast.error('Failed to activate domain');
-    } else {
-      setDomains(domains.map(d => d.id === id ? { ...d, status: 'active' } : d));
-      toast.success('Domain activated!');
-    }
-  };
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('Copied to clipboard');
+  };
+
+  const getDomainType = (domain: string) => {
+    const parts = domain.split('.');
+    return parts.length > 2 ? 'subdomain' : 'root';
+  };
+
+  const getDnsInstructions = (domain: string) => {
+    const parts = domain.split('.');
+    if (parts.length > 2) {
+      // Subdomain like shop.example.com
+      const subdomain = parts.slice(0, -2).join('.');
+      return { type: 'A', name: subdomain };
+    }
+    // Root domain
+    return { type: 'A', name: '@' };
   };
 
   if (loading) {
@@ -197,7 +228,7 @@ export default function AdminDomains() {
             <DialogHeader>
               <DialogTitle>Add Custom Domain</DialogTitle>
               <DialogDescription>
-                Enter your domain name to connect it to your storefront.
+                Enter your domain or subdomain to connect it to your storefront.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -205,12 +236,12 @@ export default function AdminDomains() {
                 <Label htmlFor="domain">Domain Name</Label>
                 <Input
                   id="domain"
-                  placeholder="example.com"
+                  placeholder="example.com or shop.example.com"
                   value={newDomain}
                   onChange={(e) => setNewDomain(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter without http:// or www. (e.g., mystore.com)
+                  Enter without http:// or www. Supports both root domains (mystore.com) and subdomains (shop.mystore.com)
                 </p>
               </div>
             </div>
@@ -231,29 +262,35 @@ export default function AdminDomains() {
         <AlertDescription className="mt-2">
           <p className="mb-3">After adding a domain, configure these DNS records with your domain registrar:</p>
           <div className="bg-muted/50 rounded-lg p-4 space-y-3 font-mono text-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
-                <span className="text-muted-foreground">Name:</span> <strong>@</strong> &nbsp;
-                <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+            <div>
+              <p className="text-muted-foreground mb-2 font-sans">For root domains (example.com):</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
+                  <span className="text-muted-foreground">Name:</span> <strong>@</strong> &nbsp;
+                  <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
+                  <Copy className="w-3 h-3" />
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
-                <Copy className="w-3 h-3" />
-              </Button>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
-                <span className="text-muted-foreground">Name:</span> <strong>www</strong> &nbsp;
-                <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+            <div className="border-t pt-3">
+              <p className="text-muted-foreground mb-2 font-sans">For subdomains (shop.example.com):</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
+                  <span className="text-muted-foreground">Name:</span> <strong>shop</strong> (your subdomain) &nbsp;
+                  <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
+                  <Copy className="w-3 h-3" />
+                </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
-                <Copy className="w-3 h-3" />
-              </Button>
             </div>
           </div>
           <p className="mt-3 text-xs text-muted-foreground">
-            DNS changes can take up to 48 hours to propagate. SSL certificate will be provisioned automatically.
+            DNS changes can take up to 48 hours to propagate. Click "Verify DNS" after configuring to activate your domain.
           </p>
         </AlertDescription>
       </Alert>
@@ -275,80 +312,102 @@ export default function AdminDomains() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {domains.map((domain) => (
-            <Card key={domain.id}>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Globe className="w-5 h-5 text-primary" />
+          {domains.map((domain) => {
+            const dnsInfo = getDnsInstructions(domain.domain);
+            const domainType = getDomainType(domain.domain);
+            
+            return (
+              <Card key={domain.id}>
+                <CardContent className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Globe className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{domain.domain}</span>
+                          <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>
+                            {domain.status === 'active' ? (
+                              <>
+                                <CheckCircle2 className="w-3 h-3 mr-1" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-3 h-3 mr-1" />
+                                Pending
+                              </>
+                            )}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {domainType === 'subdomain' ? 'Subdomain' : 'Root'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          DNS: A record with name "{dnsInfo.name}" → 185.158.133.1
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{domain.domain}</span>
-                        <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>
-                          {domain.status === 'active' ? (
+                    
+                    <div className="flex items-center gap-2">
+                      {domain.status === 'active' && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-1" />
+                            Visit
+                          </a>
+                        </Button>
+                      )}
+                      
+                      {domain.status === 'pending' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleVerifyDomain(domain)}
+                          disabled={verifying === domain.id}
+                        >
+                          {verifying === domain.id ? (
                             <>
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Active
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Verifying...
                             </>
                           ) : (
                             <>
-                              <AlertCircle className="w-3 h-3 mr-1" />
-                              Pending
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              Verify DNS
                             </>
                           )}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Added {new Date(domain.created_at).toLocaleDateString()}
-                      </p>
+                        </Button>
+                      )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove Domain</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to remove {domain.domain}? Your storefront will no longer be accessible on this domain.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteDomain(domain.id)}>
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {domain.status === 'active' && (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4 mr-1" />
-                          Visit
-                        </a>
-                      </Button>
-                    )}
-                    
-                    {domain.status === 'pending' && (
-                      <Button variant="outline" size="sm" onClick={() => handleActivateDomain(domain.id)}>
-                        <CheckCircle2 className="w-4 h-4 mr-1" />
-                        Activate
-                      </Button>
-                    )}
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove Domain</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to remove {domain.domain}? Your storefront will no longer be accessible on this domain.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeleteDomain(domain.id)}>
-                            Remove
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
