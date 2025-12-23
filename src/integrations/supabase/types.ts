@@ -374,6 +374,38 @@ export type Database = {
           },
         ]
       }
+      custom_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_addresses: {
         Row: {
           city: string
@@ -1483,6 +1515,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_tenant_id_by_domain: {
+        Args: { custom_domain: string }
+        Returns: string
+      }
       get_tenant_id_by_slug: { Args: { store_slug: string }; Returns: string }
       get_user_tenant_id: { Args: never; Returns: string }
     }

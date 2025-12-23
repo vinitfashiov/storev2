@@ -12,6 +12,7 @@ import { BrandSection } from '@/components/storefront/BrandSection';
 import { ProductSection } from '@/components/storefront/ProductSection';
 import { PromoStrip } from '@/components/storefront/PromoStrip';
 import { useCart } from '@/hooks/useCart';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { toast } from 'sonner';
 import { Store } from 'lucide-react';
 
@@ -74,7 +75,14 @@ interface Product {
 }
 
 export default function StoreHome() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: urlSlug } = useParams<{ slug: string }>();
+  const customDomain = useCustomDomain();
+  
+  // Use custom domain tenant slug if available, otherwise use URL slug
+  const slug = customDomain.isCustomDomain && customDomain.tenant 
+    ? customDomain.tenant.store_slug 
+    : urlSlug;
+  
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);

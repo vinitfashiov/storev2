@@ -25,6 +25,7 @@ import AdminStoreBanners from './admin/AdminStoreBanners';
 import AdminStorePages from './admin/AdminStorePages';
 import AdminUpgrade from './admin/AdminUpgrade';
 import AdminSubscription from './admin/AdminSubscription';
+import AdminDomains from './admin/AdminDomains';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -108,6 +109,7 @@ export default function Dashboard() {
         <Route path="pages" element={<AdminStorePages tenantId={tenant.id} storeSlug={tenant.store_slug} disabled={isTrialExpired} />} />
         <Route path="upgrade" element={<AdminUpgrade />} />
         <Route path="subscription" element={<AdminSubscription />} />
+        <Route path="domains" element={<AdminDomains />} />
         {isGrocery && (
           <>
             <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />
