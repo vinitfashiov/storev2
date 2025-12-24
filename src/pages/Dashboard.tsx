@@ -26,6 +26,12 @@ import AdminStorePages from './admin/AdminStorePages';
 import AdminUpgrade from './admin/AdminUpgrade';
 import AdminSubscription from './admin/AdminSubscription';
 import AdminDomains from './admin/AdminDomains';
+import AdminInventory from './admin/AdminInventory';
+import AdminSuppliers from './admin/AdminSuppliers';
+import AdminPurchaseOrders from './admin/AdminPurchaseOrders';
+import AdminBatches from './admin/AdminBatches';
+import AdminPOS from './admin/AdminPOS';
+import AdminPOSReports from './admin/AdminPOSReports';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -110,8 +116,16 @@ export default function Dashboard() {
         <Route path="upgrade" element={<AdminUpgrade />} />
         <Route path="subscription" element={<AdminSubscription />} />
         <Route path="domains" element={<AdminDomains />} />
+        {/* Inventory Management - Both business types */}
+        <Route path="inventory" element={<AdminInventory tenantId={tenant.id} />} />
+        <Route path="suppliers" element={<AdminSuppliers tenantId={tenant.id} />} />
+        <Route path="purchase-orders" element={<AdminPurchaseOrders tenantId={tenant.id} businessType={tenant.business_type} />} />
+        {/* Grocery-specific routes */}
         {isGrocery && (
           <>
+            <Route path="batches" element={<AdminBatches tenantId={tenant.id} />} />
+            <Route path="pos" element={<AdminPOS tenantId={tenant.id} />} />
+            <Route path="pos-reports" element={<AdminPOSReports tenantId={tenant.id} />} />
             <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="delivery-slots" element={<AdminDeliverySlots tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="delivery-settings" element={<AdminDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />

@@ -175,7 +175,7 @@ serve(async (req) => {
 
       console.log('Order created:', newOrder.id);
 
-      // Create order items and reduce stock
+      // Create order items, reduce stock, and create inventory movements
       for (const item of draftData.items) {
         await supabase.from('order_items').insert({
           tenant_id: tenant.id,
@@ -185,6 +185,17 @@ serve(async (req) => {
           qty: item.qty,
           unit_price: item.unit_price,
           line_total: item.unit_price * item.qty,
+        });
+
+        // Create inventory movement for ledger tracking
+        await supabase.from('inventory_movements').insert({
+          tenant_id: tenant.id,
+          product_id: item.product_id,
+          movement_type: 'sale',
+          quantity: -item.qty,
+          reference_type: 'order',
+          reference_id: newOrder.id,
+          notes: `Online order ${draftData.order_number}`,
         });
 
         // Reduce stock

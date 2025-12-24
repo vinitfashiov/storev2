@@ -459,6 +459,18 @@ export default function CheckoutPage() {
             unit_price: item.unit_price, 
             line_total: item.unit_price * item.qty
           });
+
+          // Create inventory movement for ledger tracking
+          await supabase.from('inventory_movements').insert({
+            tenant_id: tenant.id,
+            product_id: item.product_id,
+            variant_id: variantId,
+            movement_type: 'sale',
+            quantity: -item.qty,
+            reference_type: 'order',
+            reference_id: order.id,
+            notes: `Online order ${orderNumber}`,
+          });
           
           // Reduce stock from variant or product
           if (variantId) {
