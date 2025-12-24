@@ -240,20 +240,20 @@ export default function AdminDeliveryAreas({ tenantId }: AdminDeliveryAreasProps
                     <TableCell className="font-medium">{area.name}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {area.pincodes.slice(0, 3).map((pin, i) => (
+                        {(area.pincodes || []).slice(0, 3).map((pin, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">{pin}</Badge>
                         ))}
-                        {area.pincodes.length > 3 && (
+                        {(area.pincodes || []).length > 3 && (
                           <Badge variant="outline" className="text-xs">+{area.pincodes.length - 3}</Badge>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        {area.localities?.slice(0, 2).map((loc, i) => (
+                        {(area.localities || []).slice(0, 2).map((loc, i) => (
                           <Badge key={i} variant="outline" className="text-xs">{loc}</Badge>
                         ))}
-                        {area.localities && area.localities.length > 2 && (
+                        {(area.localities || []).length > 2 && (
                           <Badge variant="outline" className="text-xs">+{area.localities.length - 2}</Badge>
                         )}
                       </div>
