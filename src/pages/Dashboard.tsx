@@ -32,6 +32,10 @@ import AdminPurchaseOrders from './admin/AdminPurchaseOrders';
 import AdminBatches from './admin/AdminBatches';
 import AdminPOS from './admin/AdminPOS';
 import AdminPOSReports from './admin/AdminPOSReports';
+import AdminDeliveryBoys from './admin/AdminDeliveryBoys';
+import AdminDeliveryAreas from './admin/AdminDeliveryAreas';
+import AdminDeliveryOrders from './admin/AdminDeliveryOrders';
+import AdminDeliveryPayouts from './admin/AdminDeliveryPayouts';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -126,6 +130,10 @@ export default function Dashboard() {
             <Route path="batches" element={<AdminBatches tenantId={tenant.id} />} />
             <Route path="pos" element={<AdminPOS tenantId={tenant.id} />} />
             <Route path="pos-reports" element={<AdminPOSReports tenantId={tenant.id} />} />
+            <Route path="delivery-boys" element={<AdminDeliveryBoys tenantId={tenant.id} />} />
+            <Route path="delivery-areas" element={<AdminDeliveryAreas tenantId={tenant.id} />} />
+            <Route path="delivery-orders" element={<AdminDeliveryOrders tenantId={tenant.id} />} />
+            <Route path="delivery-payouts" element={<AdminDeliveryPayouts tenantId={tenant.id} />} />
             <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="delivery-slots" element={<AdminDeliverySlots tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="delivery-settings" element={<AdminDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />

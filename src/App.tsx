@@ -25,6 +25,7 @@ import StoreAddresses from "./pages/store/StoreAddresses";
 import StoreWishlist from "./pages/store/StoreWishlist";
 import StorePageView from "./pages/store/StorePageView";
 import StoreGuard from "./components/storefront/StoreGuard";
+import DeliveryPanel from "./pages/delivery/DeliveryPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -144,6 +145,7 @@ function AppContent() {
         <Route path="/store/:slug/account/addresses" element={<StoreAddressesWrapper />} />
         <Route path="/store/:slug/wishlist" element={<StoreGuard><StoreWishlist /></StoreGuard>} />
         <Route path="/store/:slug/page/:pageSlug" element={<StoreGuard><StorePageView /></StoreGuard>} />
+        <Route path="/store/:slug/delivery" element={<DeliveryPanel />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>
