@@ -21,7 +21,13 @@ import {
   Image,
   FileText,
   Palette,
-  Crown
+  Crown,
+  Warehouse,
+  PackageSearch,
+  ClipboardList,
+  Monitor,
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 
 const baseNavItems = [
@@ -36,7 +42,16 @@ const baseNavItems = [
   { href: '/dashboard/payment-intents', label: 'Payment Intents', icon: CreditCard },
 ];
 
+const inventoryNavItems = [
+  { href: '/dashboard/inventory', label: 'Stock Management', icon: Warehouse },
+  { href: '/dashboard/suppliers', label: 'Suppliers', icon: Users },
+  { href: '/dashboard/purchase-orders', label: 'Purchase Orders', icon: ClipboardList },
+];
+
 const groceryNavItems = [
+  { href: '/dashboard/batches', label: 'Batches & Expiry', icon: Calendar },
+  { href: '/dashboard/pos', label: 'POS Terminal', icon: Monitor },
+  { href: '/dashboard/pos-reports', label: 'POS Reports', icon: BarChart3 },
   { href: '/dashboard/delivery-zones', label: 'Delivery Zones', icon: MapPin },
   { href: '/dashboard/delivery-slots', label: 'Delivery Slots', icon: Clock },
   { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
@@ -69,6 +84,7 @@ export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSideba
 
   const navItems = [
     ...baseNavItems,
+    ...inventoryNavItems,
     ...(isGrocery ? groceryNavItems : []),
     ...storeNavItems,
     ...settingsNavItems
