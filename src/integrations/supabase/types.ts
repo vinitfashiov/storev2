@@ -504,6 +504,421 @@ export type Database = {
           },
         ]
       }
+      delivery_areas: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          localities: string[] | null
+          name: string
+          pincodes: string[]
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          localities?: string[] | null
+          name: string
+          pincodes?: string[]
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          localities?: string[] | null
+          name?: string
+          pincodes?: string[]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_assignments: {
+        Row: {
+          assigned_at: string | null
+          cod_collected: number | null
+          created_at: string
+          delivered_at: string | null
+          delivery_area_id: string | null
+          delivery_boy_id: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          picked_up_at: string | null
+          status: Database["public"]["Enums"]["delivery_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          cod_collected?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_area_id?: string | null
+          delivery_boy_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          picked_up_at?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          cod_collected?: number | null
+          created_at?: string
+          delivered_at?: string | null
+          delivery_area_id?: string | null
+          delivery_boy_id?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          picked_up_at?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_assignments_delivery_area_id_fkey"
+            columns: ["delivery_area_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_boy_areas: {
+        Row: {
+          created_at: string
+          delivery_area_id: string
+          delivery_boy_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_area_id: string
+          delivery_boy_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_area_id?: string
+          delivery_boy_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_boy_areas_delivery_area_id_fkey"
+            columns: ["delivery_area_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_boy_areas_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_boy_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_boys: {
+        Row: {
+          account_holder_name: string | null
+          account_number: string | null
+          created_at: string
+          full_name: string
+          id: string
+          ifsc_code: string | null
+          is_active: boolean
+          mobile_number: string
+          monthly_salary: number | null
+          password_hash: string
+          payment_type: Database["public"]["Enums"]["delivery_payment_type"]
+          per_order_amount: number | null
+          percentage_value: number | null
+          tenant_id: string
+          total_earned: number
+          total_paid: number
+          updated_at: string
+          upi_id: string | null
+          wallet_balance: number
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          ifsc_code?: string | null
+          is_active?: boolean
+          mobile_number: string
+          monthly_salary?: number | null
+          password_hash: string
+          payment_type?: Database["public"]["Enums"]["delivery_payment_type"]
+          per_order_amount?: number | null
+          percentage_value?: number | null
+          tenant_id: string
+          total_earned?: number
+          total_paid?: number
+          updated_at?: string
+          upi_id?: string | null
+          wallet_balance?: number
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_number?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          ifsc_code?: string | null
+          is_active?: boolean
+          mobile_number?: string
+          monthly_salary?: number | null
+          password_hash?: string
+          payment_type?: Database["public"]["Enums"]["delivery_payment_type"]
+          per_order_amount?: number | null
+          percentage_value?: number | null
+          tenant_id?: string
+          total_earned?: number
+          total_paid?: number
+          updated_at?: string
+          upi_id?: string | null
+          wallet_balance?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_boys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_earnings: {
+        Row: {
+          amount: number
+          assignment_id: string | null
+          created_at: string
+          delivery_boy_id: string
+          description: string | null
+          earning_type: Database["public"]["Enums"]["delivery_payment_type"]
+          id: string
+          order_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount: number
+          assignment_id?: string | null
+          created_at?: string
+          delivery_boy_id: string
+          description?: string | null
+          earning_type: Database["public"]["Enums"]["delivery_payment_type"]
+          id?: string
+          order_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number
+          assignment_id?: string | null
+          created_at?: string
+          delivery_boy_id?: string
+          description?: string | null
+          earning_type?: Database["public"]["Enums"]["delivery_payment_type"]
+          id?: string
+          order_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_earnings_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_earnings_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_earnings_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_earnings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          delivery_boy_id: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          requested_at: string
+          status: Database["public"]["Enums"]["payout_status"]
+          tenant_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string
+          delivery_boy_id: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          tenant_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          delivery_boy_id?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_at?: string
+          status?: Database["public"]["Enums"]["payout_status"]
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_payout_requests_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_payout_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          delivery_boy_id: string
+          id: string
+          notes: string | null
+          paid_at: string
+          payment_method: string | null
+          payout_request_id: string | null
+          tenant_id: string
+          transaction_reference: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          delivery_boy_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_method?: string | null
+          payout_request_id?: string | null
+          tenant_id: string
+          transaction_reference?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          delivery_boy_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          payment_method?: string | null
+          payout_request_id?: string | null
+          tenant_id?: string
+          transaction_reference?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_payouts_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_payouts_payout_request_id_fkey"
+            columns: ["payout_request_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_payout_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_slots: {
         Row: {
           created_at: string
@@ -548,6 +963,61 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "delivery_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_status_logs: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          delivery_boy_id: string | null
+          id: string
+          new_status: Database["public"]["Enums"]["delivery_status"]
+          notes: string | null
+          old_status: Database["public"]["Enums"]["delivery_status"] | null
+          tenant_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          delivery_boy_id?: string | null
+          id?: string
+          new_status: Database["public"]["Enums"]["delivery_status"]
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["delivery_status"] | null
+          tenant_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          delivery_boy_id?: string | null
+          id?: string
+          new_status?: Database["public"]["Enums"]["delivery_status"]
+          notes?: string | null
+          old_status?: Database["public"]["Enums"]["delivery_status"] | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_status_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_status_logs_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_status_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2102,6 +2572,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_delivery_boy_tenant_id: {
+        Args: { delivery_boy_uuid: string }
+        Returns: string
+      }
       get_tenant_id_by_domain: {
         Args: { custom_domain: string }
         Returns: string
@@ -2111,6 +2585,18 @@ export type Database = {
     }
     Enums: {
       business_type: "ecommerce" | "grocery"
+      delivery_payment_type:
+        | "monthly_salary"
+        | "fixed_per_order"
+        | "percentage_per_order"
+      delivery_status:
+        | "unassigned"
+        | "assigned"
+        | "picked_up"
+        | "out_for_delivery"
+        | "delivered"
+        | "failed"
+        | "returned"
       inventory_movement_type:
         | "purchase_received"
         | "sale"
@@ -2123,6 +2609,7 @@ export type Database = {
         | "damaged"
         | "transfer_in"
         | "transfer_out"
+      payout_status: "pending" | "approved" | "paid" | "rejected"
       plan_type: "trial" | "pro"
       purchase_order_status:
         | "draft"
@@ -2259,6 +2746,20 @@ export const Constants = {
   public: {
     Enums: {
       business_type: ["ecommerce", "grocery"],
+      delivery_payment_type: [
+        "monthly_salary",
+        "fixed_per_order",
+        "percentage_per_order",
+      ],
+      delivery_status: [
+        "unassigned",
+        "assigned",
+        "picked_up",
+        "out_for_delivery",
+        "delivered",
+        "failed",
+        "returned",
+      ],
       inventory_movement_type: [
         "purchase_received",
         "sale",
@@ -2272,6 +2773,7 @@ export const Constants = {
         "transfer_in",
         "transfer_out",
       ],
+      payout_status: ["pending", "approved", "paid", "rejected"],
       plan_type: ["trial", "pro"],
       purchase_order_status: [
         "draft",
