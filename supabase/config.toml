@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.verify-domain-dns]
 verify_jwt = false
+
+[functions.delivery-boy-auth]
+verify_jwt = false
