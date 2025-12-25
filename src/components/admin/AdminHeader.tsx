@@ -60,7 +60,6 @@ const groceryNavItems = [
   { href: '/dashboard/delivery-areas', label: 'Delivery Areas', icon: MapPin },
   { href: '/dashboard/delivery-orders', label: 'Delivery Orders', icon: Truck },
   { href: '/dashboard/delivery-payouts', label: 'Delivery Payouts', icon: CreditCard },
-  { href: '/dashboard/delivery-zones', label: 'Delivery Zones', icon: MapPin },
   { href: '/dashboard/delivery-slots', label: 'Delivery Slots', icon: Clock },
   { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
   { href: '/dashboard/product-availability', label: 'Zone Availability', icon: Grid },

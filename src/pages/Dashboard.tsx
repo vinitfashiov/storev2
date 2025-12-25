@@ -15,7 +15,7 @@ import AdminOrders from './admin/AdminOrders';
 import AdminOrderDetail from './admin/AdminOrderDetail';
 import AdminSettings from './admin/AdminSettings';
 import AdminIntegrations from './admin/AdminIntegrations';
-import AdminDeliveryZones from './admin/AdminDeliveryZones';
+
 import AdminDeliverySlots from './admin/AdminDeliverySlots';
 import AdminDeliverySettings from './admin/AdminDeliverySettings';
 import AdminProductAvailability from './admin/AdminProductAvailability';
@@ -134,7 +134,7 @@ export default function Dashboard() {
             <Route path="delivery-areas" element={<AdminDeliveryAreas tenantId={tenant.id} />} />
             <Route path="delivery-orders" element={<AdminDeliveryOrders tenantId={tenant.id} />} />
             <Route path="delivery-payouts" element={<AdminDeliveryPayouts tenantId={tenant.id} />} />
-            <Route path="delivery-zones" element={<AdminDeliveryZones tenantId={tenant.id} disabled={isTrialExpired} />} />
+            
             <Route path="delivery-slots" element={<AdminDeliverySlots tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="delivery-settings" element={<AdminDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="product-availability" element={<AdminProductAvailability tenantId={tenant.id} disabled={isTrialExpired} />} />
