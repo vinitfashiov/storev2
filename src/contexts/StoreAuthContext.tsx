@@ -81,19 +81,35 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
 
   const signUp = async (email: string, password: string, name: string, phone: string, tid: string) => {
     try {
-      // Check if phone already exists for this tenant
-      const { data: existingCustomer } = await supabase
+      // Check if email already exists for THIS tenant (same store)
+      const { data: existingEmailCustomer } = await supabase
         .from('customers')
         .select('id')
         .eq('tenant_id', tid)
-        .eq('phone', phone)
+        .eq('email', email)
         .maybeSingle();
 
-      if (existingCustomer) {
-        return { error: new Error('Phone number already registered') };
+      if (existingEmailCustomer) {
+        return { error: new Error('Email already registered for this store. Please login instead.') };
+      }
+
+      // Check if phone already exists for this tenant
+      if (phone) {
+        const { data: existingPhoneCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('tenant_id', tid)
+          .eq('phone', phone)
+          .maybeSingle();
+
+        if (existingPhoneCustomer) {
+          return { error: new Error('Phone number already registered for this store') };
+        }
       }
 
       const redirectUrl = `${window.location.origin}/`;
+      
+      // Try to sign up - this creates a new auth.user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -103,10 +119,44 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         }
       });
 
+      // If user already exists in auth.users (from another storefront), try to sign in instead
+      if (error?.message?.includes('User already registered')) {
+        // User exists in auth.users but not in this tenant's customers
+        // Sign them in and create a customer record for this tenant
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (signInError) {
+          return { error: new Error('Account exists with different password. Please use the correct password or reset it.') };
+        }
+
+        if (signInData.user) {
+          // Create customer record for this tenant
+          const { error: customerError } = await supabase.from('customers').insert({
+            tenant_id: tid,
+            user_id: signInData.user.id,
+            name,
+            phone,
+            email
+          });
+
+          if (customerError) {
+            console.error('Failed to create customer:', customerError);
+            return { error: new Error('Failed to create account for this store') };
+          }
+
+          await fetchCustomer(signInData.user.id, tid);
+        }
+
+        return { error: null };
+      }
+
       if (error) return { error };
 
       if (data.user) {
-        // Create customer record
+        // Create customer record for this tenant
         const { error: customerError } = await supabase.from('customers').insert({
           tenant_id: tid,
           user_id: data.user.id,
