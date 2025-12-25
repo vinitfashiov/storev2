@@ -25,7 +25,12 @@ import {
   Image,
   FileText,
   Palette,
-  Crown
+  Crown,
+  Warehouse,
+  ClipboardList,
+  Monitor,
+  BarChart3,
+  Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +46,20 @@ const baseNavItems = [
   { href: '/dashboard/payment-intents', label: 'Payment Intents', icon: CreditCard },
 ];
 
+const inventoryNavItems = [
+  { href: '/dashboard/inventory', label: 'Stock Management', icon: Warehouse },
+  { href: '/dashboard/suppliers', label: 'Suppliers', icon: Users },
+  { href: '/dashboard/purchase-orders', label: 'Purchase Orders', icon: ClipboardList },
+];
+
 const groceryNavItems = [
+  { href: '/dashboard/batches', label: 'Batches & Expiry', icon: Calendar },
+  { href: '/dashboard/pos', label: 'POS Terminal', icon: Monitor },
+  { href: '/dashboard/pos-reports', label: 'POS Reports', icon: BarChart3 },
+  { href: '/dashboard/delivery-boys', label: 'Delivery Boys', icon: Users },
+  { href: '/dashboard/delivery-areas', label: 'Delivery Areas', icon: MapPin },
+  { href: '/dashboard/delivery-orders', label: 'Delivery Orders', icon: Truck },
+  { href: '/dashboard/delivery-payouts', label: 'Delivery Payouts', icon: CreditCard },
   { href: '/dashboard/delivery-zones', label: 'Delivery Zones', icon: MapPin },
   { href: '/dashboard/delivery-slots', label: 'Delivery Slots', icon: Clock },
   { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
@@ -52,6 +70,7 @@ const storeNavItems = [
   { href: '/dashboard/store-settings', label: 'Store Settings', icon: Palette },
   { href: '/dashboard/banners', label: 'Banners', icon: Image },
   { href: '/dashboard/pages', label: 'Pages', icon: FileText },
+  { href: '/dashboard/domains', label: 'Custom Domains', icon: ExternalLink },
 ];
 
 const settingsNavItems = [
@@ -75,6 +94,7 @@ export function AdminHeader({ storeName, storeSlug, businessType, onSignOut }: A
 
   const navItems = [
     ...baseNavItems,
+    ...inventoryNavItems,
     ...(isGrocery ? groceryNavItems : []),
     ...storeNavItems,
     ...settingsNavItems
