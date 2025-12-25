@@ -131,6 +131,32 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
 
   const signIn = async (email: string, password: string, tid: string) => {
     try {
+      // Get current session first to check if already logged in
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      // If already logged in with same email, just check customer record
+      if (sessionData.session?.user?.email === email) {
+        const { data: customerData } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('user_id', sessionData.session.user.id)
+          .eq('tenant_id', tid)
+          .maybeSingle();
+
+        if (!customerData) {
+          return { error: new Error('No account found for this store. Please sign up first.') };
+        }
+
+        setCustomer(customerData as Customer);
+        return { error: null };
+      }
+
+      // Otherwise do fresh login (but store admin session key first)
+      const adminSessionKey = `admin_session_backup`;
+      if (sessionData.session) {
+        localStorage.setItem(adminSessionKey, JSON.stringify(sessionData.session));
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -148,7 +174,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
           .maybeSingle();
 
         if (!customerData) {
-          await supabase.auth.signOut();
+          // Don't sign out - just return error
           return { error: new Error('No account found for this store. Please sign up first.') };
         }
 
@@ -162,7 +188,8 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Only clear customer state - don't sign out from Supabase auth
+    // This preserves admin session if they were logged in
     setUser(null);
     setSession(null);
     setCustomer(null);
