@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
+import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, MapPin, Clock, Calendar, ChevronRight, Tag } from 'lucide-react';
 
 interface Tenant {
   id: string;
@@ -19,6 +20,7 @@ interface Tenant {
 
 export default function CartPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -53,7 +55,189 @@ export default function CartPage() {
   if (!tenant) return null;
 
   const subtotal = getSubtotal();
+  const deliveryFee = 32;
+  const taxes = Math.round(subtotal * 0.05);
+  const total = subtotal + deliveryFee + taxes;
+  const isGrocery = tenant.business_type === 'grocery';
 
+  // Grocery Mobile Layout
+  if (isGrocery) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col pb-40 lg:pb-0">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+          <div className="flex items-center gap-3 p-4">
+            <button onClick={() => navigate(-1)} className="p-1">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold">Cart</h1>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block">
+          <StoreHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            businessType={tenant.business_type}
+            cartCount={itemCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        </div>
+
+        <main className="flex-1">
+          {!cart || cart.items.length === 0 ? (
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
+                <ShoppingCart className="w-10 h-10 text-neutral-400" />
+              </div>
+              <h3 className="font-bold text-lg mb-2">Your cart is empty</h3>
+              <p className="text-neutral-500 text-sm mb-6">Add some products to get started!</p>
+              <Link to={`/store/${slug}/products`}>
+                <Button className="bg-green-600 hover:bg-green-700">Browse Products</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white">
+              {/* Delivery Address */}
+              <div className="p-4 border-b border-neutral-100">
+                <button className="flex items-center gap-3 w-full text-left">
+                  <MapPin className="w-5 h-5 text-neutral-500" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Delivery Address</p>
+                    <p className="text-xs text-neutral-500 truncate">2nd Cross, 1st Main HSR Layout, Bengaluru...</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-neutral-400" />
+                </button>
+              </div>
+
+              {/* Cart Items */}
+              <div className="p-4">
+                <h2 className="font-bold text-sm mb-3">Items in your cart</h2>
+                <div className="space-y-4">
+                  {cart.items.map((item) => {
+                    const imageUrl = getImageUrl(item.product?.images);
+                    return (
+                      <div key={item.id} className="flex gap-3">
+                        <div className="w-16 h-16 bg-neutral-100 rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
+                          {imageUrl ? (
+                            <img 
+                              src={imageUrl} 
+                              alt={item.product?.name || 'Product'} 
+                              className="w-full h-full object-contain p-1"
+                            />
+                          ) : (
+                            <Package className="w-8 h-8 text-neutral-300" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-sm line-clamp-2">{item.product?.name || 'Product'}</h3>
+                          <p className="text-xs text-neutral-500">₹{item.unit_price} / unit</p>
+                        </div>
+                        <div className="flex items-center gap-1 border border-green-600 rounded-lg">
+                          <button 
+                            onClick={() => updateQuantity(item.id, item.qty - 1)}
+                            className="p-1.5 text-green-600"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="text-sm font-bold text-green-600 w-6 text-center">{item.qty}</span>
+                          <button 
+                            onClick={() => updateQuantity(item.id, item.qty + 1)}
+                            className="p-1.5 text-green-600"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Delivery Time Options */}
+              <div className="p-4 border-t border-neutral-100">
+                <h2 className="font-bold text-sm mb-3">Delivery Time</h2>
+                <div className="flex gap-3">
+                  <button className="flex-1 p-3 border-2 border-green-600 rounded-xl bg-green-50">
+                    <div className="flex items-center gap-2 justify-center">
+                      <Clock className="w-4 h-4" />
+                      <span className="font-semibold text-sm">Standard</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-1">25-30 Mins</p>
+                  </button>
+                  <button className="flex-1 p-3 border border-neutral-200 rounded-xl">
+                    <div className="flex items-center gap-2 justify-center">
+                      <Calendar className="w-4 h-4" />
+                      <span className="font-semibold text-sm">Schedule</span>
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-1">Select Time</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Promo Code */}
+              <div className="p-4 border-t border-neutral-100">
+                <button className="flex items-center gap-3 w-full text-left">
+                  <Tag className="w-5 h-5 text-neutral-500" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Add Promo code</p>
+                    <p className="text-xs text-neutral-500">Apply promo code for discount</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-neutral-400" />
+                </button>
+              </div>
+
+              {/* Bill Details */}
+              <div className="p-4 border-t border-neutral-100">
+                <h2 className="font-bold text-sm mb-3">Bill Details</h2>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Subtotal</span>
+                    <span>₹{subtotal}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Delivery fee</span>
+                    <span>₹{deliveryFee}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Tax & other fees</span>
+                    <span>₹{taxes}</span>
+                  </div>
+                  <div className="flex justify-between font-bold pt-2 border-t border-neutral-100">
+                    <span>Total</span>
+                    <span>₹{total}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+
+        {/* Sticky Bottom */}
+        {cart && cart.items.length > 0 && (
+          <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 p-4">
+            <Link to={`/store/${slug}/checkout`}>
+              <Button className="w-full h-14 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-xl">
+                Make Payment
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Mobile Bottom Nav */}
+        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+
+        {/* Desktop Footer */}
+        <div className="hidden lg:block">
+          <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={tenant.address} phone={tenant.phone} />
+        </div>
+      </div>
+    );
+  }
+
+  // E-commerce Layout (Original)
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <StoreHeader
