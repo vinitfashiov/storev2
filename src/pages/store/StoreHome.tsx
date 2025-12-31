@@ -11,6 +11,13 @@ import { CategorySection } from '@/components/storefront/CategorySection';
 import { BrandSection } from '@/components/storefront/BrandSection';
 import { ProductSection } from '@/components/storefront/ProductSection';
 import { PromoStrip } from '@/components/storefront/PromoStrip';
+import { GroceryHeader } from '@/components/storefront/grocery/GroceryHeader';
+import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
+import { GroceryPromoBanner } from '@/components/storefront/grocery/GroceryPromoBanner';
+import { GroceryCategoryGrid } from '@/components/storefront/grocery/GroceryCategoryGrid';
+import { GroceryBrandScroll } from '@/components/storefront/grocery/GroceryBrandScroll';
+import { GroceryProductSection } from '@/components/storefront/grocery/GroceryProductSection';
+import { GroceryMembershipCard } from '@/components/storefront/grocery/GroceryPromoElements';
 import { useCart } from '@/hooks/useCart';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { toast } from 'sonner';
@@ -51,6 +58,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  image_url?: string | null;
 }
 
 interface Brand {
@@ -78,7 +86,6 @@ export default function StoreHome() {
   const { slug: urlSlug } = useParams<{ slug: string }>();
   const customDomain = useCustomDomain();
   
-  // Use custom domain tenant slug if available, otherwise use URL slug
   const slug = customDomain.isCustomDomain && customDomain.tenant 
     ? customDomain.tenant.store_slug 
     : urlSlug;
@@ -129,14 +136,13 @@ export default function StoreHome() {
 
       setTenant(tenantData as Tenant);
 
-      // Fetch all data in parallel
       const [settingsRes, bannersRes, catsRes, brandsRes, prodsRes, newProdsRes] = await Promise.all([
         supabase.from('store_settings').select('*').eq('tenant_id', tenantData.id).maybeSingle(),
         supabase.from('store_banners').select('id, title, subtitle, image_path, cta_text, cta_url').eq('tenant_id', tenantData.id).eq('is_active', true).order('position', { ascending: true }),
-        supabase.from('categories').select('id, name, slug').eq('tenant_id', tenantData.id).eq('is_active', true).limit(8),
-        supabase.from('brands').select('id, name, slug, logo_path').eq('tenant_id', tenantData.id).eq('is_active', true).limit(6),
-        supabase.from('products').select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants, category:categories(name), brand:brands(name)').eq('tenant_id', tenantData.id).eq('is_active', true).limit(8),
-        supabase.from('products').select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants, category:categories(name), brand:brands(name)').eq('tenant_id', tenantData.id).eq('is_active', true).order('created_at', { ascending: false }).limit(8)
+        supabase.from('categories').select('id, name, slug').eq('tenant_id', tenantData.id).eq('is_active', true).limit(12),
+        supabase.from('brands').select('id, name, slug, logo_path').eq('tenant_id', tenantData.id).eq('is_active', true).limit(8),
+        supabase.from('products').select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants, category:categories(name), brand:brands(name)').eq('tenant_id', tenantData.id).eq('is_active', true).limit(10),
+        supabase.from('products').select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants, category:categories(name), brand:brands(name)').eq('tenant_id', tenantData.id).eq('is_active', true).order('created_at', { ascending: false }).limit(10)
       ]);
 
       if (settingsRes.data) setStoreSettings(settingsRes.data);
@@ -144,7 +150,6 @@ export default function StoreHome() {
       setCategories(catsRes.data || []);
       setBrands(brandsRes.data || []);
 
-      // Calculate variant stock
       const calcStock = async (prods: any[]) => {
         return Promise.all(prods.map(async (product: any) => {
           if (product.has_variants) {
@@ -168,9 +173,9 @@ export default function StoreHome() {
     fetchData();
   }, [slug]);
 
-  const handleAddToCart = async (productId: string, price: number) => {
+  const handleAddToCart = async (productId: string, price: number, quantity: number = 1) => {
     setAddingProduct(productId);
-    const success = await addToCart(productId, price);
+    const success = await addToCart(productId, price, quantity);
     if (success) {
       toast.success('Added to cart!');
     } else {
@@ -182,12 +187,10 @@ export default function StoreHome() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="border-b p-4"><Skeleton className="h-16 w-full" /></div>
-        <Skeleton className="h-[400px] w-full" />
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-64" />)}
-          </div>
+        <div className="p-4"><Skeleton className="h-16 w-full rounded-xl" /></div>
+        <div className="p-4"><Skeleton className="h-40 w-full rounded-2xl" /></div>
+        <div className="p-4 grid grid-cols-4 gap-3">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <Skeleton key={i} className="aspect-square rounded-xl" />)}
         </div>
       </div>
     );
@@ -210,6 +213,95 @@ export default function StoreHome() {
     );
   }
 
+  const isGrocery = tenant.business_type === 'grocery';
+
+  // Grocery Store Layout (Mobile-First)
+  if (isGrocery) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col pb-20 lg:pb-0">
+        {/* Mobile Grocery Header */}
+        <div className="lg:hidden">
+          <GroceryHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            logoPath={storeSettings?.logo_path}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
+          />
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block">
+          <StoreHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            businessType={tenant.business_type}
+            cartCount={itemCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            logoPath={storeSettings?.logo_path}
+            categories={categories}
+          />
+        </div>
+
+        <main className="flex-1 bg-white lg:bg-neutral-50">
+          {/* Promo Banner */}
+          <GroceryPromoBanner banners={banners} storeSlug={tenant.store_slug} />
+
+          {/* Membership Card */}
+          <GroceryMembershipCard storeSlug={tenant.store_slug} />
+
+          {/* Bestsellers */}
+          <GroceryProductSection
+            title="Bestsellers"
+            products={products}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+
+          {/* Categories Grid */}
+          <GroceryCategoryGrid 
+            categories={categories} 
+            storeSlug={tenant.store_slug}
+          />
+
+          {/* Popular Brands */}
+          <GroceryBrandScroll 
+            brands={brands} 
+            storeSlug={tenant.store_slug}
+          />
+
+          {/* New Arrivals */}
+          <GroceryProductSection
+            title="New Arrivals"
+            products={newProducts}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+
+          {/* Desktop Footer */}
+          <div className="hidden lg:block">
+            <StoreFooter
+              storeName={tenant.store_name}
+              storeSlug={tenant.store_slug}
+              address={storeSettings?.store_address || tenant.address}
+              phone={storeSettings?.store_phone || tenant.phone}
+              email={storeSettings?.store_email}
+              logoPath={storeSettings?.logo_path}
+            />
+          </div>
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+      </div>
+    );
+  }
+
+  // E-commerce Store Layout (Original Design)
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <StoreHeader
