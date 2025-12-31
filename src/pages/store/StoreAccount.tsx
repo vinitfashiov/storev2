@@ -1,18 +1,59 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Package, MapPin, LogOut, User } from 'lucide-react';
+import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
+import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
+import { 
+  ArrowLeft, 
+  Package, 
+  MapPin, 
+  LogOut, 
+  User, 
+  ChevronRight,
+  Heart,
+  CreditCard,
+  Tag,
+  Settings,
+  HelpCircle,
+  ChevronLeft
+} from 'lucide-react';
+
+interface Tenant {
+  id: string;
+  store_name: string;
+  store_slug: string;
+  business_type: 'ecommerce' | 'grocery';
+}
 
 interface StoreAccountProps {
-  storeName: string;
+  storeName?: string;
 }
 
 export default function StoreAccount({ storeName }: StoreAccountProps) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { customer, signOut } = useStoreAuth();
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+
+  const { itemCount } = useCart(slug || '', tenant?.id || null);
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      if (!slug) return;
+      const { data } = await supabase
+        .from('tenants')
+        .select('id, store_name, store_slug, business_type')
+        .eq('store_slug', slug)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (data) setTenant(data as Tenant);
+    };
+    fetchTenant();
+  }, [slug]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -20,22 +61,132 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
     navigate(`/store/${slug}`);
   };
 
+  const isGrocery = tenant?.business_type === 'grocery';
+
   if (!customer) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6">
-            <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground mb-4">Please log in to view your account</p>
-            <Link to={`/store/${slug}/login`}>
-              <Button>Sign In</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-white flex flex-col pb-20">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+          <div className="flex items-center gap-3 p-4">
+            <button onClick={() => navigate(-1)} className="p-1">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold">Account</h1>
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md text-center">
+            <CardContent className="pt-8 pb-8">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
+                <User className="w-8 h-8 text-neutral-400" />
+              </div>
+              <h2 className="font-bold text-lg mb-2">Sign in to your account</h2>
+              <p className="text-neutral-500 text-sm mb-6">Track orders, manage addresses, and more</p>
+              <div className="space-y-3">
+                <Link to={`/store/${slug}/login`} className="block">
+                  <Button className="w-full bg-green-600 hover:bg-green-700">Sign In</Button>
+                </Link>
+                <Link to={`/store/${slug}/signup`} className="block">
+                  <Button variant="outline" className="w-full">Create Account</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {isGrocery && <GroceryBottomNav storeSlug={slug || ''} cartCount={itemCount} />}
       </div>
     );
   }
 
+  // Grocery Mobile Layout
+  if (isGrocery) {
+    const menuItems = [
+      { icon: User, label: 'My Account', href: `/store/${slug}/account`, description: 'Profile details' },
+      { icon: Package, label: 'My Orders', href: `/store/${slug}/account/orders`, description: 'Track your orders' },
+      { icon: CreditCard, label: 'Payments', href: '#', description: 'Saved cards & UPI' },
+      { icon: MapPin, label: 'Address', href: `/store/${slug}/account/addresses`, description: 'Saved addresses' },
+      { icon: Heart, label: 'Favourites', href: `/store/${slug}/wishlist`, description: 'Your wishlist' },
+      { icon: Tag, label: 'Promocodes', href: '#', description: 'Discounts & offers' },
+      { icon: Settings, label: 'Settings', href: '#', description: 'App preferences' },
+      { icon: HelpCircle, label: 'Help', href: '#', description: 'Support & FAQ' },
+    ];
+
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col pb-20">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+          <div className="flex items-center gap-3 p-4">
+            <button onClick={() => navigate(`/store/${slug}`)} className="p-1">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        <main className="flex-1">
+          {/* Profile Section */}
+          <div className="bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold">{customer.name}</h1>
+                <p className="text-neutral-500 text-sm">{customer.phone || customer.email}</p>
+              </div>
+              <div className="w-14 h-14 rounded-full bg-neutral-100 flex items-center justify-center">
+                <User className="w-7 h-7 text-neutral-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Membership Card */}
+          <div className="p-4">
+            <div className="bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-white">Gold Membership</h3>
+                <p className="text-white/80 text-sm">Free delivery on all orders</p>
+                <button className="mt-2 bg-neutral-900 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+                  Know more
+                </button>
+              </div>
+              <div className="text-4xl">🎁</div>
+            </div>
+          </div>
+
+          {/* Menu Items */}
+          <div className="bg-white mt-2">
+            {menuItems.map((item, index) => (
+              <Link
+                key={item.label}
+                to={item.href}
+                className="flex items-center gap-4 p-4 border-b border-neutral-100 last:border-b-0"
+              >
+                <item.icon className="w-5 h-5 text-neutral-600" />
+                <span className="flex-1 font-medium">{item.label}</span>
+                <ChevronRight className="w-5 h-5 text-neutral-400" />
+              </Link>
+            ))}
+          </div>
+
+          {/* Sign Out */}
+          <div className="p-4">
+            <Button 
+              variant="outline" 
+              className="w-full border-red-200 text-red-600 hover:bg-red-50"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </main>
+
+        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+      </div>
+    );
+  }
+
+  // E-commerce Layout (Original)
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
+import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { toast } from 'sonner';
@@ -19,7 +20,10 @@ import {
   ChevronLeft,
   Check,
   AlertCircle,
-  Heart
+  Heart,
+  Clock,
+  Star,
+  Share2
 } from 'lucide-react';
 
 interface Tenant {
@@ -63,6 +67,7 @@ interface AttributeOption {
 
 export default function ProductDetail() {
   const { slug, productSlug } = useParams<{ slug: string; productSlug: string }>();
+  const navigate = useNavigate();
   const { customer } = useStoreAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
@@ -108,7 +113,6 @@ export default function ProductDetail() {
       if (productData) {
         setProduct(productData as Product);
 
-        // Fetch variants if product has variants
         if (productData.has_variants) {
           const { data: variantsData } = await supabase
             .from('product_variants')
@@ -117,14 +121,12 @@ export default function ProductDetail() {
             .eq('is_active', true);
 
           if (variantsData && variantsData.length > 0) {
-            // Fetch variant attributes
             const variantIds = variantsData.map(v => v.id);
             const { data: variantAttrsData } = await supabase
               .from('variant_attributes')
               .select('variant_id, attribute:attributes(name), attribute_value:attribute_values(value)')
               .in('variant_id', variantIds);
 
-            // Build variants with attributes
             const variantsWithAttrs = variantsData.map(v => ({
               ...v,
               attributes: (variantAttrsData || [])
@@ -137,7 +139,6 @@ export default function ProductDetail() {
 
             setVariants(variantsWithAttrs);
 
-            // Build attribute options
             const attrMap: Record<string, Set<string>> = {};
             variantsWithAttrs.forEach(v => {
               v.attributes.forEach(a => {
@@ -153,7 +154,6 @@ export default function ProductDetail() {
 
             setAttributeOptions(options);
 
-            // Auto-select first variant
             if (options.length > 0) {
               const initialSelection: Record<string, string> = {};
               options.forEach(opt => {
@@ -171,7 +171,6 @@ export default function ProductDetail() {
     fetchData();
   }, [slug, productSlug]);
 
-  // Find matching variant when attributes change
   useEffect(() => {
     if (!product?.has_variants || variants.length === 0) {
       setSelectedVariant(null);
@@ -185,7 +184,6 @@ export default function ProductDetail() {
     setSelectedVariant(matchingVariant || null);
   }, [selectedAttributes, variants, product?.has_variants]);
 
-  // Check wishlist status
   useEffect(() => {
     const checkWishlist = async () => {
       if (!customer || !tenant || !product) return;
@@ -239,7 +237,6 @@ export default function ProductDetail() {
     }
     
     setAdding(true);
-    // TODO: Pass variant_id to addToCart when adding variant support to cart
     const success = await addToCart(product.id, price, quantity);
     if (success) {
       toast.success(`Added ${quantity} item(s) to cart!`);
@@ -254,7 +251,6 @@ export default function ProductDetail() {
     return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
 
-  // Use variant price/stock if selected, otherwise use product price/stock
   const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
   const displayComparePrice = selectedVariant?.compare_at_price ?? product?.compare_at_price;
   const displayStockQty = selectedVariant?.stock_qty ?? product?.stock_qty ?? 0;
@@ -264,13 +260,17 @@ export default function ProductDetail() {
     : 0;
 
   const isOutOfStock = displayStockQty <= 0;
-  const isLowStock = displayStockQty > 0 && displayStockQty <= 5;
+  const isGrocery = tenant?.business_type === 'grocery';
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-[400px] w-full" />
+      <div className="min-h-screen bg-white">
+        <div className="p-4"><Skeleton className="h-12 w-full" /></div>
+        <Skeleton className="aspect-square w-full" />
+        <div className="p-4 space-y-3">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-8 w-1/2" />
+          <Skeleton className="h-20 w-full" />
         </div>
       </div>
     );
@@ -278,12 +278,12 @@ export default function ProductDetail() {
 
   if (!tenant || !product) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <Card className="max-w-md text-center">
           <CardContent className="py-12">
-            <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <Package className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
             <h1 className="text-xl font-bold mb-2">Product not found</h1>
-            <p className="text-muted-foreground mb-4">This product doesn't exist or has been removed.</p>
+            <p className="text-neutral-500 mb-4">This product doesn't exist or has been removed.</p>
             <Link to={`/store/${slug}/products`}>
               <Button>Browse Products</Button>
             </Link>
@@ -293,6 +293,238 @@ export default function ProductDetail() {
     );
   }
 
+  // Grocery Mobile Layout
+  if (isGrocery) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col pb-32 lg:pb-0">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+          <div className="flex items-center justify-between p-4">
+            <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={handleToggleWishlist} className="p-2">
+                <Heart className={`w-6 h-6 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+              </button>
+              <button className="p-2">
+                <Share2 className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block">
+          <StoreHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            businessType={tenant.business_type}
+            cartCount={itemCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        </div>
+
+        <main className="flex-1">
+          {/* Product Image */}
+          <div className="relative bg-neutral-50">
+            <div className="aspect-square overflow-hidden">
+              {product.images && product.images.length > 0 ? (
+                <img 
+                  src={getImageUrl(product.images[selectedImage])} 
+                  alt={product.name}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Package className="w-24 h-24 text-neutral-300" />
+                </div>
+              )}
+            </div>
+
+            {/* Discount Badge */}
+            {discount > 0 && (
+              <div className="absolute top-4 left-4">
+                <Badge className="bg-green-600 text-white">{discount}% OFF</Badge>
+              </div>
+            )}
+
+            {/* Image Thumbnails */}
+            {product.images && product.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-white/80 rounded-full px-3 py-2">
+                {product.images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      selectedImage === idx ? 'bg-green-600 w-4' : 'bg-neutral-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Info */}
+          <div className="p-4 space-y-4">
+            {/* Delivery Time Badge */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-neutral-100 rounded-full px-3 py-1">
+                <Clock className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium">10-15 mins</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm text-neutral-500">
+                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                <span>4.5 (1.2k)</span>
+              </div>
+            </div>
+
+            {/* Product Name */}
+            <div>
+              <h1 className="text-xl font-bold text-neutral-900">{product.name}</h1>
+              {product.brand && (
+                <p className="text-sm text-neutral-500">{product.brand.name}</p>
+              )}
+            </div>
+
+            {/* Price */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-neutral-900">₹{displayPrice}</span>
+              {displayComparePrice && (
+                <>
+                  <span className="text-lg text-neutral-400 line-through">₹{displayComparePrice}</span>
+                  <span className="text-sm font-medium text-green-600">{discount}% off</span>
+                </>
+              )}
+            </div>
+
+            {/* Variant Selectors */}
+            {product.has_variants && attributeOptions.length > 0 && (
+              <div className="space-y-3 pt-2 border-t border-neutral-100">
+                {attributeOptions.map(attr => (
+                  <div key={attr.name}>
+                    <label className="text-sm font-medium text-neutral-700 mb-2 block">{attr.name}</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {attr.values.map(value => (
+                        <button
+                          key={value}
+                          onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            selectedAttributes[attr.name] === value
+                              ? 'border-green-600 bg-green-50 text-green-700'
+                              : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
+                          }`}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Description */}
+            {product.description && (
+              <div className="pt-4 border-t border-neutral-100">
+                <button className="text-green-600 font-medium text-sm flex items-center gap-1">
+                  View product details
+                  <ChevronLeft className="w-4 h-4 rotate-180" />
+                </button>
+                <p className="text-neutral-600 text-sm mt-2 hidden">{product.description}</p>
+              </div>
+            )}
+
+            {/* Stock Status */}
+            <div className="flex items-center gap-2 text-sm">
+              {isOutOfStock ? (
+                <span className="text-red-600 font-medium">Out of Stock</span>
+              ) : displayStockQty <= 5 ? (
+                <span className="text-orange-600 font-medium">Only {displayStockQty} left!</span>
+              ) : (
+                <span className="text-green-600 font-medium flex items-center gap-1">
+                  <Check className="w-4 h-4" /> In Stock
+                </span>
+              )}
+            </div>
+          </div>
+        </main>
+
+        {/* Sticky Bottom Bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 p-4 lg:relative lg:border-none">
+          <div className="flex items-center gap-4">
+            {/* Price Summary */}
+            <div className="flex-1">
+              <div className="flex items-baseline gap-1">
+                <span className="text-xl font-bold">₹{displayPrice}</span>
+                {displayComparePrice && (
+                  <span className="text-sm text-neutral-400 line-through">₹{displayComparePrice}</span>
+                )}
+              </div>
+              <p className="text-xs text-neutral-500">Inclusive of all taxes</p>
+            </div>
+
+            {/* Quantity or Add Button */}
+            {quantity === 0 || isOutOfStock ? (
+              <Button 
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 text-white font-bold px-8"
+                disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
+                onClick={() => { setQuantity(1); handleAddToCart(); }}
+              >
+                {adding ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to cart'}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="flex items-center border border-green-600 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setQuantity(Math.max(0, quantity - 1))}
+                    className="p-3 text-green-600 hover:bg-green-50"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  <span className="w-10 text-center font-bold text-green-600">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity(Math.min(displayStockQty, quantity + 1))}
+                    className="p-3 text-green-600 hover:bg-green-50"
+                    disabled={quantity >= displayStockQty}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+                <Button 
+                  size="lg"
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+                  disabled={adding}
+                  onClick={handleAddToCart}
+                >
+                  {adding ? 'Adding...' : 'Add to cart'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Bottom Nav */}
+        <div className="lg:hidden">
+          <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+        </div>
+
+        {/* Desktop Footer */}
+        <div className="hidden lg:block">
+          <StoreFooter
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            address={tenant.address}
+            phone={tenant.phone}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // E-commerce Layout (Original)
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <StoreHeader
@@ -387,7 +619,7 @@ export default function ProductDetail() {
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm font-medium">Out of Stock</span>
                 </div>
-              ) : isLowStock ? (
+              ) : displayStockQty <= 5 ? (
                 <div className="flex items-center gap-2 text-warning">
                   <AlertCircle className="w-4 h-4" />
                   <span className="text-sm font-medium">Only {displayStockQty} left!</span>
