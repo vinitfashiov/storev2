@@ -12,6 +12,8 @@ interface Product {
   compare_at_price: number | null;
   images: string[];
   stock_qty: number;
+  has_variants?: boolean;
+  total_variant_stock?: number;
   unit?: string;
 }
 
@@ -38,7 +40,12 @@ export function GroceryProductCard({
   };
 
   const imageUrl = product.images?.[0] ? getImageUrl(product.images[0]) : null;
-  const isOutOfStock = product.stock_qty <= 0;
+  
+  // Check stock - for products with variants, use total_variant_stock
+  const effectiveStock = product.has_variants 
+    ? (product.total_variant_stock ?? 0) 
+    : product.stock_qty;
+  const isOutOfStock = effectiveStock <= 0;
   const discount = product.compare_at_price 
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
