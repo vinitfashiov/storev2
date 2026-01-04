@@ -32,7 +32,7 @@ export function StoreSwitcher({ currentTenantId, storeName, onTenantChange }: St
   };
 
   const handleCreateStore = () => {
-    navigate('/onboarding');
+    navigate('/onboarding?new=true');
   };
 
   // If only one store, show simple button

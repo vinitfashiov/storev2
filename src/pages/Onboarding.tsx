@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,9 @@ interface FormData {
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isAddingNewStore = searchParams.get('new') === 'true';
+  const { user, profile, refreshProfile, tenants } = useAuth();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
@@ -49,10 +51,11 @@ export default function Onboarding() {
   useEffect(() => {
     if (!user) {
       navigate('/authentication');
-    } else if (profile?.onboarding_completed) {
+    } else if (profile?.onboarding_completed && !isAddingNewStore) {
+      // Only redirect if not adding a new store
       navigate('/dashboard');
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, navigate, isAddingNewStore]);
 
   useEffect(() => {
     const checkSlug = async () => {
@@ -130,6 +133,16 @@ export default function Onboarding() {
     setIsLoading(true);
 
     try {
+      const isFirstStore = tenants.length === 0;
+      
+      // For additional stores, unset all existing is_primary flags first
+      if (!isFirstStore) {
+        await supabase
+          .from('user_tenants')
+          .update({ is_primary: false })
+          .eq('user_id', user.id);
+      }
+
       // Create tenant
       const { data: tenant, error: tenantError } = await supabase
         .from('tenants')
@@ -155,7 +168,7 @@ export default function Onboarding() {
         return;
       }
 
-      // Create user_tenants entry
+      // Create user_tenants entry with is_primary = true for the new store
       const { error: userTenantError } = await supabase
         .from('user_tenants')
         .insert({
@@ -166,6 +179,9 @@ export default function Onboarding() {
 
       if (userTenantError) {
         console.error('Failed to create user_tenants entry:', userTenantError);
+        toast.error('Failed to link store to your account.');
+        setIsLoading(false);
+        return;
       }
 
       // Update profile with tenant_id and onboarding status
@@ -184,7 +200,7 @@ export default function Onboarding() {
       }
 
       await refreshProfile();
-      toast.success('Store created successfully!');
+      toast.success(isFirstStore ? 'Store created successfully!' : 'New store added successfully!');
       navigate('/dashboard');
     } catch (error) {
       toast.error('Something went wrong. Please try again.');
@@ -206,8 +222,15 @@ export default function Onboarding() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-primary shadow-glow mb-4">
             <Store className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">Set Up Your Store</h1>
-          <p className="text-muted-foreground mt-2">Let's get your online store ready in 3 simple steps</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">
+            {isAddingNewStore ? 'Add New Store' : 'Set Up Your Store'}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            {isAddingNewStore 
+              ? 'Create another store under your account' 
+              : "Let's get your online store ready in 3 simple steps"
+            }
+          </p>
         </div>
 
         {/* Progress Steps */}

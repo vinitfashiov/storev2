@@ -44,7 +44,7 @@ export default function AdminStores({ onTenantChange, onRefresh }: AdminStoresPr
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCreateStore = () => {
-    navigate('/onboarding');
+    navigate('/onboarding?new=true');
   };
 
   const handleSwitchStore = async (tenantId: string) => {
