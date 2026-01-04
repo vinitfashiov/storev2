@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  ShoppingBag, 
-  Package, 
+import {
+  TrendingUp,
+  ShoppingBag,
+  Package,
   Users,
   ExternalLink,
   CheckCircle2,
@@ -42,7 +42,7 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
 
       const orders = ordersRes.data || [];
       const revenue = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + Number(o.total), 0);
-      
+
       setStats({
         revenue,
         orders: orders.length,
@@ -142,28 +142,36 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>Manage your store</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Link to="/dashboard/products">
-              <Button variant="outline" className="w-full justify-start">
-                <Package className="w-4 h-4 mr-2" /> Manage Products
-              </Button>
-            </Link>
-            <Link to="/dashboard/orders">
-              <Button variant="outline" className="w-full justify-start">
-                <ShoppingBag className="w-4 h-4 mr-2" /> View Orders
-              </Button>
-            </Link>
-            <Link to="/dashboard/integrations">
-              <Button variant="outline" className="w-full justify-start">
-                <CreditCard className="w-4 h-4 mr-2" /> Configure Payments
-              </Button>
-            </Link>
-            <Link to={`/store/${tenant.store_slug}`} target="_blank">
-              <Button variant="outline" className="w-full justify-start">
-                <ExternalLink className="w-4 h-4 mr-2" /> View Storefront
-              </Button>
-            </Link>
+          <CardContent className="grid grid-cols-2 gap-3">
+            <Button asChild variant="outline" className="w-full justify-start h-12">
+              <Link to="/dashboard/products">
+                <Package className="w-4 h-4 mr-2" />
+                <span className="truncate">Products</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="w-full justify-start h-12">
+              <Link to="/dashboard/orders">
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                <span className="truncate">Orders</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="w-full justify-start h-12">
+              <Link to="/dashboard/integrations">
+                <CreditCard className="w-4 h-4 mr-2" />
+                <span className="truncate">Payments</span>
+              </Link>
+            </Button>
+
+            <Button asChild variant="outline" className="w-full justify-start h-12">
+              <Link to={`/store/${tenant.store_slug}`} target="_blank">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                <span className="truncate">Store</span>
+              </Link>
+            </Button>
           </CardContent>
+
         </Card>
 
         <Card>
@@ -171,28 +179,46 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
             <CardTitle>Getting Started</CardTitle>
             <CardDescription>Complete these steps to launch</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-success/10">
-              <CheckCircle2 className="w-5 h-5 text-success" />
-              <span className="font-medium text-success">Store Created</span>
+          <CardContent className="grid grid-cols-2 gap-3">
+            {/* Store Created */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10">
+              <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+              <span className="text-sm font-medium text-success leading-tight">
+                Store Created
+              </span>
             </div>
-            <div className={`flex items-center gap-3 p-3 rounded-lg ${stats.products > 0 ? 'bg-success/10' : 'bg-muted'}`}>
+
+            {/* Add Products */}
+            <div
+              className={`flex items-center gap-2 p-3 rounded-lg ${stats.products > 0 ? "bg-success/10" : "bg-muted"
+                }`}
+            >
               {stats.products > 0 ? (
-                <CheckCircle2 className="w-5 h-5 text-success" />
+                <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
+                <div className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
               )}
-              <span className={stats.products > 0 ? 'text-success font-medium' : ''}>Add Products</span>
+              <span
+                className={`text-sm leading-tight ${stats.products > 0 ? "text-success font-medium" : ""
+                  }`}
+              >
+                Add Products
+              </span>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
-              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
-              <span>Configure Payments</span>
+
+            {/* Configure Payments */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
+              <span className="text-sm leading-tight">Payments</span>
             </div>
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
-              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
-              <span>First Sale</span>
+
+            {/* First Sale */}
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
+              <span className="text-sm leading-tight">First Sale</span>
             </div>
           </CardContent>
+
         </Card>
       </div>
     </div>

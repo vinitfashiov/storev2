@@ -49,7 +49,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth');
+      navigate('/authentication');
     } else if (!loading && user && !profile?.onboarding_completed) {
       navigate('/onboarding');
     }
@@ -57,7 +57,7 @@ export default function Dashboard() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/auth');
+    navigate('/authentication');
     toast.success('Logged out successfully');
   };
 

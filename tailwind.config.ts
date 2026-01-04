@@ -77,8 +77,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["DM Sans", "sans-serif"],
-        display: ["Space Grotesk", "sans-serif"],
+        sans: ["Wix Madefor Text", "sans-serif"],
+        display: ["Wix Madefor Text", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

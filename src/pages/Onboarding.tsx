@@ -48,7 +48,7 @@ export default function Onboarding() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/auth');
+      navigate('/authentication');
     } else if (profile?.onboarding_completed) {
       navigate('/dashboard');
     }
