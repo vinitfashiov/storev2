@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,7 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboardProps) {
+  const navigate = useNavigate();
   const { data: stats, isLoading, refetch, isFetching } = useDashboardStats(tenant.id);
   const [todos, setTodos] = useState({
     storeCreated: true, // Always true since they're on the dashboard
@@ -338,12 +339,15 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
               </div>
             ) : (
               <>
-                {/* Store Created */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.storeCreated 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Store Created - Links to Settings */}
+                <Link
+                  to="/dashboard/settings"
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.storeCreated 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.storeCreated ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -356,14 +360,17 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Add store name
                   </span>
-                </div>
+                </Link>
 
-                {/* Add Products */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.addProducts 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Add Products - Links to Products */}
+                <Link
+                  to={todos.addProducts ? "/dashboard/products" : "/dashboard/products/new"}
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.addProducts 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.addProducts ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -376,14 +383,17 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Add your first product
                   </span>
-                </div>
+                </Link>
 
-                {/* Design Store */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.designStore 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Design Store - Links to Store Settings/Banners */}
+                <Link
+                  to="/dashboard/store-settings"
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.designStore 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.designStore ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -396,14 +406,17 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Design your store
                   </span>
-                </div>
+                </Link>
 
-                {/* Setup Payment */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.setupPayment 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Setup Payment - Links to Integrations */}
+                <Link
+                  to="/dashboard/integrations"
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.setupPayment 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.setupPayment ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -416,14 +429,17 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Set up a payment provider
                   </span>
-                </div>
+                </Link>
 
-                {/* Review Shipping */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.reviewShipping 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Review Shipping - Links to Delivery Settings or Settings */}
+                <Link
+                  to={tenant.business_type === 'grocery' ? "/dashboard/delivery-settings" : "/dashboard/settings"}
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.reviewShipping 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.reviewShipping ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -436,14 +452,17 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Review your shipping rates
                   </span>
-                </div>
+                </Link>
 
-                {/* Customize Domain */}
-                <div className={`flex items-center gap-3 p-3 rounded-lg ${
-                  todos.customizeDomain 
-                    ? 'bg-success/10' 
-                    : 'bg-transparent'
-                }`}>
+                {/* Customize Domain - Links to Domains */}
+                <Link
+                  to="/dashboard/domains"
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
+                    todos.customizeDomain 
+                      ? 'bg-success/10 hover:bg-success/15' 
+                      : 'bg-transparent hover:bg-muted/50'
+                  } cursor-pointer`}
+                >
                   {todos.customizeDomain ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
@@ -456,7 +475,7 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                   }`}>
                     Customize your domain
                   </span>
-                </div>
+                </Link>
               </>
             )}
           </CardContent>

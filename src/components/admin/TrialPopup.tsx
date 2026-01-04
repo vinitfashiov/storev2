@@ -8,8 +8,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, Check } from 'lucide-react';
+import { X, Check, Zap, Shield, Crown, TrendingUp, Globe, Package, Users, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
+
+const PRO_FEATURES = [
+  { icon: Package, text: 'Unlimited products' },
+  { icon: TrendingUp, text: 'Unlimited orders' },
+  { icon: Globe, text: 'Custom domain support' },
+  { icon: Shield, text: 'Priority support' },
+  { icon: BarChart3, text: 'Advanced analytics' },
+  { icon: Zap, text: 'No transaction fees' },
+  { icon: Crown, text: 'Hero banners & pages' },
+  { icon: Users, text: 'Multiple delivery zones' },
+];
 
 interface Tenant {
   id: string;
@@ -88,7 +99,7 @@ export function TrialPopup({ tenant, isTrialExpired, onUpgrade, open, onOpenChan
           <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8 md:p-10 flex flex-col justify-between">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold mb-6">
-                Get back to business for ₹20
+                Get back to business
               </h2>
               
               <div className="space-y-4 mb-8">
@@ -101,7 +112,8 @@ export function TrialPopup({ tenant, isTrialExpired, onUpgrade, open, onOpenChan
                           {trialEndDate} - Free trial ended. Good news — we saved your progress!
                         </>
                       )}
-                      {!trialEndDate && 'Free trial ended. Good news — we saved your progress!'}
+                      {!trialEndDate && !isTrialExpired && 'Your 7-day free trial is active. Upgrade anytime to continue!'}
+                      {!trialEndDate && isTrialExpired && 'Free trial ended. Good news — we saved your progress!'}
                     </p>
                   </div>
                 </div>
@@ -110,7 +122,7 @@ export function TrialPopup({ tenant, isTrialExpired, onUpgrade, open, onOpenChan
                   <Check className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm md:text-base">
-                      Today - <span className="line-through">₹1,994</span> ₹20/mo for 3 months. That's 98% off
+                      Start with only ₹249/month — Full access to all Pro features
                     </p>
                   </div>
                 </div>
@@ -143,7 +155,7 @@ export function TrialPopup({ tenant, isTrialExpired, onUpgrade, open, onOpenChan
             </div>
           </div>
 
-          {/* Right Section - White Background */}
+          {/* Right Section - White Background with Features */}
           <div className="bg-white p-8 md:p-10 flex flex-col relative">
             {canClose && (
               <button
@@ -155,101 +167,45 @@ export function TrialPopup({ tenant, isTrialExpired, onUpgrade, open, onOpenChan
             )}
             
             <div className="flex-1">
-              {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-blue-900">
-                  <strong>Enable international transactions</strong>
-                </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  You may need to contact your bank and ask them to enable international transactions to make sure your payment goes through.{' '}
-                  <a href="#" className="underline">Learn more</a>
-                </p>
-              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Unlock Pro Features
+              </h3>
+              
+              <p className="text-sm text-gray-600 mb-6">
+                Upgrade to Pro and get access to powerful features to grow your business
+              </p>
 
-              {/* Domain Offer Section */}
-              <div className="mb-6">
-                <details className="group">
-                  <summary className="cursor-pointer text-sm font-medium text-gray-700 flex items-center justify-between">
-                    <span>Includes domain offer</span>
-                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
-                  </summary>
-                  <div className="mt-2 text-xs text-gray-600">
-                    Domain offer details will be shown here
-                  </div>
-                </details>
-              </div>
-
-              {/* Payment Method */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Payment Method
-                </label>
-                <div className="flex items-center gap-3 p-3 border rounded-lg">
-                  <input
-                    type="radio"
-                    name="payment"
-                    id="upi"
-                    defaultChecked
-                    className="w-4 h-4"
-                  />
-                  <label htmlFor="upi" className="flex items-center gap-2 flex-1 cursor-pointer">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-white text-xs font-bold">
-                      GP
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">UPI</div>
-                      <div className="text-xs text-gray-500">
-                        Accepted apps include Google Pay, PhonePe & more. Send your UPI ID verification.
+              {/* Features List */}
+              <div className="space-y-3 mb-8">
+                {PRO_FEATURES.map((feature, index) => {
+                  const Icon = feature.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {feature.text}
+                        </p>
                       </div>
                     </div>
-                  </label>
-                </div>
+                  );
+                })}
               </div>
 
-              {/* UPI Fields */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Enter a UPI ID</label>
-                  <input
-                    type="text"
-                    placeholder="Example: username@razorpay"
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Phone number</label>
-                  <input
-                    type="tel"
-                    placeholder="Phone number"
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Business Location */}
-              <div className="mb-6">
-                <label className="block text-xs text-gray-600 mb-1">
-                  For accurate tax calculation, please provide the location of your business:
-                </label>
-                <input
-                  type="text"
-                  placeholder="Business location"
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-              </div>
-
-              {/* Subscribe Button */}
+              {/* Upgrade Button */}
               <Button
                 onClick={handleUpgrade}
-                className="w-full bg-gray-800 hover:bg-gray-900 text-white mb-4"
+                className="w-full bg-gray-800 hover:bg-gray-900 text-white mb-3 shadow-lg"
                 size="lg"
               >
-                Subscribe for ₹20 INR
+                Start with only ₹249/month
               </Button>
 
               {/* Fine Print */}
               <p className="text-xs text-gray-500 text-center">
-                Plus applicable taxes. Renews {renewalDate} on Basic plan ₹1,994/mo
+                No commitment, cancel anytime. Full access to all Pro features.
               </p>
             </div>
           </div>

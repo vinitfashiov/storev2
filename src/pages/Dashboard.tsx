@@ -80,19 +80,29 @@ export default function Dashboard() {
   };
 
   // Show trial popup on login/signup or when trial expires
+  // Don't show if user is on pro plan (payment done/subscription active)
   useEffect(() => {
-    if (!loading && tenant && tenant.plan === 'trial') {
-      const popupKey = `trial_popup_shown_${tenant.id}`;
-      const hasShownThisSession = sessionStorage.getItem(popupKey);
+    if (!loading && tenant) {
+      // Don't show popup if user is on pro plan
+      if (tenant.plan === 'pro') {
+        setShowTrialPopup(false);
+        return;
+      }
       
-      // Always show if trial expired (non-closable)
-      if (isTrialExpired) {
-        setShowTrialPopup(true);
-      } 
-      // Show once per session if trial is active (closable)
-      else if (!hasShownThisSession) {
-        setShowTrialPopup(true);
-        sessionStorage.setItem(popupKey, 'true');
+      // Only show for trial users
+      if (tenant.plan === 'trial') {
+        const popupKey = `trial_popup_shown_${tenant.id}`;
+        const hasShownThisSession = sessionStorage.getItem(popupKey);
+        
+        // Always show if trial expired (non-closable)
+        if (isTrialExpired) {
+          setShowTrialPopup(true);
+        } 
+        // Show once per session if trial is active (closable)
+        else if (!hasShownThisSession) {
+          setShowTrialPopup(true);
+          sessionStorage.setItem(popupKey, 'true');
+        }
       }
     }
   }, [loading, tenant, isTrialExpired]);
