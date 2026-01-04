@@ -2441,6 +2441,7 @@ export type Database = {
           address: string | null
           business_type: Database["public"]["Enums"]["business_type"]
           created_at: string
+          deleted_at: string | null
           id: string
           is_active: boolean
           phone: string | null
@@ -2454,6 +2455,7 @@ export type Database = {
           address?: string | null
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           phone?: string | null
@@ -2467,6 +2469,7 @@ export type Database = {
           address?: string | null
           business_type?: Database["public"]["Enums"]["business_type"]
           created_at?: string
+          deleted_at?: string | null
           id?: string
           is_active?: boolean
           phone?: string | null
@@ -2477,6 +2480,38 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      user_tenants: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tenants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       variant_attributes: {
         Row: {
@@ -2572,6 +2607,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
       get_delivery_boy_tenant_id: {
         Args: { delivery_boy_uuid: string }
         Returns: string
@@ -2581,7 +2617,26 @@ export type Database = {
         Returns: string
       }
       get_tenant_id_by_slug: { Args: { store_slug: string }; Returns: string }
+      get_user_primary_tenant_id: { Args: never; Returns: string }
       get_user_tenant_id: { Args: never; Returns: string }
+      get_user_tenants: {
+        Args: never
+        Returns: {
+          business_type: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          plan: string
+          store_name: string
+          store_slug: string
+          trial_ends_at: string
+        }[]
+      }
+      set_primary_tenant: {
+        Args: { target_tenant_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       business_type: "ecommerce" | "grocery"

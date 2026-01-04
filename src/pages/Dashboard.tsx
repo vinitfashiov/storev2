@@ -15,6 +15,7 @@ import AdminOrders from './admin/AdminOrders';
 import AdminOrderDetail from './admin/AdminOrderDetail';
 import AdminSettings from './admin/AdminSettings';
 import AdminIntegrations from './admin/AdminIntegrations';
+import AdminStores from './admin/AdminStores';
 
 import AdminDeliverySlots from './admin/AdminDeliverySlots';
 import AdminDeliverySettings from './admin/AdminDeliverySettings';
@@ -45,7 +46,7 @@ function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, profile, tenant, loading, signOut, refreshProfile } = useAuth();
+  const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants } = useAuth();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,9 +77,8 @@ export default function Dashboard() {
   };
 
   const handleTenantChange = async (newTenantId: string) => {
-    // Refresh profile and tenant
-    await refreshProfile();
-    window.location.reload(); // Reload to get new tenant context
+    await switchTenant(newTenantId);
+    window.location.reload();
   };
 
   if (loading) {
@@ -128,6 +128,7 @@ export default function Dashboard() {
         <Route path="upgrade" element={<AdminUpgrade />} />
         <Route path="subscription" element={<AdminSubscription />} />
         <Route path="domains" element={<AdminDomains />} />
+        <Route path="stores" element={<AdminStores onTenantChange={handleTenantChange} onRefresh={refreshTenants} />} />
         {/* Inventory Management - Both business types */}
         <Route path="inventory" element={<AdminInventory tenantId={tenant.id} />} />
         <Route path="suppliers" element={<AdminSuppliers tenantId={tenant.id} />} />

@@ -21,6 +21,7 @@ interface Tenant {
   is_active: boolean;
   address: string | null;
   phone: string | null;
+  is_primary?: boolean;
 }
 
 interface AuthContextType {
@@ -28,12 +29,15 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   tenant: Tenant | null;
+  tenants: Tenant[];
   loading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshTenant: () => Promise<void>;
+  refreshTenants: () => Promise<void>;
+  switchTenant: (tenantId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -59,6 +64,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   };
 
+  const fetchUserTenants = async () => {
+    const { data, error } = await supabase.rpc('get_user_tenants');
+    
+    if (!error && data) {
+      const mappedTenants = data.map((t: any) => ({
+        id: t.id,
+        store_name: t.store_name,
+        store_slug: t.store_slug,
+        business_type: t.business_type as 'ecommerce' | 'grocery',
+        plan: t.plan as 'trial' | 'pro',
+        trial_ends_at: t.trial_ends_at,
+        is_active: t.is_active,
+        address: null,
+        phone: null,
+        is_primary: t.is_primary
+      }));
+      setTenants(mappedTenants);
+      return mappedTenants;
+    }
+    return [];
+  };
+
   const fetchTenant = async (tenantId: string) => {
     const { data, error } = await supabase
       .from('tenants')
@@ -68,7 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (!error && data) {
       setTenant(data as Tenant);
+      return data;
     }
+    return null;
   };
 
   const refreshProfile = async () => {
@@ -77,12 +106,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (profileData?.tenant_id) {
         await fetchTenant(profileData.tenant_id);
       }
+      await fetchUserTenants();
     }
   };
 
   const refreshTenant = async () => {
     if (profile?.tenant_id) {
       await fetchTenant(profile.tenant_id);
+    }
+  };
+
+  const refreshTenants = async () => {
+    await fetchUserTenants();
+  };
+
+  const switchTenant = async (tenantId: string) => {
+    const { error } = await supabase.rpc('set_primary_tenant', { target_tenant_id: tenantId });
+    
+    if (!error) {
+      await fetchTenant(tenantId);
+      await fetchUserTenants();
+      // Update profile state with new tenant_id
+      if (profile) {
+        setProfile({ ...profile, tenant_id: tenantId });
+      }
     }
   };
 
@@ -95,13 +142,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setTimeout(async () => {
             const profileData = await fetchProfile(session.user.id);
+            const userTenants = await fetchUserTenants();
+            
             if (profileData?.tenant_id) {
               await fetchTenant(profileData.tenant_id);
+            } else if (userTenants.length > 0) {
+              // If no tenant_id in profile but user has tenants, use the primary one
+              const primaryTenant = userTenants.find((t: Tenant) => t.is_primary) || userTenants[0];
+              await fetchTenant(primaryTenant.id);
             }
           }, 0);
         } else {
           setProfile(null);
           setTenant(null);
+          setTenants([]);
         }
       }
     );
@@ -112,8 +166,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchProfile(session.user.id).then(async (profileData) => {
+          const userTenants = await fetchUserTenants();
+          
           if (profileData?.tenant_id) {
             await fetchTenant(profileData.tenant_id);
+          } else if (userTenants.length > 0) {
+            const primaryTenant = userTenants.find((t: Tenant) => t.is_primary) || userTenants[0];
+            await fetchTenant(primaryTenant.id);
           }
           setLoading(false);
         });
@@ -153,6 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setProfile(null);
     setTenant(null);
+    setTenants([]);
   };
 
   return (
@@ -161,12 +221,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session,
       profile,
       tenant,
+      tenants,
       loading,
       signUp,
       signIn,
       signOut,
       refreshProfile,
-      refreshTenant
+      refreshTenant,
+      refreshTenants,
+      switchTenant
     }}>
       {children}
     </AuthContext.Provider>

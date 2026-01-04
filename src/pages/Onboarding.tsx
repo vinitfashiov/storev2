@@ -155,6 +155,19 @@ export default function Onboarding() {
         return;
       }
 
+      // Create user_tenants entry
+      const { error: userTenantError } = await supabase
+        .from('user_tenants')
+        .insert({
+          user_id: user.id,
+          tenant_id: tenant.id,
+          is_primary: true
+        });
+
+      if (userTenantError) {
+        console.error('Failed to create user_tenants entry:', userTenantError);
+      }
+
       // Update profile with tenant_id and onboarding status
       const { error: profileError } = await supabase
         .from('profiles')
