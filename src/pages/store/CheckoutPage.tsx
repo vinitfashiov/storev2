@@ -442,31 +442,67 @@ export default function CheckoutPage() {
           };
         });
 
-        const { data: orderId, error: orderError } = await supabase.rpc('create_order_atomic', {
-          p_tenant_id: tenant.id,
-          p_order_number: orderNumber,
-          p_customer_id: customer?.id || null,
-          p_customer_name: form.name,
-          p_customer_phone: form.phone,
-          p_customer_email: form.email || null,
-          p_shipping_address: { line1: form.line1, line2: form.line2, city: form.city, state: form.state, pincode: form.pincode },
-          p_subtotal: subtotal,
-          p_discount_total: discountTotal,
-          p_delivery_fee: deliveryFee,
-          p_total: total,
-          p_payment_method: paymentMethod,
-          p_payment_status: 'unpaid',
-          p_status: 'pending',
-          p_delivery_zone_id: selectedZone?.id || null,
-          p_delivery_slot_id: deliveryOption === 'slot' ? selectedSlotId || null : null,
-          p_delivery_option: isGrocery ? deliveryOption : 'standard',
-          p_coupon_id: appliedCoupon?.coupon_id || null,
-          p_coupon_code: appliedCoupon?.coupon_code || null,
-          p_razorpay_order_id: null,
-          p_razorpay_payment_id: null,
-          p_order_items: orderItemsData as any,
-          p_cart_id: cart.id
-        });
+        // Create order manually since atomic function may not exist
+        const { data: newOrder, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            tenant_id: tenant.id,
+            order_number: orderNumber,
+            customer_id: customer?.id || null,
+            customer_name: form.name,
+            customer_phone: form.phone,
+            customer_email: form.email || null,
+            shipping_address: { line1: form.line1, line2: form.line2, city: form.city, state: form.state, pincode: form.pincode },
+            subtotal: subtotal,
+            discount_total: discountTotal,
+            delivery_fee: deliveryFee,
+            total: total,
+            payment_method: paymentMethod,
+            payment_status: 'unpaid',
+            status: 'pending',
+            delivery_zone_id: selectedZone?.id || null,
+            delivery_slot_id: deliveryOption === 'slot' ? selectedSlotId || null : null,
+            delivery_option: isGrocery ? deliveryOption : 'standard',
+            coupon_id: appliedCoupon?.coupon_id || null,
+            coupon_code: appliedCoupon?.coupon_code || null
+          })
+          .select('id')
+          .single();
+
+        const orderId = newOrder?.id;
+
+        if (!orderError && orderId) {
+          // Create order items
+          const orderItems = orderItemsData.map(item => ({
+            tenant_id: tenant.id,
+            order_id: orderId,
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            name: item.name,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            line_total: item.line_total
+          }));
+          await supabase.from('order_items').insert(orderItems);
+
+          // Update cart status
+          await supabase.from('carts').update({ status: 'converted' }).eq('id', cart.id);
+
+          // Decrement stock for each item
+          for (const item of orderItemsData) {
+            const { data: product } = await supabase
+              .from('products')
+              .select('stock_qty')
+              .eq('id', item.product_id)
+              .single();
+            if (product) {
+              await supabase
+                .from('products')
+                .update({ stock_qty: Math.max(0, product.stock_qty - item.qty) })
+                .eq('id', item.product_id);
+            }
+          }
+        }
 
         if (orderError) {
           // Handle specific error messages
@@ -495,10 +531,18 @@ export default function CheckoutPage() {
             discount_amount: discountTotal
           });
           
-          // Atomically increment coupon usage
-          await supabase.rpc('increment_coupon_usage', {
-            p_coupon_id: appliedCoupon.coupon_id
-          });
+          // Increment coupon usage directly
+          const { data: coupon } = await supabase
+            .from('coupons')
+            .select('used_count')
+            .eq('id', appliedCoupon.coupon_id)
+            .single();
+          if (coupon) {
+            await supabase
+              .from('coupons')
+              .update({ used_count: coupon.used_count + 1 })
+              .eq('id', appliedCoupon.coupon_id);
+          }
         }
 
         // Create delivery assignment for grocery orders

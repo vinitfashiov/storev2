@@ -237,11 +237,11 @@ serve(async (req) => {
 
         await supabase.from('delivery_assignments').insert({
           tenant_id: tenant.id,
-          order_id: newOrder.id,
+          order_id: orderId,
           delivery_area_id: deliveryAreaId,
           status: 'unassigned'
         });
-        console.log('Delivery assignment created for order:', newOrder.id);
+        console.log('Delivery assignment created for order:', orderId);
       }
 
       console.log('Payment verified and order created successfully');

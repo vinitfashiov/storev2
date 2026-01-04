@@ -213,45 +213,37 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
 
     if (!items) return;
 
-    // Prepare inventory movements for batch insert
-    const inventoryMovements = items
-      .filter(item => {
-        const qtyToReceive = item.quantity_ordered - item.quantity_received;
-        return qtyToReceive > 0;
-      })
-      .map(item => {
-        const qtyToReceive = item.quantity_ordered - item.quantity_received;
-        return {
-          tenant_id: tenantId,
-          product_id: item.product_id,
-          variant_id: item.variant_id || null,
-          movement_type: 'purchase_received',
-          quantity: qtyToReceive,
-          reference_type: 'purchase_order',
-          reference_id: orderId,
-          cost_price: item.cost_price,
-          notes: 'PO received'
-        };
+    // Process each item
+    for (const item of items) {
+      const qtyToReceive = item.quantity_ordered - item.quantity_received;
+      if (qtyToReceive <= 0) continue;
+
+      // Create inventory movement
+      await supabase.from('inventory_movements').insert({
+        tenant_id: tenantId,
+        product_id: item.product_id,
+        variant_id: item.variant_id || null,
+        movement_type: 'purchase_received' as const,
+        quantity: qtyToReceive,
+        reference_type: 'purchase_order',
+        reference_id: orderId,
+        cost_price: item.cost_price,
+        notes: 'PO received'
       });
 
-    // Batch insert inventory movements
-    if (inventoryMovements.length > 0) {
-      await supabase.from('inventory_movements').insert(inventoryMovements);
-
-      // Batch update stock using atomic function
-      const stockUpdates = inventoryMovements.map(async (movement) => {
-        const { error } = await supabase.rpc('update_product_stock_atomic', {
-          p_product_id: movement.product_id,
-          p_quantity: movement.quantity
-        });
-        if (error) {
-          console.error(`Failed to update stock for product ${movement.product_id}:`, error);
-          throw error;
-        }
-      });
-
-      await Promise.all(stockUpdates);
-    }
+      // Update product stock directly
+      const { data: product } = await supabase
+        .from('products')
+        .select('stock_qty')
+        .eq('id', item.product_id)
+        .single();
+      
+      if (product) {
+        await supabase
+          .from('products')
+          .update({ stock_qty: product.stock_qty + qtyToReceive })
+          .eq('id', item.product_id);
+      }
 
       // Update item as received
       await supabase

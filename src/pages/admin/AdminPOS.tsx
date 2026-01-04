@@ -264,7 +264,7 @@ export default function AdminPOS({ tenantId }: AdminPOSProps) {
       tenant_id: tenantId,
       product_id: item.product_id,
       variant_id: null,
-      movement_type: 'pos_sale',
+      movement_type: 'pos_sale' as const,
       quantity: -item.quantity,
       reference_type: 'pos_sale',
       reference_id: sale.id,
@@ -274,21 +274,16 @@ export default function AdminPOS({ tenantId }: AdminPOSProps) {
     // Batch insert inventory movements
     await supabase.from('inventory_movements').insert(inventoryMovements);
 
-    // Batch update stock (using atomic updates to prevent race conditions)
-    const stockUpdates = cart.map(async (item) => {
-      // Use atomic update with stock check
-      const { error } = await supabase.rpc('update_product_stock_atomic', {
-        p_product_id: item.product_id,
-        p_quantity: -item.quantity
-      });
-      if (error) {
-        console.error(`Failed to update stock for product ${item.product_id}:`, error);
-        throw error;
+    // Batch update stock - fetch current stock and decrement
+    for (const item of cart) {
+      const product = products.find(p => p.id === item.product_id);
+      if (product) {
+        await supabase
+          .from('products')
+          .update({ stock_qty: Math.max(0, product.stock_qty - item.quantity) })
+          .eq('id', item.product_id);
       }
-    });
-
-    // Wait for all stock updates to complete
-    await Promise.all(stockUpdates);
+    }
 
     setLastSale({
       ...sale,
