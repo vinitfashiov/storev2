@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useDashboardStats } from '@/hooks/useOptimizedQueries';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Tenant {
   id: string;
@@ -33,6 +35,86 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboardProps) {
   const { data: stats, isLoading, refetch, isFetching } = useDashboardStats(tenant.id);
+  const [todos, setTodos] = useState({
+    storeCreated: true, // Always true since they're on the dashboard
+    addProducts: false,
+    designStore: false,
+    setupPayment: false,
+    reviewShipping: false,
+    customizeDomain: false,
+  });
+  const [todosLoading, setTodosLoading] = useState(true);
+
+  useEffect(() => {
+    const checkTodos = async () => {
+      try {
+        // Check if products exist
+        const { count: productsCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('is_active', true);
+        
+        // Check if payment provider is configured
+        const { data: integration } = await supabase
+          .from('tenant_integrations')
+          .select('razorpay_key_id, razorpay_key_secret')
+          .eq('tenant_id', tenant.id)
+          .maybeSingle();
+        const hasPayment = !!(integration?.razorpay_key_id && integration?.razorpay_key_secret);
+        
+        // Check if shipping rates are configured (delivery_zones or delivery_settings)
+        const { count: zonesCount } = await supabase
+          .from('delivery_zones')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('is_active', true);
+        
+        const { data: deliverySettings } = await supabase
+          .from('tenant_delivery_settings')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .maybeSingle();
+        
+        const hasShipping = (zonesCount && zonesCount > 0) || !!deliverySettings;
+        
+        // Check if custom domain is configured
+        const { count: domainsCount } = await supabase
+          .from('custom_domains')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('status', 'active');
+        
+        // Check if store has banners or pages (design store)
+        const { count: bannersCount } = await supabase
+          .from('store_banners')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('is_active', true);
+        
+        const { count: pagesCount } = await supabase
+          .from('store_pages')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id)
+          .eq('is_published', true);
+        
+        setTodos({
+          storeCreated: true,
+          addProducts: (productsCount || 0) > 0,
+          designStore: (bannersCount || 0) > 0 || (pagesCount || 0) > 0,
+          setupPayment: hasPayment,
+          reviewShipping: hasShipping,
+          customizeDomain: (domainsCount || 0) > 0,
+        });
+      } catch (error) {
+        console.error('Error checking todos:', error);
+      } finally {
+        setTodosLoading(false);
+      }
+    };
+
+    checkTodos();
+  }, [tenant.id]);
 
   const getDaysRemaining = () => {
     const now = new Date();
@@ -231,43 +313,152 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>Complete these steps to launch</CardDescription>
+        <Card className="border-purple-300">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-lg font-bold">To-dos</CardTitle>
+            </div>
+            <Badge className="bg-purple-100 text-purple-700 border-purple-300">
+              {[
+                todos.storeCreated,
+                todos.addProducts,
+                todos.designStore,
+                todos.setupPayment,
+                todos.reviewShipping,
+                todos.customizeDomain
+              ].filter(Boolean).length}/6
+            </Badge>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
-            {/* Store Created */}
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10">
-              <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-              <span className="text-sm font-medium text-success leading-tight">
-                Store Created
-              </span>
-            </div>
+          <CardContent className="space-y-2">
+            {todosLoading ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : (
+              <>
+                {/* Store Created */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.storeCreated 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.storeCreated ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.storeCreated 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Add store name
+                  </span>
+                </div>
 
-            {/* Add Products */}
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10">
-              <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-              <span className="text-sm font-medium text-success leading-tight">
-                Add Products
-              </span>
-            </div>
+                {/* Add Products */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.addProducts 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.addProducts ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.addProducts 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Add your first product
+                  </span>
+                </div>
 
-            {/* Configure Payments */}
-            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-              <div className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
-              <span className="text-sm leading-tight">Payments</span>
-            </div>
+                {/* Design Store */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.designStore 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.designStore ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.designStore 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Design your store
+                  </span>
+                </div>
 
-            {/* First Sale */}
-            <div className={`flex items-center gap-2 p-3 rounded-lg ${Number(stats?.total_orders) > 0 ? 'bg-success/10' : 'bg-muted'}`}>
-              {Number(stats?.total_orders) > 0 ? (
-                <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-              ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-muted-foreground shrink-0" />
-              )}
-              <span className={`text-sm leading-tight ${Number(stats?.total_orders) > 0 ? 'text-success font-medium' : ''}`}>First Sale</span>
-            </div>
+                {/* Setup Payment */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.setupPayment 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.setupPayment ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.setupPayment 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Set up a payment provider
+                  </span>
+                </div>
+
+                {/* Review Shipping */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.reviewShipping 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.reviewShipping ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.reviewShipping 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Review your shipping rates
+                  </span>
+                </div>
+
+                {/* Customize Domain */}
+                <div className={`flex items-center gap-3 p-3 rounded-lg ${
+                  todos.customizeDomain 
+                    ? 'bg-success/10' 
+                    : 'bg-transparent'
+                }`}>
+                  {todos.customizeDomain ? (
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
+                  )}
+                  <span className={`text-sm leading-tight ${
+                    todos.customizeDomain 
+                      ? 'text-success font-medium line-through' 
+                      : 'text-gray-600'
+                  }`}>
+                    Customize your domain
+                  </span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

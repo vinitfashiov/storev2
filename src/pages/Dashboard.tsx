@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLayout } from '@/components/admin/AdminLayout';
+import { TrialPopup } from '@/components/admin/TrialPopup';
 import { toast } from 'sonner';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminProducts from './admin/AdminProducts';
@@ -46,7 +47,9 @@ function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants } = useAuth();
+  const [showTrialPopup, setShowTrialPopup] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -76,6 +79,24 @@ export default function Dashboard() {
     navigate('/dashboard/upgrade');
   };
 
+  // Show trial popup on login/signup or when trial expires
+  useEffect(() => {
+    if (!loading && tenant && tenant.plan === 'trial') {
+      const popupKey = `trial_popup_shown_${tenant.id}`;
+      const hasShownThisSession = sessionStorage.getItem(popupKey);
+      
+      // Always show if trial expired (non-closable)
+      if (isTrialExpired) {
+        setShowTrialPopup(true);
+      } 
+      // Show once per session if trial is active (closable)
+      else if (!hasShownThisSession) {
+        setShowTrialPopup(true);
+        sessionStorage.setItem(popupKey, 'true');
+      }
+    }
+  }, [loading, tenant, isTrialExpired]);
+
   const handleTenantChange = async (newTenantId: string) => {
     await switchTenant(newTenantId);
     // Context update will automatically trigger re-render with new tenant
@@ -98,17 +119,25 @@ export default function Dashboard() {
   const isGrocery = tenant.business_type === 'grocery';
 
   return (
-    <AdminLayout
-      storeName={tenant.store_name}
-      storeSlug={tenant.store_slug}
-      tenantId={tenant.id}
-      businessType={tenant.business_type}
-      onSignOut={handleSignOut}
-      onTenantChange={handleTenantChange}
-      isTrialExpired={isTrialExpired}
-      onUpgrade={handleUpgrade}
-    >
-      <Routes>
+    <>
+      <TrialPopup
+        tenant={tenant}
+        isTrialExpired={isTrialExpired}
+        onUpgrade={handleUpgrade}
+        open={showTrialPopup}
+        onOpenChange={setShowTrialPopup}
+      />
+      <AdminLayout
+        storeName={tenant.store_name}
+        storeSlug={tenant.store_slug}
+        tenantId={tenant.id}
+        businessType={tenant.business_type}
+        onSignOut={handleSignOut}
+        onTenantChange={handleTenantChange}
+        isTrialExpired={isTrialExpired}
+        onUpgrade={handleUpgrade}
+      >
+        <Routes>
         <Route index element={<AdminDashboard tenant={tenant} isTrialExpired={isTrialExpired} />} />
         <Route path="products" element={<AdminProducts tenantId={tenant.id} disabled={isTrialExpired} />} />
         <Route path="products/new" element={<AdminProductForm tenantId={tenant.id} disabled={isTrialExpired} />} />
@@ -152,5 +181,6 @@ export default function Dashboard() {
         )}
       </Routes>
     </AdminLayout>
+    </>
   );
 }
