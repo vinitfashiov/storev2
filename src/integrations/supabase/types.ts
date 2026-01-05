@@ -1057,6 +1057,47 @@ export type Database = {
           },
         ]
       }
+      homepage_layouts: {
+        Row: {
+          created_at: string
+          draft_data: Json | null
+          id: string
+          layout_data: Json
+          published_at: string | null
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          draft_data?: Json | null
+          id?: string
+          layout_data?: Json
+          published_at?: string | null
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          draft_data?: Json | null
+          id?: string
+          layout_data?: Json
+          published_at?: string | null
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homepage_layouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           batch_id: string | null
@@ -1160,6 +1201,41 @@ export type Database = {
             foreignKeyName: "inventory_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      layout_versions: {
+        Row: {
+          created_at: string
+          id: string
+          layout_data: Json
+          published_at: string
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout_data: Json
+          published_at?: string
+          tenant_id: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout_data?: Json
+          published_at?: string
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layout_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },

@@ -63,6 +63,7 @@ const groceryNavItems = [
 
 const storeNavItems = [
   { href: '/dashboard/store-settings', label: 'Store Settings', icon: Palette },
+  { href: '/dashboard/page-builder', label: 'Page Builder', icon: Layers },
   { href: '/dashboard/banners', label: 'Banners', icon: Image },
   { href: '/dashboard/pages', label: 'Pages', icon: FileText },
 ];
