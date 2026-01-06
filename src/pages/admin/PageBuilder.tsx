@@ -54,9 +54,11 @@ import {
   Search,
   Check,
   History,
-  Palette
+  Palette,
+  Plus
 } from 'lucide-react';
 import { PageBuilderBlock, BlockType, HomepageLayout, BlockStyles } from '@/types/pageBuilder';
+import { CanvasPreview } from '@/components/pageBuilder/CanvasPreview';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -99,6 +101,78 @@ const BLOCK_ICONS: Record<string, any> = {
   countdown: Clock,
   collection: Package
 };
+
+// Default homepage content - shown when page builder is opened for the first time
+const DEFAULT_HOMEPAGE_BLOCKS: PageBuilderBlock[] = [
+  {
+    id: uuidv4(),
+    type: 'hero',
+    order: 0,
+    styles: {},
+    data: {
+      title: 'Welcome to Our Store',
+      subtitle: 'Discover amazing products at unbeatable prices. Shop the latest trends and find exactly what you need.',
+      imageUrl: '',
+      ctaText: 'Shop Now',
+      ctaUrl: '/products',
+      ctaSecondaryText: 'Learn More',
+      ctaSecondaryUrl: '/about',
+      overlay: true,
+      overlayOpacity: 40
+    }
+  },
+  {
+    id: uuidv4(),
+    type: 'categories',
+    order: 1,
+    styles: {},
+    data: {
+      title: 'Shop by Category',
+      subtitle: 'Browse our wide selection of products',
+      limit: 8,
+      layout: 'grid',
+      columns: 4
+    }
+  },
+  {
+    id: uuidv4(),
+    type: 'products',
+    order: 2,
+    styles: {},
+    data: {
+      title: 'Featured Products',
+      subtitle: 'Our top picks for you',
+      collection: 'featured',
+      limit: 8,
+      layout: 'grid',
+      columns: 4
+    }
+  },
+  {
+    id: uuidv4(),
+    type: 'brands',
+    order: 3,
+    styles: {},
+    data: {
+      title: 'Our Brands',
+      subtitle: 'Trusted by millions worldwide',
+      limit: 6,
+      layout: 'grid'
+    }
+  },
+  {
+    id: uuidv4(),
+    type: 'cta',
+    order: 4,
+    styles: {},
+    data: {
+      title: 'Ready to Get Started?',
+      subtitle: 'Join thousands of happy customers today',
+      buttonText: 'Shop Now',
+      buttonUrl: '/products'
+    }
+  }
+] as PageBuilderBlock[];
 
 // Block categories for library
 const BLOCK_CATEGORIES = [
@@ -314,8 +388,8 @@ const BlockLibrary = memo(({ onAddBlock, searchQuery }: { onAddBlock: (type: Blo
   );
 });
 
-// Sortable Block Item
-const SortableBlockItem = memo(({
+// Sortable Canvas Block - Shows live preview with drag handle
+const SortableCanvasBlock = memo(({
   block,
   isSelected,
   onSelect,
@@ -341,41 +415,43 @@ const SortableBlockItem = memo(({
     <div
       ref={setNodeRef}
       style={style}
-      onClick={onSelect}
       className={cn(
-        "relative group cursor-pointer rounded-lg border-2 transition-all",
-        isSelected ? "border-primary bg-primary/5" : "border-transparent hover:border-muted-foreground/20 bg-card"
+        "relative group",
+        isSelected && "ring-2 ring-primary ring-offset-2"
       )}
     >
-      <div className="flex items-center gap-2 p-3">
+      {/* Block toolbar - shown on hover/select */}
+      <div className={cn(
+        "absolute top-2 right-2 z-20 flex items-center gap-1 bg-background/95 rounded-lg shadow-lg border p-1 transition-opacity",
+        isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+      )}>
         <div
-          className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted"
+          className="cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-muted"
           {...attributes}
           {...listeners}
         >
           <GripVertical className="w-4 h-4 text-muted-foreground" />
         </div>
-        
-        <div className="p-1.5 rounded bg-muted">
-          <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm capitalize">{block.type.replace(/([A-Z])/g, ' $1').trim()}</div>
-          <div className="text-xs text-muted-foreground truncate">
-            {(block as any).data?.title || (block as any).data?.content?.slice(0, 30) || 'Block'}
-          </div>
-        </div>
-
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
-            <Copy className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+        <div className="w-px h-4 bg-border" />
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+          <Copy className="w-3.5 h-3.5" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
       </div>
+
+      {/* Block type badge */}
+      <div className={cn(
+        "absolute top-2 left-2 z-20 flex items-center gap-1.5 bg-background/95 rounded-lg shadow-lg border px-2 py-1 transition-opacity",
+        isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+      )}>
+        <Icon className="w-3 h-3 text-primary" />
+        <span className="text-xs font-medium capitalize">{block.type.replace(/([A-Z])/g, ' $1').trim()}</span>
+      </div>
+
+      {/* Canvas Preview - the actual visual block */}
+      <CanvasPreview block={block} isSelected={isSelected} onClick={onSelect} />
     </div>
   );
 });
@@ -886,15 +962,21 @@ export default function PageBuilder() {
     enabled: !!tenantId,
   });
 
-  // Load initial data
+  // Load initial data - use default blocks if no layout exists
   useEffect(() => {
     if (layoutData) {
       const sections = (layoutData as any).draft_data?.sections || (layoutData as any).layout_data?.sections || [];
-      setBlocks(sections);
-      setHistory([sections]);
+      const initialBlocks = sections.length > 0 ? sections : DEFAULT_HOMEPAGE_BLOCKS;
+      setBlocks(initialBlocks);
+      setHistory([initialBlocks]);
+      setHistoryIndex(0);
+    } else if (!isLoading && tenantId) {
+      // No layout exists, use default blocks
+      setBlocks(DEFAULT_HOMEPAGE_BLOCKS);
+      setHistory([DEFAULT_HOMEPAGE_BLOCKS]);
       setHistoryIndex(0);
     }
-  }, [layoutData]);
+  }, [layoutData, isLoading, tenantId]);
 
   // History management
   const pushHistory = useCallback((newBlocks: PageBuilderBlock[]) => {
@@ -1191,31 +1273,35 @@ export default function PageBuilder() {
             {previewMode ? (
               <ScrollArea className="h-[calc(100vh-120px)]">
                 <div className="space-y-0">
-                  {blocks.map(block => <CanvasBlock key={block.id} block={block} />)}
+                  {blocks.sort((a, b) => a.order - b.order).map(block => (
+                    <CanvasPreview key={block.id} block={block} />
+                  ))}
                 </div>
               </ScrollArea>
             ) : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
-                  <div className="p-4 space-y-2 min-h-[400px]">
-                    {blocks.length === 0 && (
-                      <div className="text-center py-16 text-muted-foreground">
-                        <Package className="w-12 h-12 mx-auto mb-4 opacity-30" />
-                        <p className="font-medium">Start building your page</p>
-                        <p className="text-sm">Add blocks from the library on the left</p>
-                      </div>
-                    )}
-                    {blocks.map(block => (
-                      <SortableBlockItem
-                        key={block.id}
-                        block={block}
-                        isSelected={selectedBlockId === block.id}
-                        onSelect={() => setSelectedBlockId(block.id)}
-                        onDelete={() => handleDeleteBlock(block.id)}
-                        onDuplicate={() => handleDuplicateBlock(block.id)}
-                      />
-                    ))}
-                  </div>
+                  <ScrollArea className="h-[calc(100vh-120px)]">
+                    <div className="min-h-[400px]">
+                      {blocks.length === 0 && (
+                        <div className="text-center py-16 text-muted-foreground">
+                          <Package className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                          <p className="font-medium">Start building your page</p>
+                          <p className="text-sm">Add blocks from the library on the left</p>
+                        </div>
+                      )}
+                      {blocks.sort((a, b) => a.order - b.order).map(block => (
+                        <SortableCanvasBlock
+                          key={block.id}
+                          block={block}
+                          isSelected={selectedBlockId === block.id}
+                          onSelect={() => setSelectedBlockId(block.id)}
+                          onDelete={() => handleDeleteBlock(block.id)}
+                          onDuplicate={() => handleDuplicateBlock(block.id)}
+                        />
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </SortableContext>
               </DndContext>
             )}

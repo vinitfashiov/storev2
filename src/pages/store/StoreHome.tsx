@@ -22,6 +22,7 @@ import { GroceryHeroBanner } from '@/components/storefront/grocery/GroceryHeroBa
 import { GroceryPromoCards } from '@/components/storefront/grocery/GroceryPromoCards';
 import { GroceryDesktopCategoryGrid } from '@/components/storefront/grocery/GroceryDesktopCategoryGrid';
 import { GroceryDesktopProductSection } from '@/components/storefront/grocery/GroceryDesktopProductSection';
+import { PageBuilderRenderer, usePublishedLayout } from '@/components/pageBuilder/PageBuilderRenderer';
 import { useCart } from '@/hooks/useCart';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { 
@@ -241,7 +242,11 @@ export default function StoreHome() {
     );
   }
 
-  // E-commerce Store Layout (Original Design)
+  // Check if there's a published page builder layout
+  const { data: publishedLayout, isLoading: layoutLoading } = usePublishedLayout(tenant?.id);
+  const hasPublishedLayout = publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0;
+
+  // E-commerce Store Layout - Use Page Builder if available
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <StoreHeader
@@ -255,38 +260,50 @@ export default function StoreHome() {
         categories={categories}
       />
 
-      <HeroBanner
-        banners={banners}
-        storeSlug={tenant.store_slug}
-        storeName={tenant.store_name}
-        storeDescription={storeSettings?.website_description}
-      />
+      {/* Render Page Builder content if available, otherwise default layout */}
+      {hasPublishedLayout ? (
+        <PageBuilderRenderer
+          tenantId={tenant.id}
+          storeSlug={tenant.store_slug}
+          onAddToCart={handleAddToCart}
+          addingProductId={addingProduct}
+        />
+      ) : (
+        <>
+          <HeroBanner
+            banners={banners}
+            storeSlug={tenant.store_slug}
+            storeName={tenant.store_name}
+            storeDescription={storeSettings?.website_description}
+          />
 
-      <CategorySection categories={categories} storeSlug={tenant.store_slug} />
+          <CategorySection categories={categories} storeSlug={tenant.store_slug} />
 
-      <ProductSection
-        title="Best Sellers"
-        subtitle="Top picks our customers can't get enough of — for good reason. They're equal parts stylish and versatile!"
-        products={products as any}
-        storeSlug={tenant.store_slug}
-        onAddToCart={handleAddToCart}
-        addingProductId={addingProduct}
-      />
+          <ProductSection
+            title="Best Sellers"
+            subtitle="Top picks our customers can't get enough of — for good reason. They're equal parts stylish and versatile!"
+            products={products as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
 
-      <BrandSection brands={brands} storeSlug={tenant.store_slug} />
+          <BrandSection brands={brands} storeSlug={tenant.store_slug} />
 
-      <ProductSection
-        title="Now Trending"
-        subtitle="These aren't just new pieces — they're the ones everyone's talking about."
-        products={newProducts as any}
-        storeSlug={tenant.store_slug}
-        onAddToCart={handleAddToCart}
-        addingProductId={addingProduct}
-        bgColor="bg-neutral-50"
-        variant="carousel"
-      />
+          <ProductSection
+            title="Now Trending"
+            subtitle="These aren't just new pieces — they're the ones everyone's talking about."
+            products={newProducts as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+            bgColor="bg-neutral-50"
+            variant="carousel"
+          />
 
-      <PromoStrip storeSlug={tenant.store_slug} />
+          <PromoStrip storeSlug={tenant.store_slug} />
+        </>
+      )}
 
       <StoreFooter
         storeName={tenant.store_name}
