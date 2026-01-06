@@ -35,10 +35,12 @@ function usePublishedLayout(tenantId: string | undefined) {
       
       if (error) throw error;
       const layoutData = (data as any)?.layout_data as HomepageLayout | null;
+      console.log('[PageBuilder] Fetched layout:', layoutData);
       return layoutData;
     },
     enabled: !!tenantId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always fetch fresh for now to debug
+    refetchOnMount: true,
   });
 }
 
@@ -549,6 +551,82 @@ const StatsBlockRenderer = memo(({ block }: { block: any }) => {
   );
 });
 
+const FaqBlockRenderer = memo(({ block }: { block: any }) => {
+  const { data } = block;
+  const styles = block.styles || {};
+
+  return (
+    <section 
+      className="py-12 md:py-16 px-4"
+      style={{ backgroundColor: styles.backgroundColor }}
+    >
+      <div className="max-w-3xl mx-auto">
+        {data.title && (
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-10">{data.title}</h2>
+        )}
+        <div className="space-y-4">
+          {(data.faqs || []).map((faq: any, index: number) => (
+            <details key={index} className="group border rounded-lg">
+              <summary className="flex justify-between items-center cursor-pointer p-4 font-medium">
+                {faq.question}
+                <ChevronRight className="w-5 h-5 transform group-open:rotate-90 transition-transform" />
+              </summary>
+              <div className="px-4 pb-4 text-muted-foreground">
+                {faq.answer}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+});
+
+const VideoBlockRenderer = memo(({ block }: { block: any }) => {
+  const { data } = block;
+  const styles = block.styles || {};
+
+  // Extract video ID from YouTube URL
+  const getYouTubeId = (url: string) => {
+    const match = url?.match(/(?:youtu\.be\/|youtube\.com(?:\/embed\/|\/v\/|\/watch\?v=|\/watch\?.+&v=))([^&\n?#]+)/);
+    return match?.[1];
+  };
+
+  const videoId = getYouTubeId(data.videoUrl || '');
+
+  return (
+    <section 
+      className="py-8 px-4"
+      style={{ backgroundColor: styles.backgroundColor }}
+    >
+      <div className="max-w-4xl mx-auto">
+        {data.title && (
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-6">{data.title}</h2>
+        )}
+        <div className="aspect-video rounded-xl overflow-hidden bg-muted">
+          {videoId ? (
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : data.videoUrl ? (
+            <video src={data.videoUrl} controls className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Play className="w-16 h-16 text-muted-foreground" />
+            </div>
+          )}
+        </div>
+        {data.caption && (
+          <p className="text-center text-muted-foreground mt-4">{data.caption}</p>
+        )}
+      </div>
+    </section>
+  );
+});
+
 const SpacerBlockRenderer = memo(({ block }: { block: any }) => {
   const { data } = block;
   return <div style={{ height: data.height || '60px' }} />;
@@ -662,7 +740,14 @@ const BlockRenderer = memo(({ block, tenantId, storeSlug, onAddToCart, addingPro
     case 'customHtml':
       return <CustomHtmlBlockRenderer block={block} />;
     
+    case 'faq':
+      return <FaqBlockRenderer block={block} />;
+    
+    case 'video':
+      return <VideoBlockRenderer block={block} />;
+    
     default:
+      console.log('[PageBuilder] Unknown block type:', block.type);
       return null;
   }
 });

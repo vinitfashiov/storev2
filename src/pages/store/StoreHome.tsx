@@ -81,6 +81,9 @@ export default function StoreHome() {
   const { data: categories = [] } = useStoreCategories(tenant?.id, 12);
   const { data: brands = [] } = useStoreBrands(tenant?.id, 8);
   
+  // IMPORTANT: Call hooks unconditionally before any returns
+  const { data: publishedLayout, isLoading: layoutLoading } = usePublishedLayout(tenant?.id);
+  
   const { data: productsData } = useStoreProducts({ 
     tenantId: tenant?.id, 
     limit: 10,
@@ -111,8 +114,11 @@ export default function StoreHome() {
     setAddingProduct(null);
   }, [addToCart]);
 
+  // Check if there's a valid published layout
+  const hasPublishedLayout = publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0;
+
   // Loading state
-  if (tenantLoading) {
+  if (tenantLoading || layoutLoading) {
     return <LoadingSkeleton />;
   }
 
@@ -241,10 +247,6 @@ export default function StoreHome() {
       </div>
     );
   }
-
-  // Check if there's a published page builder layout
-  const { data: publishedLayout, isLoading: layoutLoading } = usePublishedLayout(tenant?.id);
-  const hasPublishedLayout = publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0;
 
   // E-commerce Store Layout - Use Page Builder if available
   return (
