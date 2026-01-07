@@ -20,27 +20,50 @@ interface PageBuilderRendererProps {
   addingProductId?: string | null;
 }
 
-// Fetch published layout
+// Fetch published layout - uses RLS that allows public to read published layouts
 function usePublishedLayout(tenantId: string | undefined) {
   return useQuery({
     queryKey: ['published-layout', tenantId],
-    queryFn: async () => {
+    queryFn: async (): Promise<HomepageLayout | null> => {
       if (!tenantId) return null;
+      
       const { data, error } = await supabase
-        .from('homepage_layouts' as any)
+        .from('homepage_layouts')
         .select('layout_data, published_at')
         .eq('tenant_id', tenantId)
         .not('published_at', 'is', null)
         .maybeSingle();
       
-      if (error) throw error;
-      const layoutData = (data as any)?.layout_data as HomepageLayout | null;
+      if (error) {
+        console.error('[PageBuilder] Error fetching layout:', error);
+        return null;
+      }
+      
+      if (!data) {
+        console.log('[PageBuilder] No published layout found for tenant:', tenantId);
+        return null;
+      }
+      
+      // Parse layout_data safely
+      let layoutData: HomepageLayout | null = null;
+      try {
+        if (typeof data.layout_data === 'string') {
+          layoutData = JSON.parse(data.layout_data) as HomepageLayout;
+        } else if (data.layout_data && typeof data.layout_data === 'object') {
+          layoutData = data.layout_data as unknown as HomepageLayout;
+        }
+      } catch (e) {
+        console.error('[PageBuilder] Error parsing layout_data:', e);
+        return null;
+      }
+      
       console.log('[PageBuilder] Fetched layout:', layoutData);
       return layoutData;
     },
     enabled: !!tenantId,
-    staleTime: 0, // Always fetch fresh for now to debug
-    refetchOnMount: true,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 }
 
