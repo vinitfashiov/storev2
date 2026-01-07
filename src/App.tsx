@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import PageBuilder from "./pages/admin/PageBuilder";
+import GrapesJSPageBuilder from "./pages/admin/GrapesJSPageBuilder";
 import StoreHome from "./pages/store/StoreHome";
 import ProductList from "./pages/store/ProductList";
 import ProductDetail from "./pages/store/ProductDetail";
@@ -132,7 +133,8 @@ function AppContent() {
         <Route path="/authentication" element={<Auth />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/dashboard/*" element={<Dashboard />} />
-        <Route path="/page-builder" element={<PageBuilder />} />
+        <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
+        <Route path="/page-builder-legacy" element={<PageBuilder />} />
         <Route path="/store/:slug" element={<StoreGuard><StoreHome /></StoreGuard>} />
         <Route path="/store/:slug/products" element={<StoreGuard><ProductList /></StoreGuard>} />
         <Route path="/store/:slug/product/:productSlug" element={<StoreGuard><ProductDetail /></StoreGuard>} />
