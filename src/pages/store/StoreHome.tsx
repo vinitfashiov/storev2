@@ -23,6 +23,7 @@ import { GroceryPromoCards } from '@/components/storefront/grocery/GroceryPromoC
 import { GroceryDesktopCategoryGrid } from '@/components/storefront/grocery/GroceryDesktopCategoryGrid';
 import { GroceryDesktopProductSection } from '@/components/storefront/grocery/GroceryDesktopProductSection';
 import { PageBuilderRenderer, usePublishedLayout } from '@/components/pageBuilder/PageBuilderRenderer';
+import { GrapesJSRenderer, useHasGrapesJSLayout } from '@/components/pageBuilder/GrapesJSRenderer';
 import { useCart } from '@/hooks/useCart';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { 
@@ -83,7 +84,8 @@ export default function StoreHome() {
   
   // IMPORTANT: Call hooks unconditionally before any returns
   const { data: publishedLayout, isLoading: layoutLoading } = usePublishedLayout(tenant?.id);
-  
+  const { hasLayout: hasGrapesLayout, isLoading: grapesLoading } = useHasGrapesJSLayout(tenant?.id);
+
   const { data: productsData } = useStoreProducts({ 
     tenantId: tenant?.id, 
     limit: 10,
@@ -117,8 +119,11 @@ export default function StoreHome() {
   // Check if there's a valid published layout
   const hasPublishedLayout = publishedLayout && publishedLayout.sections && publishedLayout.sections.length > 0;
 
+  const showHeader = storeSettings?.show_header ?? true;
+  const showFooter = storeSettings?.show_footer ?? true;
+
   // Loading state
-  if (tenantLoading || layoutLoading) {
+  if (tenantLoading || layoutLoading || grapesLoading) {
     return <LoadingSkeleton />;
   }
 
@@ -138,29 +143,33 @@ export default function StoreHome() {
     return (
       <div className="min-h-screen bg-neutral-50 flex flex-col pb-20 lg:pb-0">
         {/* Mobile Grocery Header */}
-        <div className="lg:hidden">
-          <GroceryHeader
-            storeName={tenant.store_name}
-            storeSlug={tenant.store_slug}
-            logoPath={storeSettings?.logo_path}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
-          />
-        </div>
+        {showHeader && (
+          <div className="lg:hidden">
+            <GroceryHeader
+              storeName={tenant.store_name}
+              storeSlug={tenant.store_slug}
+              logoPath={storeSettings?.logo_path}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
+            />
+          </div>
+        )}
 
         {/* Desktop Header */}
-        <div className="hidden lg:block">
-          <GroceryDesktopHeader
-            storeName={tenant.store_name}
-            storeSlug={tenant.store_slug}
-            logoPath={storeSettings?.logo_path}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
-            cartCount={itemCount}
-          />
-        </div>
+        {showHeader && (
+          <div className="hidden lg:block">
+            <GroceryDesktopHeader
+              storeName={tenant.store_name}
+              storeSlug={tenant.store_slug}
+              logoPath={storeSettings?.logo_path}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
+              cartCount={itemCount}
+            />
+          </div>
+        )}
 
         <main className="flex-1 bg-white lg:bg-neutral-50">
           {/* Mobile Layout */}
@@ -230,16 +239,18 @@ export default function StoreHome() {
           </div>
 
           {/* Desktop Footer */}
-          <div className="hidden lg:block mt-8">
-            <StoreFooter
-              storeName={tenant.store_name}
-              storeSlug={tenant.store_slug}
-              address={storeSettings?.store_address || tenant.address}
-              phone={storeSettings?.store_phone || tenant.phone}
-              email={storeSettings?.store_email}
-              logoPath={storeSettings?.logo_path}
-            />
-          </div>
+          {showFooter && (
+            <div className="hidden lg:block mt-8">
+              <StoreFooter
+                storeName={tenant.store_name}
+                storeSlug={tenant.store_slug}
+                address={storeSettings?.store_address || tenant.address}
+                phone={storeSettings?.store_phone || tenant.phone}
+                email={storeSettings?.store_email}
+                logoPath={storeSettings?.logo_path}
+              />
+            </div>
+          )}
         </main>
 
         {/* Mobile Bottom Navigation */}
@@ -248,22 +259,26 @@ export default function StoreHome() {
     );
   }
 
-  // E-commerce Store Layout - Use Page Builder if available
+  // E-commerce Store Layout - Use GrapesJS (HTML/CSS) first, then JSON Page Builder, otherwise default
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <StoreHeader
-        storeName={tenant.store_name}
-        storeSlug={tenant.store_slug}
-        businessType={tenant.business_type}
-        cartCount={itemCount}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        logoPath={storeSettings?.logo_path}
-        categories={categories}
-      />
+      {showHeader && (
+        <StoreHeader
+          storeName={tenant.store_name}
+          storeSlug={tenant.store_slug}
+          businessType={tenant.business_type}
+          cartCount={itemCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          logoPath={storeSettings?.logo_path}
+          categories={categories}
+        />
+      )}
 
-      {/* Render Page Builder content if available, otherwise default layout */}
-      {hasPublishedLayout ? (
+      {/* Render builder content if available, otherwise default layout */}
+      {hasGrapesLayout ? (
+        <GrapesJSRenderer tenantId={tenant.id} />
+      ) : hasPublishedLayout ? (
         <PageBuilderRenderer
           tenantId={tenant.id}
           storeSlug={tenant.store_slug}
@@ -307,14 +322,16 @@ export default function StoreHome() {
         </>
       )}
 
-      <StoreFooter
-        storeName={tenant.store_name}
-        storeSlug={tenant.store_slug}
-        address={storeSettings?.store_address || tenant.address}
-        phone={storeSettings?.store_phone || tenant.phone}
-        email={storeSettings?.store_email}
-        logoPath={storeSettings?.logo_path}
-      />
+      {showFooter && (
+        <StoreFooter
+          storeName={tenant.store_name}
+          storeSlug={tenant.store_slug}
+          address={storeSettings?.store_address || tenant.address}
+          phone={storeSettings?.store_phone || tenant.phone}
+          email={storeSettings?.store_email}
+          logoPath={storeSettings?.logo_path}
+        />
+      )}
     </div>
   );
 }

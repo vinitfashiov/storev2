@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Save, Upload, Image, Globe, Mail, Phone, MapPin, Loader2, Trash2, Store, Sparkles } from 'lucide-react';
@@ -367,6 +368,46 @@ export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSet
                 className="resize-none"
               />
               <p className="text-xs text-muted-foreground">Appears in search engine results (150-160 characters recommended)</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Header/Footer Visibility */}
+        <Card className="border-2 hover:border-primary/50 transition-colors">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Store className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">Layout</CardTitle>
+                <CardDescription>Show or hide default header/footer</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Show Header</Label>
+                <p className="text-xs text-muted-foreground">Toggle the default store header</p>
+              </div>
+              <Switch
+                checked={settings.show_header}
+                onCheckedChange={(v) => setSettings(prev => ({ ...prev, show_header: v }))}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Show Footer</Label>
+                <p className="text-xs text-muted-foreground">Toggle the default store footer</p>
+              </div>
+              <Switch
+                checked={settings.show_footer}
+                onCheckedChange={(v) => setSettings(prev => ({ ...prev, show_footer: v }))}
+                disabled={disabled}
+              />
             </div>
           </CardContent>
         </Card>
