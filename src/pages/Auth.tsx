@@ -92,7 +92,7 @@ export default function Auth() {
 
     try {
       const { data, error } = await supabase.functions.invoke("admin-otp", {
-        body: { action: "send", phone: cleaned },
+        body: { action: "send", phone: cleaned, isSignup: activeTab === "signup" },
       });
 
       if (error) throw error;

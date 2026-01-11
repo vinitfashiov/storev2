@@ -13,6 +13,7 @@ interface SendOTPRequest {
   action: "send";
   phone: string;
   name?: string;
+  isSignup?: boolean;
 }
 
 interface VerifyOTPRequest {
@@ -53,7 +54,31 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Create Supabase client for user checks
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const email = `${cleanPhone}@phone.storekriti.com`;
+
     if (body.action === "send") {
+      const { isSignup } = body as SendOTPRequest;
+      
+      // Check if user exists BEFORE sending OTP
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+      if (isSignup && existingUser) {
+        return new Response(
+          JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!isSignup && !existingUser) {
+        return new Response(
+          JSON.stringify({ error: "No account found with this phone number. Please sign up first." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Send OTP via 2Factor
       const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${cleanPhone}/AUTOGEN/OTP1`;
       console.log("Sending OTP to:", cleanPhone);
