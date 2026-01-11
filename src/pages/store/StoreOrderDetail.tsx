@@ -41,9 +41,51 @@ interface Shipment {
 
 const statusSteps = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
 
+// Loading skeleton for order detail page
+const OrderDetailSkeleton = () => (
+  <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+        <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="space-y-2">
+          <div className="w-32 h-8 bg-muted rounded animate-pulse" />
+          <div className="w-40 h-4 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="w-20 h-6 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="bg-card rounded-lg p-6 mb-6">
+        <div className="w-28 h-6 bg-muted rounded animate-pulse mb-4" />
+        <div className="flex justify-between">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="flex flex-col items-center">
+              <div className="w-8 h-8 bg-muted rounded-full animate-pulse" />
+              <div className="w-12 h-3 bg-muted rounded animate-pulse mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-card rounded-lg p-6 space-y-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center gap-3 py-2">
+            <div className="w-10 h-10 bg-muted rounded animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="w-3/4 h-4 bg-muted rounded animate-pulse" />
+              <div className="w-1/2 h-3 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="w-16 h-4 bg-muted rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export default function StoreOrderDetail() {
   const { slug, orderId } = useParams<{ slug: string; orderId: string }>();
-  const { customer } = useStoreAuth();
+  const { customer, loading: authLoading } = useStoreAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -51,7 +93,10 @@ export default function StoreOrderDetail() {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!customer || !orderId) return;
+      if (!customer || !orderId) {
+        setLoading(false);
+        return;
+      }
 
       const [orderRes, itemsRes, shipmentRes] = await Promise.all([
         supabase
@@ -82,8 +127,13 @@ export default function StoreOrderDetail() {
       setLoading(false);
     };
 
-    fetchOrder();
-  }, [customer, orderId]);
+    if (!authLoading) {
+      fetchOrder();
+    }
+  }, [customer, orderId, authLoading]);
+
+  // Show skeleton while loading
+  if (authLoading || loading) return <OrderDetailSkeleton />;
 
   if (!customer) {
     return (
@@ -99,10 +149,6 @@ export default function StoreOrderDetail() {
         </Card>
       </div>
     );
-  }
-
-  if (loading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
 
   if (!order) {

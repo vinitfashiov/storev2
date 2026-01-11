@@ -4,8 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Heart, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { Heart, Trash2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface WishlistItem {
@@ -21,9 +20,36 @@ interface WishlistItem {
   };
 }
 
+// Loading skeleton for wishlist page
+const WishlistSkeleton = () => (
+  <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+        <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="w-32 h-8 bg-muted rounded animate-pulse mb-6" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-card rounded-lg overflow-hidden">
+            <div className="w-full h-48 bg-muted animate-pulse" />
+            <div className="p-4 space-y-3">
+              <div className="w-3/4 h-4 bg-muted rounded animate-pulse" />
+              <div className="flex justify-between">
+                <div className="w-20 h-5 bg-muted rounded animate-pulse" />
+                <div className="w-8 h-8 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export default function StoreWishlist() {
   const { slug } = useParams();
-  const { customer } = useStoreAuth();
+  const { customer, loading: authLoading } = useStoreAuth();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,8 +74,11 @@ export default function StoreWishlist() {
       }
       setLoading(false);
     };
-    fetchData();
-  }, [slug, customer]);
+    
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [slug, customer, authLoading]);
 
   const removeFromWishlist = async (wishlistId: string) => {
     const { error } = await supabase.from('wishlists').delete().eq('id', wishlistId);
@@ -64,6 +93,9 @@ export default function StoreWishlist() {
     if (img.startsWith('http')) return img;
     return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
+
+  // Show skeleton while loading
+  if (authLoading || loading) return <WishlistSkeleton />;
 
   if (!customer) {
     return (
@@ -89,9 +121,7 @@ export default function StoreWishlist() {
 
         <h1 className="text-2xl font-bold mb-6">My Wishlist</h1>
 
-        {loading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
-        ) : wishlist.length === 0 ? (
+        {wishlist.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
               <Heart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />

@@ -13,12 +13,43 @@ interface StoreSignupProps {
   storeName: string;
 }
 
+// Loading skeleton for signup page
+const SignupSkeleton = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="w-full max-w-md">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+        <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="bg-card rounded-lg border p-6 space-y-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 bg-muted rounded-xl animate-pulse" />
+          <div className="w-40 h-6 bg-muted rounded animate-pulse" />
+          <div className="w-48 h-4 bg-muted rounded animate-pulse" />
+        </div>
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="space-y-2">
+              <div className="w-20 h-4 bg-muted rounded animate-pulse" />
+              <div className="w-full h-10 bg-muted rounded animate-pulse" />
+            </div>
+          ))}
+          <div className="w-full h-10 bg-muted rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { signUp } = useStoreAuth();
+  const { signUp, loading: authLoading } = useStoreAuth();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
+
+  // Show skeleton while auth is initializing
+  if (authLoading) return <SignupSkeleton />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

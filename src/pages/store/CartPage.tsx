@@ -18,17 +18,44 @@ interface Tenant {
   phone: string | null;
 }
 
+// Loading skeleton for cart page
+const CartSkeleton = () => (
+  <div className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="sticky top-0 z-40 bg-white border-b border-neutral-100 p-4">
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 bg-neutral-200 rounded animate-pulse" />
+        <div className="w-20 h-6 bg-neutral-200 rounded animate-pulse" />
+      </div>
+    </div>
+    <div className="p-4 space-y-4">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="flex gap-3 bg-white p-4 rounded-lg">
+          <div className="w-16 h-16 bg-neutral-200 rounded-lg animate-pulse" />
+          <div className="flex-1 space-y-2">
+            <div className="w-3/4 h-4 bg-neutral-200 rounded animate-pulse" />
+            <div className="w-1/2 h-3 bg-neutral-200 rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function CartPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenantLoading, setTenantLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { cart, loading, itemCount, updateQuantity, removeItem, getSubtotal } = useCart(slug || '', tenant?.id || null);
 
   useEffect(() => {
     const fetchTenant = async () => {
-      if (!slug) return;
+      if (!slug) {
+        setTenantLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from('tenants')
         .select('id, store_name, store_slug, business_type, address, phone')
@@ -36,6 +63,7 @@ export default function CartPage() {
         .eq('is_active', true)
         .maybeSingle();
       if (data) setTenant(data as Tenant);
+      setTenantLoading(false);
     };
     fetchTenant();
   }, [slug]);
@@ -52,7 +80,9 @@ export default function CartPage() {
     return null;
   };
 
-  if (!tenant) return null;
+  // Show skeleton while loading tenant data
+  if (tenantLoading) return <CartSkeleton />;
+  if (!tenant) return <CartSkeleton />;
 
   const subtotal = getSubtotal();
   const deliveryFee = 32;

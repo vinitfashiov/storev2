@@ -26,9 +26,40 @@ interface StoreAddressesProps {
   tenantId: string;
 }
 
+// Loading skeleton for addresses page
+const AddressesSkeleton = () => (
+  <div className="min-h-screen bg-background">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="w-4 h-4 bg-muted rounded animate-pulse" />
+        <div className="w-24 h-4 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="flex justify-between mb-6">
+        <div className="w-40 h-8 bg-muted rounded animate-pulse" />
+        <div className="w-28 h-9 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="space-y-4">
+        {[1, 2].map(i => (
+          <div key={i} className="bg-card rounded-lg p-4 space-y-3">
+            <div className="flex gap-2">
+              <div className="w-16 h-5 bg-muted rounded animate-pulse" />
+              <div className="w-16 h-5 bg-muted rounded animate-pulse" />
+            </div>
+            <div className="w-full h-4 bg-muted rounded animate-pulse" />
+            <div className="w-3/4 h-4 bg-muted rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
   const { slug } = useParams<{ slug: string }>();
-  const { customer } = useStoreAuth();
+  const { customer, loading: authLoading } = useStoreAuth();
+
+  // Show skeleton while auth is loading
+  if (authLoading) return <AddressesSkeleton />;
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);

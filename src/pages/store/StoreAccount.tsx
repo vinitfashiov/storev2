@@ -33,17 +33,50 @@ interface StoreAccountProps {
   storeName?: string;
 }
 
+// Loading skeleton for account page
+const AccountSkeleton = () => (
+  <div className="min-h-screen bg-neutral-50 flex flex-col">
+    <div className="sticky top-0 z-40 bg-white border-b border-neutral-100 p-4">
+      <div className="flex items-center gap-3">
+        <div className="w-6 h-6 bg-neutral-200 rounded animate-pulse" />
+        <div className="w-24 h-6 bg-neutral-200 rounded animate-pulse" />
+      </div>
+    </div>
+    <div className="p-4 bg-white">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="w-32 h-6 bg-neutral-200 rounded animate-pulse" />
+          <div className="w-24 h-4 bg-neutral-200 rounded animate-pulse" />
+        </div>
+        <div className="w-14 h-14 bg-neutral-200 rounded-full animate-pulse" />
+      </div>
+    </div>
+    <div className="p-4 space-y-2">
+      {[1, 2, 3, 4, 5].map(i => (
+        <div key={i} className="flex items-center gap-4 p-4 bg-white rounded-lg">
+          <div className="w-5 h-5 bg-neutral-200 rounded animate-pulse" />
+          <div className="w-24 h-4 bg-neutral-200 rounded animate-pulse" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function StoreAccount({ storeName }: StoreAccountProps) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { customer, signOut } = useStoreAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenantLoading, setTenantLoading] = useState(true);
 
   const { itemCount } = useCart(slug || '', tenant?.id || null);
 
   useEffect(() => {
     const fetchTenant = async () => {
-      if (!slug) return;
+      if (!slug) {
+        setTenantLoading(false);
+        return;
+      }
       const { data } = await supabase
         .from('tenants')
         .select('id, store_name, store_slug, business_type')
@@ -51,9 +84,13 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
         .eq('is_active', true)
         .maybeSingle();
       if (data) setTenant(data as Tenant);
+      setTenantLoading(false);
     };
     fetchTenant();
   }, [slug]);
+
+  // Show skeleton while loading
+  if (tenantLoading) return <AccountSkeleton />;
 
   const handleSignOut = async () => {
     await signOut();

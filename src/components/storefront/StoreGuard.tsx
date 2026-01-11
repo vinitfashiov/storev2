@@ -69,10 +69,28 @@ export default function StoreGuard({ children }: StoreGuardProps) {
     checkTenant();
   }, [slug]);
 
-  if (status === 'loading') {
+if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="min-h-screen bg-white flex flex-col">
+        {/* Header skeleton */}
+        <div className="p-4 border-b border-neutral-100">
+          <div className="flex items-center justify-between">
+            <div className="w-24 h-8 bg-neutral-200 rounded animate-pulse" />
+            <div className="flex gap-3">
+              <div className="w-8 h-8 bg-neutral-200 rounded-full animate-pulse" />
+              <div className="w-8 h-8 bg-neutral-200 rounded-full animate-pulse" />
+            </div>
+          </div>
+        </div>
+        {/* Content skeleton */}
+        <div className="p-4 space-y-4">
+          <div className="w-full h-40 bg-neutral-100 rounded-2xl animate-pulse" />
+          <div className="grid grid-cols-4 gap-3">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="aspect-square bg-neutral-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
