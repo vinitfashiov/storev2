@@ -17,11 +17,20 @@ interface Supplier {
   name: string;
 }
 
+interface ProductVariant {
+  id: string;
+  sku: string | null;
+  price: number;
+  stock_qty: number;
+}
+
 interface Product {
   id: string;
   name: string;
   sku: string | null;
   price: number;
+  has_variants: boolean;
+  variants?: ProductVariant[];
 }
 
 interface PurchaseOrder {
@@ -37,6 +46,7 @@ interface PurchaseOrder {
 interface PurchaseOrderItem {
   id: string;
   product_id: string;
+  variant_id: string | null;
   quantity_ordered: number;
   quantity_received: number;
   cost_price: number;
@@ -65,6 +75,8 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
   const [cartItems, setCartItems] = useState<Array<{
     product_id: string;
     product_name: string;
+    variant_id: string | null;
+    variant_label: string;
     quantity: number;
     cost_price: number;
     batch_number: string;
@@ -102,12 +114,43 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
   }
 
   async function fetchProducts() {
-    const { data } = await supabase
+    // Fetch products (include has_variants)
+    const { data: productsData } = await supabase
       .from('products')
-      .select('id, name, sku, price')
+      .select('id, name, sku, price, has_variants')
       .eq('tenant_id', tenantId)
-      .eq('is_active', true);
-    if (data) setProducts(data);
+      .eq('is_active', true)
+      .order('name');
+
+    if (!productsData) return;
+
+    const variantProductIds = productsData.filter((p: any) => p.has_variants).map((p: any) => p.id);
+    const variantsByProduct: Record<string, ProductVariant[]> = {};
+
+    if (variantProductIds.length > 0) {
+      const { data: variantsData, error: variantsError } = await supabase
+        .from('product_variants')
+        .select('id, product_id, sku, price, stock_qty')
+        .in('product_id', variantProductIds)
+        .eq('is_active', true);
+
+      if (variantsError) {
+        // Still show products list even if variants fail to load
+        console.warn('Failed to load variants for purchase order products', variantsError);
+      }
+
+      (variantsData || []).forEach((v: any) => {
+        if (!variantsByProduct[v.product_id]) variantsByProduct[v.product_id] = [];
+        variantsByProduct[v.product_id].push(v);
+      });
+    }
+
+    const combined = productsData.map((p: any) => ({
+      ...p,
+      variants: p.has_variants ? (variantsByProduct[p.id] || []) : undefined,
+    })) as unknown as Product[];
+
+    setProducts(combined);
   }
 
   async function fetchOrderItems(orderId: string) {
@@ -119,23 +162,36 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
   }
 
   function addToCart(product: Product) {
-    const existing = cartItems.find(i => i.product_id === product.id);
+    const existing = cartItems.find(
+      (i) => i.product_id === product.id && i.variant_id === (product.has_variants ? (product.variants?.[0]?.id || null) : null)
+    );
+
     if (existing) {
-      setCartItems(cartItems.map(i => 
-        i.product_id === product.id 
-          ? { ...i, quantity: i.quantity + 1 }
-          : i
-      ));
-    } else {
-      setCartItems([...cartItems, {
+      setCartItems(
+        cartItems.map((i) =>
+          i.product_id === existing.product_id && i.variant_id === existing.variant_id
+            ? { ...i, quantity: i.quantity + 1 }
+            : i
+        )
+      );
+      return;
+    }
+
+    const defaultVariant = product.has_variants ? (product.variants?.[0] || null) : null;
+
+    setCartItems([
+      ...cartItems,
+      {
         product_id: product.id,
         product_name: product.name,
+        variant_id: defaultVariant?.id || null,
+        variant_label: defaultVariant?.sku || (defaultVariant ? 'Variant' : ''),
         quantity: 1,
-        cost_price: product.price,
+        cost_price: defaultVariant?.price ?? product.price,
         batch_number: '',
-        expiry_date: ''
-      }]);
-    }
+        expiry_date: '',
+      },
+    ]);
   }
 
   function updateCartItem(productId: string, field: string, value: string | number) {
@@ -144,6 +200,18 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
         ? { ...i, [field]: value }
         : i
     ));
+  }
+
+  function updateCartVariant(productId: string, variant: ProductVariant | null) {
+    setCartItems(cartItems.map(i => {
+      if (i.product_id !== productId) return i;
+      return {
+        ...i,
+        variant_id: variant?.id || null,
+        variant_label: variant?.sku || (variant ? 'Variant' : ''),
+        cost_price: variant?.price ?? i.cost_price,
+      };
+    }));
   }
 
   function removeFromCart(productId: string) {
@@ -181,6 +249,7 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
       tenant_id: tenantId,
       purchase_order_id: order.id,
       product_id: item.product_id,
+      variant_id: item.variant_id || null,
       quantity_ordered: item.quantity,
       cost_price: item.cost_price,
       line_total: item.cost_price * item.quantity,
@@ -231,18 +300,33 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
         notes: 'PO received'
       });
 
-      // Update product stock directly
-      const { data: product } = await supabase
-        .from('products')
-        .select('stock_qty')
-        .eq('id', item.product_id)
-        .single();
-      
-      if (product) {
-        await supabase
+      // Update stock (variant-aware)
+      if (item.variant_id) {
+        const { data: variant } = await supabase
+          .from('product_variants')
+          .select('stock_qty')
+          .eq('id', item.variant_id)
+          .single();
+
+        if (variant) {
+          await supabase
+            .from('product_variants')
+            .update({ stock_qty: variant.stock_qty + qtyToReceive })
+            .eq('id', item.variant_id);
+        }
+      } else {
+        const { data: product } = await supabase
           .from('products')
-          .update({ stock_qty: product.stock_qty + qtyToReceive })
-          .eq('id', item.product_id);
+          .select('stock_qty')
+          .eq('id', item.product_id)
+          .single();
+
+        if (product) {
+          await supabase
+            .from('products')
+            .update({ stock_qty: product.stock_qty + qtyToReceive })
+            .eq('id', item.product_id);
+        }
       }
 
       // Update item as received
@@ -256,6 +340,7 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
         await supabase.from('product_batches').insert({
           tenant_id: tenantId,
           product_id: item.product_id,
+          variant_id: item.variant_id || null,
           batch_number: item.batch_number || `BATCH-${Date.now()}`,
           expiry_date: item.expiry_date,
           cost_price: item.cost_price,
@@ -362,6 +447,7 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
                     <TableHeader>
                       <TableRow>
                         <TableHead>Product</TableHead>
+                        <TableHead>Variant</TableHead>
                         <TableHead>Qty</TableHead>
                         <TableHead>Cost Price</TableHead>
                         {isGrocery && <TableHead>Batch #</TableHead>}
@@ -371,58 +457,88 @@ export default function AdminPurchaseOrders({ tenantId, businessType }: AdminPur
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {cartItems.map(item => (
-                        <TableRow key={item.product_id}>
-                          <TableCell className="font-medium">{item.product_name}</TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateCartItem(item.product_id, 'quantity', parseInt(e.target.value) || 1)}
-                              className="w-20"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.cost_price}
-                              onChange={(e) => updateCartItem(item.product_id, 'cost_price', parseFloat(e.target.value) || 0)}
-                              className="w-24"
-                            />
-                          </TableCell>
-                          {isGrocery && (
+                      {cartItems.map(item => {
+                        const product = products.find(p => p.id === item.product_id);
+                        const variants = product?.variants || [];
+                        const canSelectVariant = !!product?.has_variants && variants.length > 0;
+
+                        return (
+                          <TableRow key={`${item.product_id}-${item.variant_id || 'base'}`}>
+                            <TableCell className="font-medium">{item.product_name}</TableCell>
+                            <TableCell>
+                              {canSelectVariant ? (
+                                <Select
+                                  value={item.variant_id || ''}
+                                  onValueChange={(value) => {
+                                    const v = variants.find(v => v.id === value) || null;
+                                    updateCartVariant(item.product_id, v);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select variant" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {variants.map(v => (
+                                      <SelectItem key={v.id} value={v.id}>
+                                        {v.sku || `Variant ${v.id.slice(0, 6)}`}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Input
-                                value={item.batch_number}
-                                onChange={(e) => updateCartItem(item.product_id, 'batch_number', e.target.value)}
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => updateCartItem(item.product_id, 'quantity', parseInt(e.target.value) || 1)}
+                                className="w-20"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={item.cost_price}
+                                onChange={(e) => updateCartItem(item.product_id, 'cost_price', parseFloat(e.target.value) || 0)}
                                 className="w-24"
-                                placeholder="Batch"
                               />
                             </TableCell>
-                          )}
-                          {isGrocery && (
+                            {isGrocery && (
+                              <TableCell>
+                                <Input
+                                  value={item.batch_number}
+                                  onChange={(e) => updateCartItem(item.product_id, 'batch_number', e.target.value)}
+                                  className="w-24"
+                                  placeholder="Batch"
+                                />
+                              </TableCell>
+                            )}
+                            {isGrocery && (
+                              <TableCell>
+                                <Input
+                                  type="date"
+                                  value={item.expiry_date}
+                                  onChange={(e) => updateCartItem(item.product_id, 'expiry_date', e.target.value)}
+                                  className="w-32"
+                                />
+                              </TableCell>
+                            )}
+                            <TableCell className="text-right font-medium">
+                              ₹{(item.cost_price * item.quantity).toFixed(2)}
+                            </TableCell>
                             <TableCell>
-                              <Input
-                                type="date"
-                                value={item.expiry_date}
-                                onChange={(e) => updateCartItem(item.product_id, 'expiry_date', e.target.value)}
-                                className="w-32"
-                              />
+                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.product_id)}>
+                                ×
+                              </Button>
                             </TableCell>
-                          )}
-                          <TableCell className="text-right font-medium">
-                            ₹{(item.cost_price * item.quantity).toFixed(2)}
-                          </TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.product_id)}>
-                              ×
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                   <div className="flex justify-between items-center pt-4 border-t">
