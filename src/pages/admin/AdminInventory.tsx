@@ -101,12 +101,7 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
     if (productIds.length > 0) {
       const { data: variantsData } = await supabase
         .from('product_variants')
-        .select(`
-          id, sku, price, stock_qty, is_active, product_id,
-          variant_attribute_values(
-            attribute_values(value, attributes(name))
-          )
-        `)
+        .select('id, sku, price, stock_qty, is_active, product_id')
         .in('product_id', productIds)
         .eq('is_active', true);
 
