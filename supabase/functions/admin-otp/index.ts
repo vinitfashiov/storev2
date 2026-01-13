@@ -5,9 +5,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const TWOFACTOR_API_KEY = Deno.env.get("TWOFACTOR_API_KEY");
+const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// In-memory OTP storage (TTL: 5 minutes)
+const otpStore = new Map<string, { otp: string; expiresAt: number }>();
+
+function generateOTP(): string {
+  return (100000 + Math.floor(Math.random() * 900000)).toString();
+}
+
+function cleanExpiredOTPs() {
+  const now = Date.now();
+  for (const [key, value] of otpStore.entries()) {
+    if (value.expiresAt < now) {
+      otpStore.delete(key);
+    }
+  }
+}
 
 interface SendOTPRequest {
   action: "send";
@@ -35,8 +51,8 @@ Deno.serve(async (req) => {
     const body: RequestBody = await req.json();
     console.log("Admin OTP request:", { action: body.action, phone: body.phone });
 
-    if (!TWOFACTOR_API_KEY) {
-      console.error("2Factor API key not configured");
+    if (!FAST2SMS_API_KEY) {
+      console.error("Fast2SMS API key not configured");
       return new Response(
         JSON.stringify({ error: "OTP service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -57,6 +73,9 @@ Deno.serve(async (req) => {
     // Create Supabase client for user checks
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const email = `${cleanPhone}@phone.storekriti.com`;
+
+    // Clean expired OTPs periodically
+    cleanExpiredOTPs();
 
     if (body.action === "send") {
       const { isSignup } = body as SendOTPRequest;
@@ -79,27 +98,53 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Send OTP via 2Factor
-      const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${cleanPhone}/AUTOGEN/OTP1`;
+      // Generate OTP locally
+      const otp = generateOTP();
+      
+      // Store OTP with 5 minute expiry
+      otpStore.set(cleanPhone, {
+        otp,
+        expiresAt: Date.now() + 5 * 60 * 1000
+      });
+
+      // Send OTP via Fast2SMS
       console.log("Sending OTP to:", cleanPhone);
       
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log("2Factor response:", data);
+      const response = await fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method: "POST",
+        headers: {
+          "authorization": FAST2SMS_API_KEY,
+          "accept": "*/*",
+          "cache-control": "no-cache",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          sender_id: "BBTPLE",
+          message: "180929",
+          variables_values: otp,
+          route: "dlt",
+          numbers: cleanPhone
+        })
+      });
 
-      if (data.Status === "Success") {
+      const data = await response.json();
+      console.log("Fast2SMS response:", data);
+
+      if (data.return === true || data.status_code === 200) {
         return new Response(
           JSON.stringify({ 
             success: true, 
             message: "OTP sent successfully",
-            sessionId: data.Details 
+            sessionId: cleanPhone // Use phone as session ID for simplicity
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
-        console.error("2Factor error:", data);
+        console.error("Fast2SMS error:", data);
+        // Clear stored OTP on failure
+        otpStore.delete(cleanPhone);
         return new Response(
-          JSON.stringify({ error: data.Details || "Failed to send OTP" }),
+          JSON.stringify({ error: data.message || "Failed to send OTP" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -115,104 +160,116 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Verify OTP via 2Factor
-      const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/VERIFY3/${cleanPhone}/${otp}`;
-      console.log("Verifying OTP for:", cleanPhone);
-      
-      const response = await fetch(url);
-      const data = await response.json();
-      console.log("2Factor verify response:", data);
+      // Verify OTP from local store
+      const storedOTP = otpStore.get(cleanPhone);
+      console.log("Verifying OTP for:", cleanPhone, "Stored:", !!storedOTP);
 
-      if (data.Status === "Success" && data.Details === "OTP Matched") {
-        // OTP verified - now handle Supabase auth
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        const email = `${cleanPhone}@phone.storekriti.com`;
-        const password = `phone_${cleanPhone}_${TWOFACTOR_API_KEY?.slice(0, 8)}`;
+      if (!storedOTP) {
+        return new Response(
+          JSON.stringify({ error: "OTP expired. Please request a new one." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        // Check if user exists
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(u => u.email === email);
+      if (storedOTP.expiresAt < Date.now()) {
+        otpStore.delete(cleanPhone);
+        return new Response(
+          JSON.stringify({ error: "OTP expired. Please request a new one." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        if (existingUser) {
-          // User exists - sign them in
-          if (isSignup) {
-            return new Response(
-              JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          // Generate a magic link token for the user
-          const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
-            type: "magiclink",
-            email: email,
-          });
-
-          if (signInError) {
-            console.error("Sign in error:", signInError);
-            return new Response(
-              JSON.stringify({ error: "Failed to sign in" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: "Login successful",
-              action: "login",
-              token: signInData.properties?.hashed_token,
-              email: email,
-              password: password
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        } else {
-          // New user - create account
-          if (!isSignup) {
-            return new Response(
-              JSON.stringify({ error: "No account found with this phone number. Please sign up first." }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          if (!name || name.trim().length < 2) {
-            return new Response(
-              JSON.stringify({ error: "Please provide your name" }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-            email: email,
-            password: password,
-            email_confirm: true,
-            user_metadata: { name: name.trim(), phone: cleanPhone }
-          });
-
-          if (createError) {
-            console.error("Create user error:", createError);
-            return new Response(
-              JSON.stringify({ error: "Failed to create account" }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: "Account created successfully",
-              action: "signup",
-              email: email,
-              password: password
-            }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
+      if (storedOTP.otp !== otp) {
         return new Response(
           JSON.stringify({ error: "Invalid OTP. Please try again." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // OTP verified - clear it
+      otpStore.delete(cleanPhone);
+
+      // Now handle Supabase auth
+      const password = `phone_${cleanPhone}_${FAST2SMS_API_KEY?.slice(0, 8)}`;
+
+      // Check if user exists
+      const { data: existingUsers } = await supabase.auth.admin.listUsers();
+      const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+      if (existingUser) {
+        // User exists - sign them in
+        if (isSignup) {
+          return new Response(
+            JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Generate a magic link token for the user
+        const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
+          type: "magiclink",
+          email: email,
+        });
+
+        if (signInError) {
+          console.error("Sign in error:", signInError);
+          return new Response(
+            JSON.stringify({ error: "Failed to sign in" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Login successful",
+            action: "login",
+            token: signInData.properties?.hashed_token,
+            email: email,
+            password: password
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } else {
+        // New user - create account
+        if (!isSignup) {
+          return new Response(
+            JSON.stringify({ error: "No account found with this phone number. Please sign up first." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (!name || name.trim().length < 2) {
+          return new Response(
+            JSON.stringify({ error: "Please provide your name" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+          email: email,
+          password: password,
+          email_confirm: true,
+          user_metadata: { name: name.trim(), phone: cleanPhone }
+        });
+
+        if (createError) {
+          console.error("Create user error:", createError);
+          return new Response(
+            JSON.stringify({ error: "Failed to create account" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: "Account created successfully",
+            action: "signup",
+            email: email,
+            password: password
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
