@@ -1,5 +1,5 @@
 import { useState, useCallback, memo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -22,8 +22,11 @@ import { GroceryHeroBanner } from '@/components/storefront/grocery/GroceryHeroBa
 import { GroceryPromoCards } from '@/components/storefront/grocery/GroceryPromoCards';
 import { GroceryDesktopCategoryGrid } from '@/components/storefront/grocery/GroceryDesktopCategoryGrid';
 import { GroceryDesktopProductSection } from '@/components/storefront/grocery/GroceryDesktopProductSection';
+import { GroceryLocationModal } from '@/components/storefront/grocery/GroceryLocationModal';
+import { GroceryNotDeliverable } from '@/components/storefront/grocery/GroceryNotDeliverable';
 import { PageBuilderRenderer, usePublishedLayout } from '@/components/pageBuilder/PageBuilderRenderer';
 import { GrapesJSRenderer, useHasGrapesJSLayout } from '@/components/pageBuilder/GrapesJSRenderer';
+import { GroceryLocationProvider, useGroceryLocation } from '@/contexts/GroceryLocationContext';
 import { useCart } from '@/hooks/useCart';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { 
@@ -63,6 +66,206 @@ const ErrorState = memo(({ error }: { error: string }) => (
     </Card>
   </div>
 ));
+
+// Inner component that uses the location context
+function GroceryStoreContent({
+  tenant,
+  storeSettings,
+  banners,
+  categories,
+  brands,
+  products,
+  newProducts,
+  showHeader,
+  showFooter,
+  searchQuery,
+  setSearchQuery,
+  handleAddToCart,
+  addingProduct,
+  itemCount
+}: {
+  tenant: any;
+  storeSettings: any;
+  banners: any[];
+  categories: any[];
+  brands: any[];
+  products: any[];
+  newProducts: any[];
+  showHeader: boolean;
+  showFooter: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  handleAddToCart: (productId: string, price: number, quantity?: number) => void;
+  addingProduct: string | null;
+  itemCount: number;
+}) {
+  const navigate = useNavigate();
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  
+  const { 
+    isLocationSet, 
+    isDeliverable, 
+    openLocationModal 
+  } = useGroceryLocation();
+
+  // Show location modal on first visit if location not set
+  const handleLocationClick = () => {
+    setShowLocationModal(true);
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      navigate(`/store/${tenant.store_slug}/products?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
+  // If location is set but not deliverable, show not deliverable screen
+  if (isLocationSet && !isDeliverable) {
+    return (
+      <>
+        <GroceryNotDeliverable 
+          storeName={tenant.store_name}
+          onChangeLocation={handleLocationClick}
+        />
+        <GroceryLocationModal
+          open={showLocationModal}
+          onOpenChange={setShowLocationModal}
+          tenantId={tenant.id}
+        />
+      </>
+    );
+  }
+
+  // Show location modal if location not set (first time)
+  const showFirstTimeModal = !isLocationSet;
+
+  return (
+    <div className="min-h-screen bg-neutral-50 flex flex-col pb-20 lg:pb-0">
+      {/* Location Modal */}
+      <GroceryLocationModal
+        open={showLocationModal || showFirstTimeModal}
+        onOpenChange={setShowLocationModal}
+        tenantId={tenant.id}
+      />
+
+      {/* Mobile Grocery Header */}
+      {showHeader && (
+        <div className="lg:hidden">
+          <GroceryHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            tenantId={tenant.id}
+            logoPath={storeSettings?.logo_path}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSearchSubmit={handleSearchSubmit}
+            onLocationClick={handleLocationClick}
+          />
+        </div>
+      )}
+
+      {/* Desktop Header */}
+      {showHeader && (
+        <div className="hidden lg:block">
+          <GroceryDesktopHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            logoPath={storeSettings?.logo_path}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
+            cartCount={itemCount}
+          />
+        </div>
+      )}
+
+      <main className="flex-1 bg-white lg:bg-neutral-50">
+        {/* Mobile Layout */}
+        <div className="lg:hidden">
+          <GroceryPromoBanner banners={banners} storeSlug={tenant.store_slug} />
+          <GroceryMembershipCard storeSlug={tenant.store_slug} />
+          <GroceryProductSection
+            title="Bestsellers"
+            products={products as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+          <GroceryCategoryGrid 
+            categories={categories} 
+            storeSlug={tenant.store_slug}
+          />
+          <GroceryBrandScroll 
+            brands={brands} 
+            storeSlug={tenant.store_slug}
+          />
+          <GroceryProductSection
+            title="New Arrivals"
+            products={newProducts as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+        </div>
+
+        {/* Desktop Layout - Blinkit Style */}
+        <div className="hidden lg:block max-w-7xl mx-auto">
+          <GroceryHeroBanner banners={banners} storeSlug={tenant.store_slug} />
+          <GroceryPromoCards storeSlug={tenant.store_slug} />
+          <GroceryDesktopCategoryGrid 
+            categories={categories} 
+            storeSlug={tenant.store_slug}
+          />
+          <GroceryDesktopProductSection
+            title="Dairy, Bread & Eggs"
+            products={products as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+          <GroceryDesktopProductSection
+            title="Snacks & Munchies"
+            products={newProducts as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+          <GroceryDesktopProductSection
+            title="Cold Drinks & Juices"
+            products={products.slice().reverse() as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+          <GroceryDesktopProductSection
+            title="Bestsellers"
+            products={[...products, ...newProducts].slice(0, 10) as any}
+            storeSlug={tenant.store_slug}
+            onAddToCart={handleAddToCart}
+            addingProductId={addingProduct}
+          />
+        </div>
+
+        {/* Desktop Footer */}
+        {showFooter && (
+          <div className="hidden lg:block mt-8">
+            <StoreFooter
+              storeName={tenant.store_name}
+              storeSlug={tenant.store_slug}
+              address={storeSettings?.store_address || tenant.address}
+              phone={storeSettings?.store_phone || tenant.phone}
+              email={storeSettings?.store_email}
+              logoPath={storeSettings?.logo_path}
+            />
+          </div>
+        )}
+      </main>
+
+      {/* Mobile Bottom Navigation */}
+      <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+    </div>
+  );
+}
 
 export default function StoreHome() {
   const { slug: urlSlug } = useParams<{ slug: string }>();
@@ -138,124 +341,27 @@ export default function StoreHome() {
 
   const isGrocery = tenant.business_type === 'grocery';
 
-  // Grocery Store Layout
+  // Grocery Store Layout - wrapped with location provider
   if (isGrocery) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col pb-20 lg:pb-0">
-        {/* Mobile Grocery Header */}
-        {showHeader && (
-          <div className="lg:hidden">
-            <GroceryHeader
-              storeName={tenant.store_name}
-              storeSlug={tenant.store_slug}
-              logoPath={storeSettings?.logo_path}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
-            />
-          </div>
-        )}
-
-        {/* Desktop Header */}
-        {showHeader && (
-          <div className="hidden lg:block">
-            <GroceryDesktopHeader
-              storeName={tenant.store_name}
-              storeSlug={tenant.store_slug}
-              logoPath={storeSettings?.logo_path}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              deliveryAddress={storeSettings?.store_address || tenant.address || undefined}
-              cartCount={itemCount}
-            />
-          </div>
-        )}
-
-        <main className="flex-1 bg-white lg:bg-neutral-50">
-          {/* Mobile Layout */}
-          <div className="lg:hidden">
-            <GroceryPromoBanner banners={banners} storeSlug={tenant.store_slug} />
-            <GroceryMembershipCard storeSlug={tenant.store_slug} />
-            <GroceryProductSection
-              title="Bestsellers"
-              products={products as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-            <GroceryCategoryGrid 
-              categories={categories} 
-              storeSlug={tenant.store_slug}
-            />
-            <GroceryBrandScroll 
-              brands={brands} 
-              storeSlug={tenant.store_slug}
-            />
-            <GroceryProductSection
-              title="New Arrivals"
-              products={newProducts as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-          </div>
-
-          {/* Desktop Layout - Blinkit Style */}
-          <div className="hidden lg:block max-w-7xl mx-auto">
-            <GroceryHeroBanner banners={banners} storeSlug={tenant.store_slug} />
-            <GroceryPromoCards storeSlug={tenant.store_slug} />
-            <GroceryDesktopCategoryGrid 
-              categories={categories} 
-              storeSlug={tenant.store_slug}
-            />
-            <GroceryDesktopProductSection
-              title="Dairy, Bread & Eggs"
-              products={products as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-            <GroceryDesktopProductSection
-              title="Snacks & Munchies"
-              products={newProducts as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-            <GroceryDesktopProductSection
-              title="Cold Drinks & Juices"
-              products={products.slice().reverse() as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-            <GroceryDesktopProductSection
-              title="Bestsellers"
-              products={[...products, ...newProducts].slice(0, 10) as any}
-              storeSlug={tenant.store_slug}
-              onAddToCart={handleAddToCart}
-              addingProductId={addingProduct}
-            />
-          </div>
-
-          {/* Desktop Footer */}
-          {showFooter && (
-            <div className="hidden lg:block mt-8">
-              <StoreFooter
-                storeName={tenant.store_name}
-                storeSlug={tenant.store_slug}
-                address={storeSettings?.store_address || tenant.address}
-                phone={storeSettings?.store_phone || tenant.phone}
-                email={storeSettings?.store_email}
-                logoPath={storeSettings?.logo_path}
-              />
-            </div>
-          )}
-        </main>
-
-        {/* Mobile Bottom Navigation */}
-        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
-      </div>
+      <GroceryLocationProvider tenantId={tenant.id}>
+        <GroceryStoreContent
+          tenant={tenant}
+          storeSettings={storeSettings}
+          banners={banners}
+          categories={categories}
+          brands={brands}
+          products={products}
+          newProducts={newProducts}
+          showHeader={showHeader}
+          showFooter={showFooter}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          handleAddToCart={handleAddToCart}
+          addingProduct={addingProduct}
+          itemCount={itemCount}
+        />
+      </GroceryLocationProvider>
     );
   }
 

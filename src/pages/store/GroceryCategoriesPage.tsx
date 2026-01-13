@@ -1,15 +1,18 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { GroceryHeader } from '@/components/storefront/grocery/GroceryHeader';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { GroceryProductCard } from '@/components/storefront/grocery/GroceryProductCard';
+import { GroceryLocationModal } from '@/components/storefront/grocery/GroceryLocationModal';
+import { GroceryLocationProvider, useGroceryLocation } from '@/contexts/GroceryLocationContext';
 import { useCart } from '@/hooks/useCart';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { toast } from 'sonner';
-import { ArrowLeft, Search, SlidersHorizontal } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Search, SlidersHorizontal, Mic, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Category {
@@ -211,6 +214,23 @@ export default function GroceryCategoriesPage() {
     );
   }
 
+  const navigate = useNavigate();
+  const [showSearch, setShowSearch] = useState(false);
+  
+  const { isListening, isSupported, startListening, stopListening } = useVoiceSearch({
+    onResult: (result) => {
+      setSearchQuery(result);
+    }
+  });
+
+  // Filter products by search
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
+
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
       {/* Header */}
@@ -219,15 +239,54 @@ export default function GroceryCategoriesPage() {
           <Link to={`/store/${slug}`} className="p-1">
             <ArrowLeft className="w-5 h-5 text-neutral-700" />
           </Link>
-          <h1 className="flex-1 font-semibold text-neutral-900 truncate">
-            {selectedCategory?.name || 'Categories'}
-          </h1>
-          <button className="p-2">
-            <Search className="w-5 h-5 text-neutral-600" />
-          </button>
-          <button className="p-2">
-            <SlidersHorizontal className="w-5 h-5 text-neutral-600" />
-          </button>
+          
+          {showSearch ? (
+            <div className="flex-1 flex items-center gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  autoFocus
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 pr-10"
+                />
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2"
+                  >
+                    <X className="w-4 h-4 text-neutral-400" />
+                  </button>
+                )}
+              </div>
+              {isSupported && (
+                <button 
+                  onClick={isListening ? stopListening : startListening}
+                  className={cn(
+                    "p-2 rounded-full",
+                    isListening ? "bg-red-500 text-white" : "bg-neutral-100"
+                  )}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => { setShowSearch(false); setSearchQuery(''); }}>
+                <X className="w-5 h-5 text-neutral-600" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <h1 className="flex-1 font-semibold text-neutral-900 truncate">
+                {selectedCategory?.name || 'Categories'}
+              </h1>
+              <button className="p-2" onClick={() => setShowSearch(true)}>
+                <Search className="w-5 h-5 text-neutral-600" />
+              </button>
+              <button className="p-2">
+                <SlidersHorizontal className="w-5 h-5 text-neutral-600" />
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -277,15 +336,19 @@ export default function GroceryCategoriesPage() {
                 <Skeleton key={i} className="h-56 rounded-xl" />
               ))}
             </div>
-          ) : products.length === 0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center p-4">
               <span className="text-4xl mb-3">📦</span>
-              <p className="text-neutral-600 font-medium">No products in this category</p>
-              <p className="text-sm text-neutral-400 mt-1">Check back later for updates</p>
+              <p className="text-neutral-600 font-medium">
+                {searchQuery ? 'No products found' : 'No products in this category'}
+              </p>
+              <p className="text-sm text-neutral-400 mt-1">
+                {searchQuery ? 'Try a different search' : 'Check back later for updates'}
+              </p>
             </div>
           ) : (
             <div className="p-3 grid grid-cols-2 gap-3">
-              {products.map(product => (
+              {filteredProducts.map(product => (
                 <GroceryProductCard
                   key={product.id}
                   product={product}
