@@ -9,8 +9,15 @@ const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Use a consistent password salt that won't change with API provider
+const PASSWORD_SALT = "storekriti_otp_v1";
+
 function generateOTP(): string {
   return (100000 + Math.floor(Math.random() * 900000)).toString();
+}
+
+function generatePassword(phone: string): string {
+  return `phone_${phone}_${PASSWORD_SALT}`;
 }
 
 interface SendOTPRequest {
@@ -61,6 +68,7 @@ Deno.serve(async (req) => {
     // Create Supabase client with service role for full access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const email = `${cleanPhone}@phone.storekriti.com`;
+    const password = generatePassword(cleanPhone);
 
     // Clean expired OTPs periodically
     await supabase
@@ -216,15 +224,12 @@ Deno.serve(async (req) => {
         .delete()
         .eq("id", otpRecord.id);
 
-      // Now handle Supabase auth
-      const password = `phone_${cleanPhone}_${FAST2SMS_API_KEY?.slice(0, 8)}`;
-
       // Check if user exists
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
       const existingUser = existingUsers?.users?.find(u => u.email === email);
 
       if (existingUser) {
-        // User exists - sign them in
+        // User exists - update their password to the new consistent one and sign them in
         if (isSignup) {
           return new Response(
             JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
@@ -232,18 +237,14 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Generate a magic link token for the user
-        const { data: signInData, error: signInError } = await supabase.auth.admin.generateLink({
-          type: "magiclink",
-          email: email,
-        });
+        // Update password to ensure consistency (in case it was created with old API key)
+        const { error: updateError } = await supabase.auth.admin.updateUserById(
+          existingUser.id,
+          { password: password }
+        );
 
-        if (signInError) {
-          console.error("Sign in error:", signInError);
-          return new Response(
-            JSON.stringify({ error: "Failed to sign in" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+        if (updateError) {
+          console.error("Password update error:", updateError);
         }
 
         return new Response(
@@ -251,7 +252,6 @@ Deno.serve(async (req) => {
             success: true, 
             message: "Login successful",
             action: "login",
-            token: signInData.properties?.hashed_token,
             email: email,
             password: password
           }),
