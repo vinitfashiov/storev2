@@ -7,7 +7,7 @@ import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, MapPin, Clock, Calendar, ChevronRight, Tag } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight } from 'lucide-react';
 
 interface Tenant {
   id: string;
@@ -16,6 +16,10 @@ interface Tenant {
   business_type: 'ecommerce' | 'grocery';
   address: string | null;
   phone: string | null;
+}
+
+interface DeliverySettings {
+  free_delivery_above: number | null;
 }
 
 // Loading skeleton for cart page
@@ -47,6 +51,7 @@ export default function CartPage() {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
 
   const { cart, loading, itemCount, updateQuantity, removeItem, getSubtotal } = useCart(slug || '', tenant?.id || null);
 
@@ -62,7 +67,22 @@ export default function CartPage() {
         .eq('store_slug', slug)
         .eq('is_active', true)
         .maybeSingle();
-      if (data) setTenant(data as Tenant);
+      if (data) {
+        setTenant(data as Tenant);
+        // Fetch delivery settings for grocery stores
+        if (data.business_type === 'grocery') {
+          const { data: settings } = await supabase
+            .from('tenant_delivery_settings')
+            .select('free_delivery_above')
+            .eq('tenant_id', data.id)
+            .maybeSingle();
+          if (settings) {
+            setDeliverySettings({
+              free_delivery_above: settings.free_delivery_above ? Number(settings.free_delivery_above) : null
+            });
+          }
+        }
+      }
       setTenantLoading(false);
     };
     fetchTenant();
@@ -85,22 +105,25 @@ export default function CartPage() {
   if (!tenant) return <CartSkeleton />;
 
   const subtotal = getSubtotal();
-  const deliveryFee = 32;
-  const taxes = Math.round(subtotal * 0.05);
-  const total = subtotal + deliveryFee + taxes;
   const isGrocery = tenant.business_type === 'grocery';
+  
+  // Check if eligible for free delivery
+  const freeDeliveryThreshold = deliverySettings?.free_delivery_above;
+  const isEligibleForFreeDelivery = freeDeliveryThreshold && subtotal >= freeDeliveryThreshold;
+  const amountToFreeDelivery = freeDeliveryThreshold ? Math.max(0, freeDeliveryThreshold - subtotal) : 0;
 
-  // Grocery Mobile Layout
+  // Grocery Mobile Layout - Clean and Simple
   if (isGrocery) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col pb-40 lg:pb-0">
+      <div className="min-h-screen bg-neutral-50 flex flex-col">
         {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
           <div className="flex items-center gap-3 p-4">
             <button onClick={() => navigate(-1)} className="p-1">
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <h1 className="text-xl font-bold">Cart</h1>
+            <h1 className="text-xl font-bold">Your Cart</h1>
+            <span className="text-neutral-500 text-sm ml-auto">{itemCount} items</span>
           </div>
         </div>
 
@@ -116,7 +139,7 @@ export default function CartPage() {
           />
         </div>
 
-        <main className="flex-1">
+        <main className="flex-1 pb-36 lg:pb-8">
           {!cart || cart.items.length === 0 ? (
             <div className="p-8 text-center">
               <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-neutral-100 flex items-center justify-center">
@@ -129,115 +152,119 @@ export default function CartPage() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white">
-              {/* Delivery Address */}
-              <div className="p-4 border-b border-neutral-100">
-                <button className="flex items-center gap-3 w-full text-left">
-                  <MapPin className="w-5 h-5 text-neutral-500" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">Delivery Address</p>
-                    <p className="text-xs text-neutral-500 truncate">2nd Cross, 1st Main HSR Layout, Bengaluru...</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-neutral-400" />
-                </button>
-              </div>
+            <div className="lg:container lg:mx-auto lg:px-4 lg:py-8">
+              <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+                {/* Main Cart Content */}
+                <div className="lg:col-span-2">
+                  {/* Free Delivery Banner */}
+                  {freeDeliveryThreshold && (
+                    <div className={`mx-4 lg:mx-0 mt-4 lg:mt-0 p-3 rounded-xl flex items-center gap-3 ${
+                      isEligibleForFreeDelivery 
+                        ? 'bg-green-50 border border-green-200' 
+                        : 'bg-amber-50 border border-amber-200'
+                    }`}>
+                      <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-amber-600'}`} />
+                      <p className={`text-sm font-medium ${isEligibleForFreeDelivery ? 'text-green-700' : 'text-amber-700'}`}>
+                        {isEligibleForFreeDelivery 
+                          ? '🎉 Yay! You are eligible for FREE delivery!' 
+                          : `Add ₹${amountToFreeDelivery.toFixed(0)} more for FREE delivery`
+                        }
+                      </p>
+                    </div>
+                  )}
 
-              {/* Cart Items */}
-              <div className="p-4">
-                <h2 className="font-bold text-sm mb-3">Items in your cart</h2>
-                <div className="space-y-4">
-                  {cart.items.map((item) => {
-                    const imageUrl = getImageUrl(item.product?.images);
-                    return (
-                      <div key={item.id} className="flex gap-3">
-                        <div className="w-16 h-16 bg-neutral-100 rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
-                          {imageUrl ? (
-                            <img 
-                              src={imageUrl} 
-                              alt={item.product?.name || 'Product'} 
-                              className="w-full h-full object-contain p-1"
-                            />
-                          ) : (
-                            <Package className="w-8 h-8 text-neutral-300" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-sm line-clamp-2">{item.product?.name || 'Product'}</h3>
-                          <p className="text-xs text-neutral-500">₹{item.unit_price} / unit</p>
-                        </div>
-                        <div className="flex items-center gap-1 border border-green-600 rounded-lg">
-                          <button 
-                            onClick={() => updateQuantity(item.id, item.qty - 1)}
-                            className="p-1.5 text-green-600"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="text-sm font-bold text-green-600 w-6 text-center">{item.qty}</span>
-                          <button 
-                            onClick={() => updateQuantity(item.id, item.qty + 1)}
-                            className="p-1.5 text-green-600"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
+                  {/* Cart Items */}
+                  <div className="bg-white mt-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                    <div className="p-4 border-b border-neutral-100">
+                      <h2 className="font-bold text-base">Cart Items ({cart.items.length})</h2>
+                    </div>
+                    <div className="divide-y divide-neutral-100">
+                      {cart.items.map((item) => {
+                        const imageUrl = getImageUrl(item.product?.images);
+                        const lineTotal = item.unit_price * item.qty;
+                        return (
+                          <div key={item.id} className="flex gap-3 p-4">
+                            <Link 
+                              to={`/store/${slug}/product/${item.product?.slug || ''}`}
+                              className="w-20 h-20 bg-neutral-100 rounded-xl shrink-0 overflow-hidden flex items-center justify-center"
+                            >
+                              {imageUrl ? (
+                                <img 
+                                  src={imageUrl} 
+                                  alt={item.product?.name || 'Product'} 
+                                  className="w-full h-full object-contain p-1"
+                                />
+                              ) : (
+                                <Package className="w-8 h-8 text-neutral-300" />
+                              )}
+                            </Link>
+                            <div className="flex-1 min-w-0">
+                              <Link to={`/store/${slug}/product/${item.product?.slug || ''}`}>
+                                <h3 className="font-medium text-sm line-clamp-2 hover:text-green-600 transition-colors">
+                                  {item.product?.name || 'Product'}
+                                </h3>
+                              </Link>
+                              <p className="text-xs text-neutral-500 mt-0.5">₹{item.unit_price} per unit</p>
+                              <div className="flex items-center justify-between mt-2">
+                                <p className="font-bold text-green-700">₹{lineTotal.toFixed(2)}</p>
+                                <div className="flex items-center gap-1 border border-green-600 rounded-lg bg-green-50">
+                                  <button 
+                                    onClick={() => updateQuantity(item.id, item.qty - 1)}
+                                    className="p-2 text-green-600 hover:bg-green-100 rounded-l-lg transition-colors active:scale-95"
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </button>
+                                  <span className="text-sm font-bold text-green-700 w-8 text-center">{item.qty}</span>
+                                  <button 
+                                    onClick={() => updateQuantity(item.id, item.qty + 1)}
+                                    className="p-2 text-green-600 hover:bg-green-100 rounded-r-lg transition-colors active:scale-95"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Add More Items */}
+                  <Link 
+                    to={`/store/${slug}/products`}
+                    className="mx-4 lg:mx-0 mt-4 flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-200 hover:border-green-300 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-neutral-700">Add more items</span>
+                    <ChevronRight className="w-5 h-5 text-neutral-400" />
+                  </Link>
+                </div>
+
+                {/* Order Summary - Desktop */}
+                <div className="hidden lg:block">
+                  <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24">
+                    <h3 className="font-bold text-lg mb-4">Order Summary</h3>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-neutral-600">Subtotal ({itemCount} items)</span>
+                        <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Delivery Time Options */}
-              <div className="p-4 border-t border-neutral-100">
-                <h2 className="font-bold text-sm mb-3">Delivery Time</h2>
-                <div className="flex gap-3">
-                  <button className="flex-1 p-3 border-2 border-green-600 rounded-xl bg-green-50">
-                    <div className="flex items-center gap-2 justify-center">
-                      <Clock className="w-4 h-4" />
-                      <span className="font-semibold text-sm">Standard</span>
+                      <div className="flex justify-between text-neutral-500">
+                        <span>Delivery & taxes</span>
+                        <span>Calculated at checkout</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-1">25-30 Mins</p>
-                  </button>
-                  <button className="flex-1 p-3 border border-neutral-200 rounded-xl">
-                    <div className="flex items-center gap-2 justify-center">
-                      <Calendar className="w-4 h-4" />
-                      <span className="font-semibold text-sm">Schedule</span>
+                    <div className="border-t border-neutral-200 mt-4 pt-4">
+                      <div className="flex justify-between font-bold text-lg mb-4">
+                        <span>Subtotal</span>
+                        <span>₹{subtotal.toFixed(2)}</span>
+                      </div>
+                      <Link to={`/store/${slug}/checkout`}>
+                        <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl">
+                          Proceed to Checkout
+                        </Button>
+                      </Link>
                     </div>
-                    <p className="text-xs text-neutral-500 mt-1">Select Time</p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Promo Code */}
-              <div className="p-4 border-t border-neutral-100">
-                <button className="flex items-center gap-3 w-full text-left">
-                  <Tag className="w-5 h-5 text-neutral-500" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">Add Promo code</p>
-                    <p className="text-xs text-neutral-500">Apply promo code for discount</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-neutral-400" />
-                </button>
-              </div>
-
-              {/* Bill Details */}
-              <div className="p-4 border-t border-neutral-100">
-                <h2 className="font-bold text-sm mb-3">Bill Details</h2>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Subtotal</span>
-                    <span>₹{subtotal}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Delivery fee</span>
-                    <span>₹{deliveryFee}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-neutral-600">Tax & other fees</span>
-                    <span>₹{taxes}</span>
-                  </div>
-                  <div className="flex justify-between font-bold pt-2 border-t border-neutral-100">
-                    <span>Total</span>
-                    <span>₹{total}</span>
                   </div>
                 </div>
               </div>
@@ -245,14 +272,22 @@ export default function CartPage() {
           )}
         </main>
 
-        {/* Sticky Bottom */}
+        {/* Mobile Sticky Bottom - Cart Summary + Checkout Button */}
         {cart && cart.items.length > 0 && (
-          <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 p-4">
-            <Link to={`/store/${slug}/checkout`}>
-              <Button className="w-full h-14 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-xl">
-                Make Payment
-              </Button>
-            </Link>
+          <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg safe-area-bottom">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs text-neutral-500">Total</p>
+                  <p className="text-xl font-bold">₹{subtotal.toFixed(2)}</p>
+                </div>
+                <Link to={`/store/${slug}/checkout`} className="flex-1 ml-4">
+                  <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl">
+                    Proceed to Checkout
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { toast } from 'sonner';
-import { CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin, BookOpen, Tag, X, Check } from 'lucide-react';
+import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
+import { StoreHeader } from '@/components/storefront/StoreHeader';
+import { StoreFooter } from '@/components/storefront/StoreFooter';
+import { 
+  CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin, 
+  Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield
+} from 'lucide-react';
 
 interface Tenant { id: string; store_name: string; store_slug: string; business_type: 'ecommerce' | 'grocery'; }
 
@@ -57,10 +60,12 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '' });
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Customer addresses state
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   
   // Grocery-specific state
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
@@ -77,7 +82,7 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponError, setCouponError] = useState('');
 
-  const { cart, getSubtotal, clearCart } = useCart(slug || '', tenant?.id || null);
+  const { cart, itemCount, getSubtotal, clearCart } = useCart(slug || '', tenant?.id || null);
 
   useEffect(() => {
     const fetchTenant = async () => {
@@ -85,17 +90,13 @@ export default function CheckoutPage() {
       const { data } = await supabase.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
       if (data) {
         setTenant(data as Tenant);
-        // Check if Razorpay is configured - must have both key_id AND key_secret
         const { data: integration } = await supabase
           .from('tenant_integrations')
           .select('razorpay_key_id, razorpay_key_secret')
           .eq('tenant_id', data.id)
           .maybeSingle();
-        const hasRazorpay = !!(integration?.razorpay_key_id && integration?.razorpay_key_secret);
-        setRazorpayConfigured(hasRazorpay);
-        console.log('Razorpay configured:', hasRazorpay, integration);
+        setRazorpayConfigured(!!(integration?.razorpay_key_id && integration?.razorpay_key_secret));
         
-        // Fetch grocery-specific data
         if (data.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
             supabase.from('tenant_delivery_settings').select('*').eq('tenant_id', data.id).maybeSingle(),
@@ -111,7 +112,6 @@ export default function CheckoutPage() {
               free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null
             });
             if (settingsRes.data.delivery_mode === 'slots') setDeliveryOption('slot');
-            else setDeliveryOption('asap');
           }
           if (zonesRes.data) setZones(zonesRes.data);
           if (slotsRes.data) setSlots(slotsRes.data);
@@ -121,7 +121,6 @@ export default function CheckoutPage() {
     fetchTenant();
   }, [slug]);
 
-  // Prefill customer data when logged in
   useEffect(() => {
     if (customer) {
       setForm(prev => ({
@@ -133,7 +132,6 @@ export default function CheckoutPage() {
     }
   }, [customer]);
 
-  // Fetch saved addresses when customer is logged in
   useEffect(() => {
     const fetchAddresses = async () => {
       if (!customer) {
@@ -160,32 +158,35 @@ export default function CheckoutPage() {
             pincode: defaultAddr.pincode
           }));
         }
+      } else {
+        setShowNewAddressForm(true);
       }
     };
     fetchAddresses();
   }, [customer]);
 
-  // Handle address selection change
-  const handleAddressChange = (addressId: string) => {
+  const handleAddressSelect = (addressId: string) => {
     setSelectedAddressId(addressId);
-    if (addressId === 'new') {
-      setForm(prev => ({ ...prev, line1: '', line2: '', city: '', state: '', pincode: '' }));
-    } else {
-      const addr = savedAddresses.find(a => a.id === addressId);
-      if (addr) {
-        setForm(prev => ({
-          ...prev,
-          line1: addr.line1,
-          line2: addr.line2 || '',
-          city: addr.city,
-          state: addr.state,
-          pincode: addr.pincode
-        }));
-      }
+    setShowNewAddressForm(false);
+    const addr = savedAddresses.find(a => a.id === addressId);
+    if (addr) {
+      setForm(prev => ({
+        ...prev,
+        line1: addr.line1,
+        line2: addr.line2 || '',
+        city: addr.city,
+        state: addr.state,
+        pincode: addr.pincode
+      }));
     }
   };
 
-  // Load Razorpay script
+  const handleAddNewAddress = () => {
+    setSelectedAddressId('new');
+    setShowNewAddressForm(true);
+    setForm(prev => ({ ...prev, line1: '', line2: '', city: '', state: '', pincode: '' }));
+  };
+
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -194,7 +195,6 @@ export default function CheckoutPage() {
     return () => { document.body.removeChild(script); };
   }, []);
 
-  // Check pincode for zone match
   useEffect(() => {
     if (!form.pincode || form.pincode.length < 6 || tenant?.business_type !== 'grocery') {
       setSelectedZone(null);
@@ -214,10 +214,8 @@ export default function CheckoutPage() {
   const isGrocery = tenant?.business_type === 'grocery';
   const subtotal = getSubtotal();
   
-  // Re-validate coupon when subtotal changes
   useEffect(() => {
     if (appliedCoupon && subtotal > 0) {
-      // Recalculate discount if coupon is applied
       let newDiscount = 0;
       if (appliedCoupon.coupon_type === 'percent') {
         newDiscount = (subtotal * appliedCoupon.coupon_value) / 100;
@@ -232,7 +230,6 @@ export default function CheckoutPage() {
     }
   }, [subtotal]);
   
-  // Calculate delivery fee for grocery
   const calculateDeliveryFee = () => {
     if (!isGrocery || !deliverySettings) return 0;
     if (deliverySettings.free_delivery_above && subtotal >= deliverySettings.free_delivery_above) return 0;
@@ -243,11 +240,8 @@ export default function CheckoutPage() {
   const discountTotal = appliedCoupon?.discount_amount || 0;
   const total = subtotal + deliveryFee - discountTotal;
   const meetsMinOrder = !isGrocery || !deliverySettings?.min_order_amount || subtotal >= deliverySettings.min_order_amount;
-
-  // Filter slots by zone
   const availableSlots = slots.filter(s => !s.zone_id || s.zone_id === selectedZone?.id);
 
-  // Apply coupon handler
   const handleApplyCoupon = async () => {
     if (!couponCode.trim() || !slug) return;
     
@@ -280,7 +274,6 @@ export default function CheckoutPage() {
         setCouponError(data.error || 'Invalid coupon');
       }
     } catch (err: any) {
-      console.error('Coupon error:', err);
       setCouponError('Failed to apply coupon');
     } finally {
       setCouponLoading(false);
@@ -290,7 +283,6 @@ export default function CheckoutPage() {
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponError('');
-    toast.info('Coupon removed');
   };
 
   const handleRazorpayPayment = async (paymentIntentId: string, orderNumber: string, amount: number) => {
@@ -311,15 +303,11 @@ export default function CheckoutPage() {
         handler: async (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
           try {
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
-              body: { 
-                store_slug: slug, 
-                payment_intent_id: paymentIntentId, 
-                ...response 
-              }
+              body: { store_slug: slug, payment_intent_id: paymentIntentId, ...response }
             });
             if (verifyError || !verifyData?.success) throw new Error(verifyData?.error || 'Payment verification failed');
             await clearCart();
-            toast.success('Payment successful! Order created.');
+            toast.success('Payment successful!');
             navigate(`/store/${slug}/order-confirmation?order=${verifyData.order_number || orderNumber}`);
           } catch (err: any) { 
             toast.error(err.message || 'Payment verification failed'); 
@@ -327,14 +315,11 @@ export default function CheckoutPage() {
           }
         },
         prefill: { name: form.name, email: form.email, contact: form.phone },
-        theme: { color: '#3399cc' },
+        theme: { color: '#16a34a' },
         modal: { 
           ondismiss: async () => { 
-            await supabase
-              .from('payment_intents')
-              .update({ status: 'cancelled' })
-              .eq('id', paymentIntentId);
-            toast.error('Payment cancelled. No order was created.'); 
+            await supabase.from('payment_intents').update({ status: 'cancelled' }).eq('id', paymentIntentId);
+            toast.error('Payment cancelled.'); 
             setSubmitting(false); 
           } 
         }
@@ -342,10 +327,7 @@ export default function CheckoutPage() {
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (err: any) {
-      await supabase
-        .from('payment_intents')
-        .update({ status: 'failed' })
-        .eq('id', paymentIntentId);
+      await supabase.from('payment_intents').update({ status: 'failed' }).eq('id', paymentIntentId);
       toast.error(err.message || 'Failed to initiate payment');
       setSubmitting(false);
     }
@@ -355,7 +337,6 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (!cart || !tenant || cart.items.length === 0) return;
     
-    // Validations for grocery
     if (isGrocery) {
       if (zones.length > 0 && !selectedZone) {
         toast.error('Please enter a valid delivery pincode');
@@ -375,6 +356,21 @@ export default function CheckoutPage() {
     const orderNumber = `ORD-${Date.now()}`;
 
     try {
+      // Save new address if entered
+      if (customer && selectedAddressId === 'new' && form.line1) {
+        await supabase.from('customer_addresses').insert({
+          customer_id: customer.id,
+          tenant_id: tenant.id,
+          label: 'Home',
+          line1: form.line1,
+          line2: form.line2 || null,
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          is_default: savedAddresses.length === 0
+        });
+      }
+
       const commonOrderData = {
         order_number: orderNumber,
         customer_name: form.name,
@@ -391,20 +387,14 @@ export default function CheckoutPage() {
         delivery_option: isGrocery ? deliveryOption : 'standard',
         coupon_id: appliedCoupon?.coupon_id || null,
         coupon_code: appliedCoupon?.coupon_code || null,
-        items: cart.items.map(item => {
-          const variantId = (item as any).variant_id || null;
-          return {
-            product_id: item.product_id,
-            variant_id: variantId,
-            name: item.product?.name || 'Product',
-            qty: item.qty,
-            unit_price: item.unit_price,
-            line_total: item.unit_price * item.qty,
-            stock_qty: variantId 
-              ? (item as any).variant?.stock_qty || item.product?.stock_qty || 0
-              : item.product?.stock_qty || 0
-          };
-        })
+        items: cart.items.map(item => ({
+          product_id: item.product_id,
+          variant_id: (item as any).variant_id || null,
+          name: item.product?.name || 'Product',
+          qty: item.qty,
+          unit_price: item.unit_price,
+          line_total: item.unit_price * item.qty
+        }))
       };
 
       if (paymentMethod === 'razorpay') {
@@ -422,27 +412,18 @@ export default function CheckoutPage() {
           .select()
           .single();
 
-        if (piError || !paymentIntent) {
-          throw new Error('Failed to initiate payment');
-        }
-
+        if (piError || !paymentIntent) throw new Error('Failed to initiate payment');
         await handleRazorpayPayment(paymentIntent.id, orderNumber, total);
       } else {
-        // For COD: Use atomic function for transaction safety and performance
-        // Prepare order items data
-        const orderItemsData = cart.items.map(item => {
-          const variantId = (item as any).variant_id || null;
-          return {
-            product_id: item.product_id,
-            variant_id: variantId,
-            name: item.product?.name || 'Product',
-            qty: item.qty,
-            unit_price: item.unit_price,
-            line_total: item.unit_price * item.qty
-          };
-        });
+        const orderItemsData = cart.items.map(item => ({
+          product_id: item.product_id,
+          variant_id: (item as any).variant_id || null,
+          name: item.product?.name || 'Product',
+          qty: item.qty,
+          unit_price: item.unit_price,
+          line_total: item.unit_price * item.qty
+        }));
 
-        // Create order manually since atomic function may not exist
         const { data: newOrder, error: orderError } = await supabase
           .from('orders')
           .insert({
@@ -472,7 +453,6 @@ export default function CheckoutPage() {
         const orderId = newOrder?.id;
 
         if (!orderError && orderId) {
-          // Create order items
           const orderItems = orderItemsData.map(item => ({
             tenant_id: tenant.id,
             order_id: orderId,
@@ -484,11 +464,8 @@ export default function CheckoutPage() {
             line_total: item.line_total
           }));
           await supabase.from('order_items').insert(orderItems);
-
-          // Update cart status
           await supabase.from('carts').update({ status: 'converted' }).eq('id', cart.id);
 
-          // Decrement stock for each item
           for (const item of orderItemsData) {
             const { data: product } = await supabase
               .from('products')
@@ -505,12 +482,7 @@ export default function CheckoutPage() {
         }
 
         if (orderError) {
-          // Handle specific error messages
-          if (orderError.message?.includes('Insufficient stock')) {
-            toast.error('Some items are out of stock. Please refresh and try again.');
-          } else {
-            toast.error(orderError.message || 'Failed to create order');
-          }
+          toast.error(orderError.message || 'Failed to create order');
           setSubmitting(false);
           return;
         }
@@ -521,7 +493,6 @@ export default function CheckoutPage() {
           return;
         }
 
-        // Record coupon redemption if applicable
         if (appliedCoupon) {
           await supabase.from('coupon_redemptions').insert({
             tenant_id: tenant.id,
@@ -531,7 +502,6 @@ export default function CheckoutPage() {
             discount_amount: discountTotal
           });
           
-          // Increment coupon usage directly
           const { data: coupon } = await supabase
             .from('coupons')
             .select('used_count')
@@ -545,7 +515,6 @@ export default function CheckoutPage() {
           }
         }
 
-        // Create delivery assignment for grocery orders
         if (isGrocery) {
           const { data: deliveryAreas } = await supabase
             .from('delivery_areas')
@@ -576,243 +545,604 @@ export default function CheckoutPage() {
     }
   };
 
+  const getImageUrl = (images: any) => {
+    if (!images) return null;
+    const imageArray = Array.isArray(images) ? images : (typeof images === 'string' ? [images] : []);
+    if (imageArray.length === 0) return null;
+    const img = imageArray[0];
+    if (typeof img === 'string') {
+      if (img.startsWith('http')) return img;
+      return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+    }
+    return null;
+  };
+
   if (!tenant || !cart) return null;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-2xl font-display font-bold mb-6">Checkout</h1>
-        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader><CardTitle>Contact Details</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div><Label>Full Name *</Label><Input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-                <div><Label>Phone *</Label><Input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
-                <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle>Delivery Address</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                {customer && savedAddresses.length > 0 && (
-                  <div className="mb-4">
-                    <Label className="flex items-center gap-2 mb-2">
-                      <BookOpen className="w-4 h-4" /> Saved Addresses
-                    </Label>
-                    <Select value={selectedAddressId} onValueChange={handleAddressChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an address" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savedAddresses.map(addr => (
-                          <SelectItem key={addr.id} value={addr.id}>
-                            {addr.label}: {addr.line1}, {addr.city} - {addr.pincode}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="new">+ Enter new address</SelectItem>
-                      </SelectContent>
-                    </Select>
+  // Grocery Checkout - Clean Modern UI
+  if (isGrocery) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col">
+        {/* Mobile Header */}
+        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+          <div className="flex items-center gap-3 p-4">
+            <button onClick={() => navigate(-1)} className="p-1">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-xl font-bold">Checkout</h1>
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden lg:block">
+          <StoreHeader
+            storeName={tenant.store_name}
+            storeSlug={tenant.store_slug}
+            businessType={tenant.business_type}
+            cartCount={itemCount}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex-1 pb-36 lg:pb-8">
+          <div className="lg:container lg:mx-auto lg:px-4 lg:py-8">
+            <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+              {/* Left Column - Forms */}
+              <div className="lg:col-span-2 space-y-4">
+                {/* Contact Details */}
+                <div className="bg-white p-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                  <h2 className="font-bold text-base mb-4">Contact Details</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-neutral-600">Full Name *</Label>
+                      <Input 
+                        required 
+                        value={form.name} 
+                        onChange={e => setForm({...form, name: e.target.value})}
+                        className="mt-1 h-12 rounded-xl"
+                        placeholder="Enter your name"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm text-neutral-600">Phone *</Label>
+                      <Input 
+                        required 
+                        value={form.phone} 
+                        onChange={e => setForm({...form, phone: e.target.value})}
+                        className="mt-1 h-12 rounded-xl"
+                        placeholder="10-digit phone number"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Label className="text-sm text-neutral-600">Email (optional)</Label>
+                      <Input 
+                        type="email" 
+                        value={form.email} 
+                        onChange={e => setForm({...form, email: e.target.value})}
+                        className="mt-1 h-12 rounded-xl"
+                        placeholder="For order updates"
+                      />
+                    </div>
                   </div>
-                )}
-                
-                <div><Label>Address Line 1 *</Label><Input required value={form.line1} onChange={e => setForm({...form, line1: e.target.value})} /></div>
-                <div><Label>Address Line 2</Label><Input value={form.line2} onChange={e => setForm({...form, line2: e.target.value})} /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>City *</Label><Input required value={form.city} onChange={e => setForm({...form, city: e.target.value})} /></div>
-                  <div><Label>State *</Label><Input required value={form.state} onChange={e => setForm({...form, state: e.target.value})} /></div>
                 </div>
-                <div>
-                  <Label>Pincode *</Label>
-                  <Input required value={form.pincode} onChange={e => setForm({...form, pincode: e.target.value})} maxLength={6} />
-                  {isGrocery && zones.length > 0 && (
-                    <div className="mt-2">
-                      {selectedZone ? (
-                        <p className="text-sm text-green-600 flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> Delivering to: {selectedZone.name}
-                        </p>
-                      ) : zoneError && (
-                        <p className="text-sm text-destructive flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> {zoneError}
-                        </p>
+
+                {/* Delivery Address */}
+                <div className="bg-white p-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-bold text-base flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-green-600" />
+                      Delivery Address
+                    </h2>
+                    {savedAddresses.length > 0 && !showNewAddressForm && (
+                      <button 
+                        type="button"
+                        onClick={handleAddNewAddress}
+                        className="text-sm text-green-600 font-medium flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" /> Add New
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Saved Addresses */}
+                  {savedAddresses.length > 0 && !showNewAddressForm && (
+                    <div className="space-y-3 mb-4">
+                      {savedAddresses.map(addr => (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => handleAddressSelect(addr.id)}
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                            selectedAddressId === addr.id
+                              ? 'border-green-600 bg-green-50'
+                              : 'border-neutral-200 hover:border-neutral-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="inline-block px-2 py-0.5 bg-neutral-100 rounded text-xs font-medium mb-2">
+                                {addr.label}
+                              </span>
+                              <p className="text-sm font-medium">{addr.line1}</p>
+                              {addr.line2 && <p className="text-sm text-neutral-500">{addr.line2}</p>}
+                              <p className="text-sm text-neutral-500">{addr.city}, {addr.state} - {addr.pincode}</p>
+                            </div>
+                            {selectedAddressId === addr.id && (
+                              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white" />
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* New Address Form */}
+                  {(showNewAddressForm || savedAddresses.length === 0) && (
+                    <div className="space-y-4">
+                      {savedAddresses.length > 0 && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setShowNewAddressForm(false);
+                            if (savedAddresses.length > 0) {
+                              handleAddressSelect(savedAddresses[0].id);
+                            }
+                          }}
+                          className="text-sm text-neutral-500 flex items-center gap-1"
+                        >
+                          <ChevronLeft className="w-4 h-4" /> Back to saved addresses
+                        </button>
                       )}
+                      <div>
+                        <Label className="text-sm text-neutral-600">Address Line 1 *</Label>
+                        <Input 
+                          required 
+                          value={form.line1} 
+                          onChange={e => setForm({...form, line1: e.target.value})}
+                          className="mt-1 h-12 rounded-xl"
+                          placeholder="House/Flat number, Building name"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm text-neutral-600">Address Line 2</Label>
+                        <Input 
+                          value={form.line2} 
+                          onChange={e => setForm({...form, line2: e.target.value})}
+                          className="mt-1 h-12 rounded-xl"
+                          placeholder="Street, Area, Landmark"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm text-neutral-600">City *</Label>
+                          <Input 
+                            required 
+                            value={form.city} 
+                            onChange={e => setForm({...form, city: e.target.value})}
+                            className="mt-1 h-12 rounded-xl"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm text-neutral-600">State *</Label>
+                          <Input 
+                            required 
+                            value={form.state} 
+                            onChange={e => setForm({...form, state: e.target.value})}
+                            className="mt-1 h-12 rounded-xl"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm text-neutral-600">Pincode *</Label>
+                        <Input 
+                          required 
+                          value={form.pincode} 
+                          onChange={e => setForm({...form, pincode: e.target.value})}
+                          className="mt-1 h-12 rounded-xl"
+                          maxLength={6}
+                          placeholder="6-digit pincode"
+                        />
+                        {zones.length > 0 && (
+                          <div className="mt-2">
+                            {selectedZone ? (
+                              <p className="text-sm text-green-600 flex items-center gap-1">
+                                <Check className="w-4 h-4" /> Delivering to: {selectedZone.name}
+                              </p>
+                            ) : zoneError && (
+                              <p className="text-sm text-red-500 flex items-center gap-1">
+                                <AlertTriangle className="w-4 h-4" /> {zoneError}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Grocery Delivery Options */}
-            {isGrocery && deliverySettings && (
-              <Card>
-                <CardHeader><CardTitle>Delivery Option</CardTitle></CardHeader>
-                <CardContent>
-                  <RadioGroup value={deliveryOption} onValueChange={(v) => setDeliveryOption(v as 'asap' | 'slot')}>
-                    {(deliverySettings.delivery_mode === 'asap' || deliverySettings.delivery_mode === 'both') && (
-                      <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <RadioGroupItem value="asap" id="asap" />
-                        <Label htmlFor="asap" className="flex items-center gap-2 cursor-pointer flex-1">
-                          <Zap className="w-4 h-4 text-orange-500" />
-                          <div>
-                            <span className="font-medium">Express Delivery</span>
-                            <p className="text-sm text-muted-foreground">Deliver in ~{deliverySettings.asap_eta_minutes} mins</p>
-                          </div>
-                        </Label>
-                      </div>
-                    )}
-                    {(deliverySettings.delivery_mode === 'slots' || deliverySettings.delivery_mode === 'both') && (
-                      <div className="flex items-start space-x-2 p-3 border rounded-lg mt-2">
-                        <RadioGroupItem value="slot" id="slot" className="mt-1" />
-                        <Label htmlFor="slot" className="flex-1 cursor-pointer">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-blue-500" />
-                            <span className="font-medium">Scheduled Delivery</span>
-                          </div>
-                          {deliveryOption === 'slot' && (
-                            <Select value={selectedSlotId} onValueChange={setSelectedSlotId}>
-                              <SelectTrigger className="mt-2">
-                                <SelectValue placeholder="Select time slot" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableSlots.map(slot => (
-                                  <SelectItem key={slot.id} value={slot.id}>{slot.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </Label>
-                      </div>
-                    )}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          <div className="space-y-6">
-            <Card>
-              <CardHeader><CardTitle>Payment Method</CardTitle></CardHeader>
-              <CardContent>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                    <RadioGroupItem value="cod" id="cod" />
-                    <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer">
-                      <Truck className="w-4 h-4" /> Cash on Delivery
-                    </Label>
-                  </div>
-                  <div className={`flex items-center space-x-2 p-3 border rounded-lg mt-2 ${!razorpayConfigured ? 'opacity-50' : ''}`}>
-                    <RadioGroupItem value="razorpay" id="razorpay" disabled={!razorpayConfigured} />
-                    <Label htmlFor="razorpay" className="flex items-center gap-2 cursor-pointer">
-                      <CreditCard className="w-4 h-4" /> Pay Online (Razorpay)
-                      {razorpayConfigured === false && <span className="text-xs text-muted-foreground ml-2">(Not configured)</span>}
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-
-            {/* Coupon Section */}
-            <Card>
-              <CardHeader><CardTitle className="flex items-center gap-2"><Tag className="w-4 h-4" /> Apply Coupon</CardTitle></CardHeader>
-              <CardContent>
-                {appliedCoupon ? (
-                  <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-600" />
-                      <span className="font-medium text-green-700 dark:text-green-400">{appliedCoupon.coupon_code}</span>
-                      <span className="text-sm text-green-600 dark:text-green-400">
-                        {appliedCoupon.coupon_type === 'percent' ? `${appliedCoupon.coupon_value}% off` : `₹${appliedCoupon.coupon_value} off`}
-                      </span>
+                {/* Delivery Time */}
+                {deliverySettings && (
+                  <div className="bg-white p-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                    <h2 className="font-bold text-base mb-4 flex items-center gap-2">
+                      <Clock className="w-5 h-5 text-green-600" />
+                      Delivery Time
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(deliverySettings.delivery_mode === 'asap' || deliverySettings.delivery_mode === 'both') && (
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryOption('asap')}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            deliveryOption === 'asap'
+                              ? 'border-green-600 bg-green-50'
+                              : 'border-neutral-200'
+                          }`}
+                        >
+                          <Zap className={`w-5 h-5 mb-2 ${deliveryOption === 'asap' ? 'text-green-600' : 'text-neutral-400'}`} />
+                          <p className="font-semibold text-sm">Express</p>
+                          <p className="text-xs text-neutral-500">{deliverySettings.asap_eta_minutes} mins</p>
+                        </button>
+                      )}
+                      {(deliverySettings.delivery_mode === 'slots' || deliverySettings.delivery_mode === 'both') && (
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryOption('slot')}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            deliveryOption === 'slot'
+                              ? 'border-green-600 bg-green-50'
+                              : 'border-neutral-200'
+                          }`}
+                        >
+                          <Clock className={`w-5 h-5 mb-2 ${deliveryOption === 'slot' ? 'text-green-600' : 'text-neutral-400'}`} />
+                          <p className="font-semibold text-sm">Scheduled</p>
+                          <p className="text-xs text-neutral-500">Pick a slot</p>
+                        </button>
+                      )}
                     </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={removeCoupon}>
-                      <X className="w-4 h-4" />
-                    </Button>
+                    {deliveryOption === 'slot' && availableSlots.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {availableSlots.map(slot => (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => setSelectedSlotId(slot.id)}
+                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between ${
+                              selectedSlotId === slot.id
+                                ? 'border-green-600 bg-green-50'
+                                : 'border-neutral-200'
+                            }`}
+                          >
+                            <span className="text-sm font-medium">{slot.label}</span>
+                            {selectedSlotId === slot.id && (
+                              <Check className="w-5 h-5 text-green-600" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="space-y-2">
+                )}
+
+                {/* Promo Code */}
+                <div className="bg-white p-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                  <h2 className="font-bold text-base mb-4 flex items-center gap-2">
+                    <Tag className="w-5 h-5 text-green-600" />
+                    Promo Code
+                  </h2>
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Check className="w-5 h-5 text-green-600" />
+                        <div>
+                          <span className="font-bold text-green-700">{appliedCoupon.coupon_code}</span>
+                          <p className="text-sm text-green-600">
+                            {appliedCoupon.coupon_type === 'percent' 
+                              ? `${appliedCoupon.coupon_value}% off` 
+                              : `₹${appliedCoupon.coupon_value} off`
+                            } • Saving ₹{discountTotal.toFixed(0)}
+                          </p>
+                        </div>
+                      </div>
+                      <button type="button" onClick={removeCoupon} className="p-2">
+                        <X className="w-5 h-5 text-neutral-400" />
+                      </button>
+                    </div>
+                  ) : (
                     <div className="flex gap-2">
                       <Input 
                         placeholder="Enter coupon code" 
                         value={couponCode} 
                         onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
-                        className="flex-1"
+                        className="flex-1 h-12 rounded-xl"
                       />
                       <Button 
                         type="button" 
                         variant="outline" 
                         onClick={handleApplyCoupon}
                         disabled={couponLoading || !couponCode.trim()}
+                        className="h-12 px-6 rounded-xl"
                       >
                         {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
                       </Button>
                     </div>
-                    {couponError && (
-                      <p className="text-sm text-destructive">{couponError}</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Min order warning */}
-            {isGrocery && deliverySettings?.min_order_amount > 0 && !meetsMinOrder && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Minimum order amount is ₹{deliverySettings.min_order_amount}. Add ₹{(deliverySettings.min_order_amount - subtotal).toFixed(2)} more.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Card>
-              <CardHeader><CardTitle>Order Summary</CardTitle></CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm mb-4">
-                  {cart.items.map(item => (
-                    <div key={item.id} className="flex justify-between">
-                      <span>{item.product?.name} x{item.qty}</span>
-                      <span>₹{(item.unit_price * item.qty).toFixed(2)}</span>
-                    </div>
-                  ))}
+                  )}
+                  {couponError && <p className="text-sm text-red-500 mt-2">{couponError}</p>}
                 </div>
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                  {isGrocery && (
+
+                {/* Payment Method */}
+                <div className="bg-white p-4 lg:rounded-xl lg:border lg:border-neutral-200">
+                  <h2 className="font-bold text-base mb-4 flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-green-600" />
+                    Payment Method
+                  </h2>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${
+                        paymentMethod === 'cod'
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-neutral-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-5 h-5 text-neutral-600" />
+                        <span className="font-medium">Cash on Delivery</span>
+                      </div>
+                      {paymentMethod === 'cod' && (
+                        <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
+                      disabled={!razorpayConfigured}
+                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${
+                        paymentMethod === 'razorpay'
+                          ? 'border-green-600 bg-green-50'
+                          : 'border-neutral-200'
+                      } ${!razorpayConfigured ? 'opacity-50' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="w-5 h-5 text-neutral-600" />
+                        <div>
+                          <span className="font-medium">Pay Online</span>
+                          {!razorpayConfigured && <p className="text-xs text-neutral-500">Not available</p>}
+                        </div>
+                      </div>
+                      {paymentMethod === 'razorpay' && (
+                        <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Order Summary */}
+              <div className="hidden lg:block">
+                <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24">
+                  <h3 className="font-bold text-lg mb-4">Order Summary</h3>
+                  
+                  {/* Cart Items Preview */}
+                  <div className="space-y-3 max-h-60 overflow-y-auto mb-4">
+                    {cart.items.map(item => {
+                      const imageUrl = getImageUrl(item.product?.images);
+                      return (
+                        <div key={item.id} className="flex gap-3">
+                          <div className="w-12 h-12 bg-neutral-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0">
+                            {imageUrl ? (
+                              <img src={imageUrl} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <Package className="w-5 h-5 text-neutral-300" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.product?.name}</p>
+                            <p className="text-xs text-neutral-500">Qty: {item.qty}</p>
+                          </div>
+                          <p className="text-sm font-medium">₹{(item.unit_price * item.qty).toFixed(0)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Bill Details */}
+                  <div className="border-t border-neutral-200 pt-4 space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span>Delivery</span>
-                      <span>{deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}</span>
+                      <span className="text-neutral-600">Subtotal</span>
+                      <span>₹{subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">Delivery</span>
+                      <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
+                        {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
+                      </span>
+                    </div>
+                    {discountTotal > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span>-₹{discountTotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-200">
+                      <span>Total</span>
+                      <span>₹{total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Min Order Warning */}
+                  {deliverySettings?.min_order_amount > 0 && !meetsMinOrder && (
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <p className="text-sm text-amber-700">
+                        <AlertTriangle className="w-4 h-4 inline mr-1" />
+                        Add ₹{(deliverySettings.min_order_amount - subtotal).toFixed(0)} more to meet minimum order
+                      </p>
                     </div>
                   )}
-                  {discountTotal > 0 && (
-                    <div className="flex justify-between text-green-600">
-                      <span>Discount</span>
-                      <span>-₹{discountTotal.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>Total</span><span>₹{total.toFixed(2)}</span>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 mt-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl" 
+                    disabled={submitting || cart.items.length === 0 || !meetsMinOrder || (zones.length > 0 && !selectedZone)}
+                  >
+                    {submitting ? (
+                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
+                    ) : paymentMethod === 'razorpay' ? (
+                      `Pay ₹${total.toFixed(0)}`
+                    ) : (
+                      `Place Order • ₹${total.toFixed(0)}`
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-center gap-2 mt-4 text-xs text-neutral-500">
+                    <Shield className="w-4 h-4" />
+                    <span>Secure checkout</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+          </div>
+        </form>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              size="lg" 
-              disabled={submitting || cart.items.length === 0 || (isGrocery && (!meetsMinOrder || (zones.length > 0 && !selectedZone)))}
-            >
-              {submitting ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
-              ) : paymentMethod === 'razorpay' ? (
-                `Pay ₹${total.toFixed(2)}`
-              ) : (
-                'Place Order (COD)'
-              )}
+        {/* Mobile Sticky Bottom */}
+        <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg safe-area-bottom">
+          {/* Min Order Warning */}
+          {deliverySettings?.min_order_amount > 0 && !meetsMinOrder && (
+            <div className="px-4 py-2 bg-amber-50 text-center">
+              <p className="text-sm text-amber-700">
+                Add ₹{(deliverySettings.min_order_amount - subtotal).toFixed(0)} more to proceed
+              </p>
+            </div>
+          )}
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-xs text-neutral-500">Total Amount</p>
+                <p className="text-xl font-bold">₹{total.toFixed(0)}</p>
+              </div>
+              <Button 
+                type="submit"
+                form="checkout-form"
+                onClick={handleSubmit}
+                className="h-12 px-8 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl" 
+                disabled={submitting || cart.items.length === 0 || !meetsMinOrder || (zones.length > 0 && !selectedZone)}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : paymentMethod === 'razorpay' ? (
+                  'Pay Now'
+                ) : (
+                  'Place Order'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Nav */}
+        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+
+        {/* Desktop Footer */}
+        <div className="hidden lg:block">
+          <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={null} phone={null} />
+        </div>
+      </div>
+    );
+  }
+
+  // E-commerce Checkout (Original - kept for non-grocery stores)
+  return (
+    <div className="min-h-screen bg-background">
+      <StoreHeader
+        storeName={tenant.store_name}
+        storeSlug={tenant.store_slug}
+        businessType={tenant.business_type}
+        cartCount={itemCount}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <h1 className="text-2xl font-display font-bold mb-6">Checkout</h1>
+        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Contact Details */}
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold text-lg mb-4">Contact Details</h2>
+              <div className="space-y-4">
+                <div><Label>Full Name *</Label><Input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
+                <div><Label>Phone *</Label><Input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
+                <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+              </div>
+            </div>
+            
+            {/* Delivery Address */}
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold text-lg mb-4">Delivery Address</h2>
+              <div className="space-y-4">
+                <div><Label>Address Line 1 *</Label><Input required value={form.line1} onChange={e => setForm({...form, line1: e.target.value})} /></div>
+                <div><Label>Address Line 2</Label><Input value={form.line2} onChange={e => setForm({...form, line2: e.target.value})} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><Label>City *</Label><Input required value={form.city} onChange={e => setForm({...form, city: e.target.value})} /></div>
+                  <div><Label>State *</Label><Input required value={form.state} onChange={e => setForm({...form, state: e.target.value})} /></div>
+                </div>
+                <div><Label>Pincode *</Label><Input required value={form.pincode} onChange={e => setForm({...form, pincode: e.target.value})} maxLength={6} /></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Payment Method */}
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold text-lg mb-4">Payment Method</h2>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                  <RadioGroupItem value="cod" id="cod" />
+                  <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer">
+                    <Truck className="w-4 h-4" /> Cash on Delivery
+                  </Label>
+                </div>
+                <div className={`flex items-center space-x-2 p-3 border rounded-lg mt-2 ${!razorpayConfigured ? 'opacity-50' : ''}`}>
+                  <RadioGroupItem value="razorpay" id="razorpay" disabled={!razorpayConfigured} />
+                  <Label htmlFor="razorpay" className="flex items-center gap-2 cursor-pointer">
+                    <CreditCard className="w-4 h-4" /> Pay Online
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Order Summary */}
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold text-lg mb-4">Order Summary</h2>
+              <div className="space-y-2 text-sm mb-4">
+                {cart.items.map(item => (
+                  <div key={item.id} className="flex justify-between">
+                    <span>{item.product?.name} x{item.qty}</span>
+                    <span>₹{(item.unit_price * item.qty).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t pt-4 space-y-2">
+                <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold text-lg border-t pt-2">
+                  <span>Total</span><span>₹{total.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" size="lg" disabled={submitting || cart.items.length === 0}>
+              {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : paymentMethod === 'razorpay' ? `Pay ₹${total.toFixed(2)}` : 'Place Order'}
             </Button>
           </div>
         </form>
       </div>
+      <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={null} phone={null} />
     </div>
   );
 }
