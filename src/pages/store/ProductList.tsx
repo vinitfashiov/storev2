@@ -322,6 +322,12 @@ export default function ProductList() {
   
   const hasActiveFilters = selectedCategory !== 'all' || selectedBrand !== 'all' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice;
 
+  // Get cart item quantities for grocery products - MUST be before any conditional returns
+  const cartQuantities = useMemo(() => {
+    const quantities: Record<string, number> = {};
+    return quantities;
+  }, []);
+
   if (!tenant) {
     return (
       <div className="min-h-screen bg-background">
@@ -333,13 +339,6 @@ export default function ProductList() {
   }
 
   const isGrocery = tenant.business_type === 'grocery';
-
-  // Get cart item quantities for grocery products
-  const cartQuantities = useMemo(() => {
-    const quantities: Record<string, number> = {};
-    // Cart items would need to be accessible here - using itemCount as proxy for now
-    return quantities;
-  }, []);
 
   // Grocery Layout
   if (isGrocery) {
