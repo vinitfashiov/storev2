@@ -1,83 +1,163 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Heart, MapPin, ChevronDown } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, Heart, MapPin, ChevronDown, Mic, User, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useGroceryLocation } from '@/contexts/GroceryLocationContext';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
+import { cn } from '@/lib/utils';
 
 interface GroceryHeaderProps {
   storeName: string;
   storeSlug: string;
+  tenantId: string;
   logoPath?: string | null;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearchSubmit?: () => void;
-  deliveryAddress?: string;
+  onLocationClick: () => void;
 }
 
 export function GroceryHeader({
   storeName,
   storeSlug,
+  tenantId,
   logoPath,
   searchQuery,
   onSearchChange,
   onSearchSubmit,
-  deliveryAddress
+  onLocationClick
 }: GroceryHeaderProps) {
   const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+  
+  const { pincode, deliveryArea, isLocationSet } = useGroceryLocation();
+  
+  const { isListening, isSupported, startListening, stopListening, transcript } = useVoiceSearch({
+    onResult: (result) => {
+      onSearchChange(result);
+      if (onSearchSubmit) {
+        setTimeout(() => onSearchSubmit(), 300);
+      }
+    },
+    language: 'en-IN'
+  });
+
+  // Update search when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      onSearchChange(transcript);
+    }
+  }, [transcript, onSearchChange]);
+
+  const handleVoiceClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const handleClearSearch = () => {
+    onSearchChange('');
+    inputRef.current?.focus();
+  };
+
+  const locationDisplay = isLocationSet 
+    ? deliveryArea?.name || pincode 
+    : 'Set Location';
 
   return (
     <header className="bg-white sticky top-0 z-40">
-      {/* Top Section - Store Name & Address */}
+      {/* Top Section - Location & Icons */}
       <div className="px-4 py-3 border-b border-neutral-100">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <Link to={`/store/${storeSlug}`} className="flex items-center gap-2">
-              {logoPath ? (
-                <img src={logoPath} alt={storeName} className="h-7 w-auto object-contain" />
-              ) : (
-                <span className="font-bold text-lg text-neutral-900">
-                  From <span className="text-green-600">{storeName}</span> to
+        <div className="flex items-center justify-between gap-3">
+          {/* Location Selector */}
+          <button 
+            onClick={onLocationClick}
+            className="flex items-center gap-1.5 flex-1 min-w-0"
+          >
+            <MapPin className="w-5 h-5 text-green-600 flex-shrink-0" />
+            <div className="flex flex-col items-start min-w-0">
+              <div className="flex items-center gap-1">
+                <span className="font-semibold text-neutral-900 truncate max-w-[150px]">
+                  {locationDisplay}
                 </span>
-              )}
+                <ChevronDown className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+              </div>
+              <span className="text-xs text-neutral-500">India</span>
+            </div>
+          </button>
+
+          {/* Right Icons */}
+          <div className="flex items-center gap-1">
+            <Link to={`/store/${storeSlug}/wishlist`}>
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+                <Heart className="w-5 h-5 text-neutral-700" />
+              </Button>
             </Link>
-            {deliveryAddress && (
-              <button className="flex items-center gap-1 text-sm text-neutral-600 mt-0.5">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate max-w-[200px]">{deliveryAddress}</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-            )}
+            <Link to={`/store/${storeSlug}/account`}>
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 bg-green-100 hover:bg-green-200">
+                <User className="w-5 h-5 text-green-700" />
+              </Button>
+            </Link>
           </div>
-          <Link to={`/store/${storeSlug}/wishlist`}>
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Heart className="w-5 h-5" />
-            </Button>
-          </Link>
         </div>
       </div>
 
       {/* Search Bar */}
       <div className="px-4 py-3">
-        <div className={`relative flex items-center bg-neutral-100 rounded-full transition-all ${isFocused ? 'ring-2 ring-green-500' : ''}`}>
+        <div className={cn(
+          "relative flex items-center bg-neutral-100 rounded-xl transition-all",
+          isFocused && "ring-2 ring-green-500 bg-white",
+          isListening && "ring-2 ring-red-500 bg-red-50"
+        )}>
           <Search className="absolute left-4 w-5 h-5 text-neutral-400" />
           <Input
-            placeholder={`Search for "Vegetables"`}
+            ref={inputRef}
+            placeholder={isListening ? "Listening..." : `Search for "Vegetables"`}
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
             onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
-            className="pl-12 pr-12 h-12 bg-transparent border-none rounded-full focus-visible:ring-0 text-base"
+            className="pl-12 pr-24 h-12 bg-transparent border-none rounded-xl focus-visible:ring-0 text-base placeholder:text-neutral-400"
           />
-          <button className="absolute right-4 p-1.5 rounded-full bg-neutral-200 hover:bg-neutral-300 transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>
-          </button>
+          
+          {/* Clear button */}
+          {searchQuery && (
+            <button 
+              onClick={handleClearSearch}
+              className="absolute right-14 p-1.5 hover:bg-neutral-200 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4 text-neutral-500" />
+            </button>
+          )}
+          
+          {/* Voice search button */}
+          {isSupported && (
+            <button 
+              onClick={handleVoiceClick}
+              className={cn(
+                "absolute right-3 p-2 rounded-full transition-all",
+                isListening 
+                  ? "bg-red-500 text-white animate-pulse" 
+                  : "bg-neutral-200 hover:bg-neutral-300 text-neutral-600"
+              )}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          )}
         </div>
+        
+        {/* Listening indicator */}
+        {isListening && (
+          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-red-600">
+            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            Listening... Speak now
+          </div>
+        )}
       </div>
     </header>
   );
