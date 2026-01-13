@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Store,
@@ -24,6 +23,7 @@ import {
   BarChart3,
   Loader2,
   KeyRound,
+  ArrowLeft,
 } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,7 @@ const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, "Please enter a valid 10-di
 const nameSchema = z.string().min(2, "Name must be at least 2 characters");
 const otpSchema = z.string().length(6, "Please enter 6-digit OTP");
 
-type AuthStep = "phone" | "otp";
+type AuthStep = "phone" | "otp" | "name";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -45,13 +45,12 @@ export default function Auth() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<AuthStep>("phone");
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [isNewUser, setIsNewUser] = useState(false);
 
   // Form states
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [otp, setOtp] = useState("");
-  const [sessionId, setSessionId] = useState("");
   const [countdown, setCountdown] = useState(0);
 
   // Redirect if already logged in
@@ -72,15 +71,12 @@ export default function Auth() {
 
   const cleanPhone = (p: string) => p.replace(/\D/g, "").slice(-10);
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = cleanPhone(phone);
 
     try {
       phoneSchema.parse(cleaned);
-      if (activeTab === "signup") {
-        nameSchema.parse(name);
-      }
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast.error(err.errors[0].message);
@@ -91,8 +87,18 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
+      // First check if user exists
+      const { data: checkData, error: checkError } = await supabase.functions.invoke("admin-otp", {
+        body: { action: "check", phone: cleaned },
+      });
+
+      if (checkError) throw checkError;
+
+      setIsNewUser(!checkData.exists);
+
+      // Then send OTP
       const { data, error } = await supabase.functions.invoke("admin-otp", {
-        body: { action: "send", phone: cleaned, isSignup: activeTab === "signup" },
+        body: { action: "send", phone: cleaned },
       });
 
       if (error) throw error;
@@ -102,7 +108,6 @@ export default function Auth() {
         return;
       }
 
-      setSessionId(data.sessionId);
       setStep("otp");
       setCountdown(30);
       toast.success("OTP sent to your phone!");
@@ -135,8 +140,7 @@ export default function Auth() {
           action: "verify",
           phone: cleaned,
           otp,
-          name: activeTab === "signup" ? name : undefined,
-          isSignup: activeTab === "signup",
+          name: null, // Don't send name yet for new users
         },
       });
 
@@ -147,7 +151,14 @@ export default function Auth() {
         return;
       }
 
-      // Sign in with the generated credentials
+      if (data.action === "need_name") {
+        // New user - need to collect name
+        setStep("name");
+        setIsLoading(false);
+        return;
+      }
+
+      // Existing user - sign in directly
       if (data.email && data.password) {
         const { error: signInError } = await signIn(data.email, data.password);
         if (signInError) {
@@ -157,15 +168,63 @@ export default function Auth() {
           return;
         }
 
-        if (data.action === "signup") {
-          toast.success("Account created! Setting up your store...");
-        } else {
-          toast.success("Welcome back!");
-        }
+        toast.success("Welcome back!");
       }
     } catch (error: any) {
       console.error("Verify OTP error:", error);
       toast.error(error.message || "Failed to verify OTP");
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      nameSchema.parse(name);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error(err.errors[0].message);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+
+    try {
+      const cleaned = cleanPhone(phone);
+      const { data, error } = await supabase.functions.invoke("admin-otp", {
+        body: {
+          action: "verify",
+          phone: cleaned,
+          otp,
+          name: name.trim(),
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) {
+        toast.error(data.error);
+        setIsLoading(false);
+        return;
+      }
+
+      // Sign in with the created credentials
+      if (data.email && data.password) {
+        const { error: signInError } = await signIn(data.email, data.password);
+        if (signInError) {
+          console.error("Sign in after signup error:", signInError);
+          toast.error("Account created but login failed. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+
+        toast.success("Account created! Setting up your store...");
+      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error(error.message || "Failed to create account");
     }
 
     setIsLoading(false);
@@ -189,7 +248,6 @@ export default function Auth() {
         return;
       }
 
-      setSessionId(data.sessionId);
       setCountdown(30);
       toast.success("OTP resent!");
     } catch (error: any) {
@@ -200,16 +258,37 @@ export default function Auth() {
   };
 
   const handleBack = () => {
-    setStep("phone");
-    setOtp("");
+    if (step === "otp") {
+      setStep("phone");
+      setOtp("");
+    } else if (step === "name") {
+      setStep("otp");
+      setName("");
+    }
   };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value as "login" | "signup");
-    setStep("phone");
-    setOtp("");
-    setPhone("");
-    setName("");
+  const getStepTitle = () => {
+    switch (step) {
+      case "phone": return "Welcome";
+      case "otp": return "Verify OTP";
+      case "name": return "Almost there!";
+    }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case "phone": return "Enter your phone number to continue";
+      case "otp": return `Enter the 6-digit code sent to +91 ${phone}`;
+      case "name": return "Enter your name to complete signup";
+    }
+  };
+
+  const getStepIcon = () => {
+    switch (step) {
+      case "phone": return <Phone className="w-8 h-8 text-primary" />;
+      case "otp": return <KeyRound className="w-8 h-8 text-primary" />;
+      case "name": return <User className="w-8 h-8 text-primary" />;
+    }
   };
 
   return (
@@ -335,243 +414,187 @@ export default function Auth() {
                 {/* top accent */}
                 <div className="h-1.5 gradient-primary" />
 
-                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl font-display tracking-tight">
-                      {step === "phone" ? "Welcome" : "Verify OTP"}
-                    </CardTitle>
-                    <CardDescription>
-                      {step === "phone"
-                        ? "Enter your phone number to continue"
-                        : `Enter the 6-digit code sent to +91 ${phone}`}
-                    </CardDescription>
+                <CardHeader className="pb-4">
+                  {step !== "phone" && (
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-2 -ml-1"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Go back
+                    </button>
+                  )}
+                  
+                  <div className="flex justify-center mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      {getStepIcon()}
+                    </div>
+                  </div>
+                  
+                  <CardTitle className="text-2xl font-display tracking-tight text-center">
+                    {getStepTitle()}
+                  </CardTitle>
+                  <CardDescription className="text-center">
+                    {getStepDescription()}
+                  </CardDescription>
+                </CardHeader>
 
-                    {step === "phone" && (
-                      <TabsList className="grid w-full grid-cols-2 mt-4">
-                        <TabsTrigger value="login">Log In</TabsTrigger>
-                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                      </TabsList>
-                    )}
-                  </CardHeader>
-
-                  <CardContent className="pt-0">
-                    {step === "phone" ? (
-                      <>
-                        {/* LOGIN - Phone Step */}
-                        <TabsContent value="login" className="mt-0">
-                          <form onSubmit={handleSendOTP} className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="login-phone">Phone Number</Label>
-                              <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                                  +91
-                                </div>
-                                <Phone className="absolute left-12 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                  id="login-phone"
-                                  type="tel"
-                                  placeholder="9876543210"
-                                  value={phone}
-                                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                  className="pl-[4.5rem] h-11 rounded-xl bg-background/60"
-                                  required
-                                  maxLength={10}
-                                />
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                We'll send a 6-digit OTP to verify your number
-                              </p>
-                            </div>
-
-                            <Button type="submit" className="w-full shadow-glow h-11 rounded-xl" disabled={isLoading}>
-                              {isLoading ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Sending OTP...
-                                </>
-                              ) : (
-                                <>
-                                  Get OTP <ArrowRight className="w-4 h-4 ml-2" />
-                                </>
-                              )}
-                            </Button>
-
-                            <div className="relative py-2">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-border/60" />
-                              </div>
-                              <div className="relative flex justify-center">
-                                <span className="bg-background/70 px-2 text-xs text-muted-foreground">
-                                  OTP secured login
-                                </span>
-                              </div>
-                            </div>
-
-                            <p className="text-xs text-muted-foreground text-center">
-                              By continuing, you agree to our{" "}
-                              <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
-                                Terms
-                              </Link>{" "}
-                              &{" "}
-                              <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
-                                Privacy Policy
-                              </Link>
-                              .
-                            </p>
-                          </form>
-                        </TabsContent>
-
-                        {/* SIGNUP - Phone Step */}
-                        <TabsContent value="signup" className="mt-0">
-                          <form onSubmit={handleSendOTP} className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="signup-name">Full Name</Label>
-                              <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                  id="signup-name"
-                                  type="text"
-                                  placeholder="John Doe"
-                                  value={name}
-                                  onChange={(e) => setName(e.target.value)}
-                                  className="pl-10 h-11 rounded-xl bg-background/60"
-                                  required
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="signup-phone">Phone Number</Label>
-                              <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                                  +91
-                                </div>
-                                <Phone className="absolute left-12 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                  id="signup-phone"
-                                  type="tel"
-                                  placeholder="9876543210"
-                                  value={phone}
-                                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                                  className="pl-[4.5rem] h-11 rounded-xl bg-background/60"
-                                  required
-                                  maxLength={10}
-                                />
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                We'll send a 6-digit OTP to verify your number
-                              </p>
-                            </div>
-
-                            <Button type="submit" className="w-full shadow-glow h-11 rounded-xl" disabled={isLoading}>
-                              {isLoading ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Sending OTP...
-                                </>
-                              ) : (
-                                <>
-                                  Get OTP <ArrowRight className="w-4 h-4 ml-2" />
-                                </>
-                              )}
-                            </Button>
-
-                            <div className="relative py-2">
-                              <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-border/60" />
-                              </div>
-                              <div className="relative flex justify-center">
-                                <span className="bg-background/70 px-2 text-xs text-muted-foreground">
-                                  7-day free trial
-                                </span>
-                              </div>
-                            </div>
-
-                            <p className="text-xs text-muted-foreground text-center">
-                              By continuing, you agree to our{" "}
-                              <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
-                                Terms
-                              </Link>{" "}
-                              &{" "}
-                              <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
-                                Privacy Policy
-                              </Link>
-                              .
-                            </p>
-                          </form>
-                        </TabsContent>
-                      </>
-                    ) : (
-                      /* OTP Verification Step */
-                      <form onSubmit={handleVerifyOTP} className="space-y-6">
-                        <div className="space-y-4">
-                          <div className="flex justify-center">
-                            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-                              <KeyRound className="w-8 h-8 text-primary" />
-                            </div>
+                <CardContent className="pt-0">
+                  {step === "phone" && (
+                    <form onSubmit={handlePhoneSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                            +91
                           </div>
+                          <Phone className="absolute left-12 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="phone"
+                            type="tel"
+                            placeholder="9876543210"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                            className="pl-[4.5rem] h-11 rounded-xl bg-background/60"
+                            required
+                            maxLength={10}
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          We'll send a 6-digit OTP to verify your number
+                        </p>
+                      </div>
 
-                          <div className="flex justify-center">
-                            <InputOTP
-                              value={otp}
-                              onChange={setOtp}
-                              maxLength={6}
-                            >
-                              <InputOTPGroup>
-                                <InputOTPSlot index={0} className="w-12 h-14 text-lg" />
-                                <InputOTPSlot index={1} className="w-12 h-14 text-lg" />
-                                <InputOTPSlot index={2} className="w-12 h-14 text-lg" />
-                                <InputOTPSlot index={3} className="w-12 h-14 text-lg" />
-                                <InputOTPSlot index={4} className="w-12 h-14 text-lg" />
-                                <InputOTPSlot index={5} className="w-12 h-14 text-lg" />
-                              </InputOTPGroup>
-                            </InputOTP>
-                          </div>
+                      <Button type="submit" className="w-full shadow-glow h-11 rounded-xl" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            Continue <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
 
-                          <div className="text-center">
-                            <button
-                              type="button"
-                              onClick={handleResendOTP}
-                              disabled={countdown > 0 || isLoading}
-                              className="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
-                            </button>
-                          </div>
+                      <div className="relative py-2">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-border/60" />
+                        </div>
+                        <div className="relative flex justify-center">
+                          <span className="bg-background/70 px-2 text-xs text-muted-foreground">
+                            OTP secured • 7-day free trial
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground text-center">
+                        By continuing, you agree to our{" "}
+                        <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
+                          Terms
+                        </Link>{" "}
+                        &{" "}
+                        <Link to="#" className="text-foreground underline underline-offset-4 hover:opacity-80">
+                          Privacy Policy
+                        </Link>
+                        .
+                      </p>
+                    </form>
+                  )}
+
+                  {step === "otp" && (
+                    <form onSubmit={handleVerifyOTP} className="space-y-6">
+                      <div className="space-y-4">
+                        <div className="flex justify-center">
+                          <InputOTP
+                            value={otp}
+                            onChange={setOtp}
+                            maxLength={6}
+                          >
+                            <InputOTPGroup>
+                              <InputOTPSlot index={0} className="w-12 h-14 text-lg" />
+                              <InputOTPSlot index={1} className="w-12 h-14 text-lg" />
+                              <InputOTPSlot index={2} className="w-12 h-14 text-lg" />
+                              <InputOTPSlot index={3} className="w-12 h-14 text-lg" />
+                              <InputOTPSlot index={4} className="w-12 h-14 text-lg" />
+                              <InputOTPSlot index={5} className="w-12 h-14 text-lg" />
+                            </InputOTPGroup>
+                          </InputOTP>
                         </div>
 
-                        <div className="space-y-3">
-                          <Button
-                            type="submit"
-                            className="w-full shadow-glow h-11 rounded-xl"
-                            disabled={isLoading || otp.length !== 6}
-                          >
-                            {isLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Verifying...
-                              </>
-                            ) : (
-                              <>
-                                Verify & Continue <ArrowRight className="w-4 h-4 ml-2" />
-                              </>
-                            )}
-                          </Button>
-
-                          <Button
+                        <div className="text-center">
+                          <button
                             type="button"
-                            variant="ghost"
-                            className="w-full h-11 rounded-xl"
-                            onClick={handleBack}
-                            disabled={isLoading}
+                            onClick={handleResendOTP}
+                            disabled={countdown > 0 || isLoading}
+                            className="text-sm text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Change Phone Number
-                          </Button>
+                            {countdown > 0 ? `Resend OTP in ${countdown}s` : "Resend OTP"}
+                          </button>
                         </div>
-                      </form>
-                    )}
-                  </CardContent>
-                </Tabs>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full shadow-glow h-11 rounded-xl"
+                        disabled={isLoading || otp.length !== 6}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            Verify & Continue <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  )}
+
+                  {step === "name" && (
+                    <form onSubmit={handleNameSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Your Name</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="name"
+                            type="text"
+                            placeholder="Enter your full name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="pl-10 h-11 rounded-xl bg-background/60"
+                            required
+                            autoFocus
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          This will be used for your store account
+                        </p>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className="w-full shadow-glow h-11 rounded-xl"
+                        disabled={isLoading || !name.trim()}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          <>
+                            Complete Signup <ArrowRight className="w-4 h-4 ml-2" />
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  )}
+                </CardContent>
               </Card>
             </div>
           </div>

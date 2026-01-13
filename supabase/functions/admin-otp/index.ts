@@ -20,11 +20,14 @@ function generatePassword(phone: string): string {
   return `phone_${phone}_${PASSWORD_SALT}`;
 }
 
+interface CheckRequest {
+  action: "check";
+  phone: string;
+}
+
 interface SendOTPRequest {
   action: "send";
   phone: string;
-  name?: string;
-  isSignup?: boolean;
 }
 
 interface VerifyOTPRequest {
@@ -32,10 +35,9 @@ interface VerifyOTPRequest {
   phone: string;
   otp: string;
   name?: string;
-  isSignup?: boolean;
 }
 
-type RequestBody = SendOTPRequest | VerifyOTPRequest;
+type RequestBody = CheckRequest | SendOTPRequest | VerifyOTPRequest;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,14 +47,6 @@ Deno.serve(async (req) => {
   try {
     const body: RequestBody = await req.json();
     console.log("Admin OTP request:", { action: body.action, phone: body.phone });
-
-    if (!FAST2SMS_API_KEY) {
-      console.error("Fast2SMS API key not configured");
-      return new Response(
-        JSON.stringify({ error: "OTP service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     // Validate phone number (Indian format)
     const phoneRegex = /^[6-9]\d{9}$/;
@@ -76,24 +70,27 @@ Deno.serve(async (req) => {
       .delete()
       .lt("expires_at", new Date().toISOString());
 
-    if (body.action === "send") {
-      const { isSignup } = body as SendOTPRequest;
-      
-      // Check if user exists BEFORE sending OTP
+    // CHECK action - determine if user exists
+    if (body.action === "check") {
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
       const existingUser = existingUsers?.users?.find(u => u.email === email);
 
-      if (isSignup && existingUser) {
-        return new Response(
-          JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      return new Response(
+        JSON.stringify({ 
+          exists: !!existingUser,
+          userName: existingUser?.user_metadata?.name || null
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-      if (!isSignup && !existingUser) {
+    // SEND action - send OTP regardless of user existence
+    if (body.action === "send") {
+      if (!FAST2SMS_API_KEY) {
+        console.error("Fast2SMS API key not configured");
         return new Response(
-          JSON.stringify({ error: "No account found with this phone number. Please sign up first." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "OTP service not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -171,8 +168,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // VERIFY action - verify OTP and handle login/signup
     if (body.action === "verify") {
-      const { otp, name, isSignup } = body as VerifyOTPRequest;
+      const { otp, name } = body as VerifyOTPRequest;
       
       if (!otp || otp.length !== 6) {
         return new Response(
@@ -218,10 +216,10 @@ Deno.serve(async (req) => {
         );
       }
 
-      // OTP verified - mark as used and delete
+      // OTP verified - mark as used
       await supabase
         .from("otp_verifications")
-        .delete()
+        .update({ verified: true })
         .eq("id", otpRecord.id);
 
       // Check if user exists
@@ -229,15 +227,14 @@ Deno.serve(async (req) => {
       const existingUser = existingUsers?.users?.find(u => u.email === email);
 
       if (existingUser) {
-        // User exists - update their password to the new consistent one and sign them in
-        if (isSignup) {
-          return new Response(
-            JSON.stringify({ error: "This phone number is already registered. Please log in instead." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+        // LOGIN FLOW - User exists
+        // Delete OTP record
+        await supabase
+          .from("otp_verifications")
+          .delete()
+          .eq("id", otpRecord.id);
 
-        // Update password to ensure consistency (in case it was created with old API key)
+        // Update password to ensure consistency
         const { error: updateError } = await supabase.auth.admin.updateUserById(
           existingUser.id,
           { password: password }
@@ -253,26 +250,26 @@ Deno.serve(async (req) => {
             message: "Login successful",
             action: "login",
             email: email,
-            password: password
+            password: password,
+            userName: existingUser.user_metadata?.name
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
-        // New user - create account
-        if (!isSignup) {
-          return new Response(
-            JSON.stringify({ error: "No account found with this phone number. Please sign up first." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
+        // SIGNUP FLOW - New user
         if (!name || name.trim().length < 2) {
+          // Need name to complete signup
           return new Response(
-            JSON.stringify({ error: "Please provide your name" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ 
+              success: true,
+              action: "need_name",
+              message: "Please enter your name to complete signup"
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
+        // Create new user
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email: email,
           password: password,
@@ -288,13 +285,20 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Delete OTP record
+        await supabase
+          .from("otp_verifications")
+          .delete()
+          .eq("id", otpRecord.id);
+
         return new Response(
           JSON.stringify({ 
             success: true, 
             message: "Account created successfully",
             action: "signup",
             email: email,
-            password: password
+            password: password,
+            userName: name.trim()
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
