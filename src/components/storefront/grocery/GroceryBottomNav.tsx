@@ -21,7 +21,7 @@ export function GroceryBottomNav({ storeSlug, cartCount }: GroceryBottomNavProps
     { 
       icon: Grid3X3, 
       label: 'Categories', 
-      path: `/store/${storeSlug}/products`,
+      path: `/store/${storeSlug}/categories`,
       exact: false 
     },
     { 

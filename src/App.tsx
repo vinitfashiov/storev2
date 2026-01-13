@@ -14,6 +14,7 @@ import PageBuilder from "./pages/admin/PageBuilder";
 import GrapesJSPageBuilder from "./pages/admin/GrapesJSPageBuilder";
 import StoreHome from "./pages/store/StoreHome";
 import ProductList from "./pages/store/ProductList";
+import GroceryCategoriesPage from "./pages/store/GroceryCategoriesPage";
 import ProductDetail from "./pages/store/ProductDetail";
 import CartPage from "./pages/store/CartPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
@@ -137,6 +138,7 @@ function AppContent() {
         <Route path="/page-builder-legacy" element={<PageBuilder />} />
         <Route path="/store/:slug" element={<StoreGuard><StoreHome /></StoreGuard>} />
         <Route path="/store/:slug/products" element={<StoreGuard><ProductList /></StoreGuard>} />
+        <Route path="/store/:slug/categories" element={<StoreGuard><GroceryCategoriesPage /></StoreGuard>} />
         <Route path="/store/:slug/product/:productSlug" element={<StoreGuard><ProductDetail /></StoreGuard>} />
         <Route path="/store/:slug/cart" element={<StoreGuard><CartPage /></StoreGuard>} />
         <Route path="/store/:slug/checkout" element={<StoreGuard><CheckoutPage /></StoreGuard>} />
