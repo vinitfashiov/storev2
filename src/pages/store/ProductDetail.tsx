@@ -506,10 +506,6 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        {/* Mobile Bottom Nav */}
-        <div className="lg:hidden">
-          <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
-        </div>
 
         {/* Desktop Footer */}
         <div className="hidden lg:block">
