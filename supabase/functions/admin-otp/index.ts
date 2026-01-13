@@ -9,20 +9,8 @@ const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// In-memory OTP storage (TTL: 5 minutes)
-const otpStore = new Map<string, { otp: string; expiresAt: number }>();
-
 function generateOTP(): string {
   return (100000 + Math.floor(Math.random() * 900000)).toString();
-}
-
-function cleanExpiredOTPs() {
-  const now = Date.now();
-  for (const [key, value] of otpStore.entries()) {
-    if (value.expiresAt < now) {
-      otpStore.delete(key);
-    }
-  }
 }
 
 interface SendOTPRequest {
@@ -70,12 +58,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create Supabase client for user checks
+    // Create Supabase client with service role for full access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const email = `${cleanPhone}@phone.storekriti.com`;
 
     // Clean expired OTPs periodically
-    cleanExpiredOTPs();
+    await supabase
+      .from("otp_verifications")
+      .delete()
+      .lt("expires_at", new Date().toISOString());
 
     if (body.action === "send") {
       const { isSignup } = body as SendOTPRequest;
@@ -98,14 +89,33 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Generate OTP locally
+      // Generate OTP
       const otp = generateOTP();
-      
-      // Store OTP with 5 minute expiry
-      otpStore.set(cleanPhone, {
-        otp,
-        expiresAt: Date.now() + 5 * 60 * 1000
-      });
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+
+      // Delete any existing OTPs for this phone
+      await supabase
+        .from("otp_verifications")
+        .delete()
+        .eq("phone", cleanPhone);
+
+      // Store OTP in database
+      const { error: insertError } = await supabase
+        .from("otp_verifications")
+        .insert({
+          phone: cleanPhone,
+          otp: otp,
+          expires_at: expiresAt,
+          verified: false
+        });
+
+      if (insertError) {
+        console.error("Failed to store OTP:", insertError);
+        return new Response(
+          JSON.stringify({ error: "Failed to process OTP request" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       // Send OTP via Fast2SMS
       console.log("Sending OTP to:", cleanPhone);
@@ -135,14 +145,17 @@ Deno.serve(async (req) => {
           JSON.stringify({ 
             success: true, 
             message: "OTP sent successfully",
-            sessionId: cleanPhone // Use phone as session ID for simplicity
+            sessionId: cleanPhone
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
         console.error("Fast2SMS error:", data);
         // Clear stored OTP on failure
-        otpStore.delete(cleanPhone);
+        await supabase
+          .from("otp_verifications")
+          .delete()
+          .eq("phone", cleanPhone);
         return new Response(
           JSON.stringify({ error: data.message || "Failed to send OTP" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -160,34 +173,48 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Verify OTP from local store
-      const storedOTP = otpStore.get(cleanPhone);
-      console.log("Verifying OTP for:", cleanPhone, "Stored:", !!storedOTP);
+      // Get OTP from database
+      const { data: otpRecord, error: fetchError } = await supabase
+        .from("otp_verifications")
+        .select("*")
+        .eq("phone", cleanPhone)
+        .eq("verified", false)
+        .single();
 
-      if (!storedOTP) {
+      console.log("Verifying OTP for:", cleanPhone, "Found record:", !!otpRecord);
+
+      if (fetchError || !otpRecord) {
         return new Response(
           JSON.stringify({ error: "OTP expired. Please request a new one." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      if (storedOTP.expiresAt < Date.now()) {
-        otpStore.delete(cleanPhone);
+      // Check if OTP is expired
+      if (new Date(otpRecord.expires_at) < new Date()) {
+        await supabase
+          .from("otp_verifications")
+          .delete()
+          .eq("id", otpRecord.id);
         return new Response(
           JSON.stringify({ error: "OTP expired. Please request a new one." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      if (storedOTP.otp !== otp) {
+      // Verify OTP matches
+      if (otpRecord.otp !== otp) {
         return new Response(
           JSON.stringify({ error: "Invalid OTP. Please try again." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // OTP verified - clear it
-      otpStore.delete(cleanPhone);
+      // OTP verified - mark as used and delete
+      await supabase
+        .from("otp_verifications")
+        .delete()
+        .eq("id", otpRecord.id);
 
       // Now handle Supabase auth
       const password = `phone_${cleanPhone}_${FAST2SMS_API_KEY?.slice(0, 8)}`;
