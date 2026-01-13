@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,28 +19,46 @@ export function GroceryLocationModal({
   onDeliverableChange
 }: GroceryLocationModalProps) {
   const { 
-    pincode, 
+    pincode: savedPincode, 
     setPincode, 
     checkDeliverability, 
     isLoading,
     deliveryArea 
   } = useGroceryLocation();
   
-  const [localPincode, setLocalPincode] = useState(pincode);
+  const [localPincode, setLocalPincode] = useState('');
   const [checked, setChecked] = useState(false);
   const [isDeliverable, setIsDeliverableLocal] = useState(false);
+  const [checkLoading, setCheckLoading] = useState(false);
+
+  // Sync local pincode when modal opens
+  useEffect(() => {
+    if (open) {
+      setLocalPincode(savedPincode);
+      setChecked(false);
+      setIsDeliverableLocal(false);
+    }
+  }, [open, savedPincode]);
 
   const handleCheck = async () => {
     if (localPincode.length !== 6) return;
     
+    setCheckLoading(true);
+    
+    // First set the pincode in context
     setPincode(localPincode);
-    const result = await checkDeliverability(tenantId);
+    
+    // Then check deliverability with the new pincode
+    const result = await checkDeliverability(localPincode, tenantId);
+    
     setChecked(true);
     setIsDeliverableLocal(result);
+    setCheckLoading(false);
     
     if (result) {
       onDeliverableChange?.(true);
-      setTimeout(() => onOpenChange(false), 500);
+      // Close modal after short delay on success
+      setTimeout(() => onOpenChange(false), 600);
     } else {
       onDeliverableChange?.(false);
     }
@@ -50,7 +68,16 @@ export function GroceryLocationModal({
     const sanitized = value.replace(/\D/g, '').slice(0, 6);
     setLocalPincode(sanitized);
     setChecked(false);
+    setIsDeliverableLocal(false);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && localPincode.length === 6 && !checkLoading) {
+      handleCheck();
+    }
+  };
+
+  const loading = isLoading || checkLoading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -73,25 +100,25 @@ export function GroceryLocationModal({
               <label className="text-sm font-medium text-neutral-700 mb-2 block">
                 Enter Pincode
               </label>
-              <div className="flex gap-2">
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Enter 6-digit pincode"
-                  value={localPincode}
-                  onChange={(e) => handlePincodeChange(e.target.value)}
-                  className="flex-1 h-12 text-lg tracking-widest text-center border-2 border-neutral-200 focus:border-green-500"
-                  maxLength={6}
-                />
-              </div>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="Enter 6-digit pincode"
+                value={localPincode}
+                onChange={(e) => handlePincodeChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="h-12 text-lg tracking-widest text-center border-2 border-neutral-200 focus:border-green-500"
+                maxLength={6}
+                autoFocus
+              />
             </div>
 
             <Button
               onClick={handleCheck}
-              disabled={localPincode.length !== 6 || isLoading}
+              disabled={localPincode.length !== 6 || loading}
               className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-semibold text-base"
             >
-              {isLoading ? (
+              {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Checking...
@@ -105,8 +132,8 @@ export function GroceryLocationModal({
             </Button>
 
             {/* Result Message */}
-            {checked && !isLoading && (
-              <div className={`p-4 rounded-xl ${isDeliverable ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+            {checked && !loading && (
+              <div className={`p-4 rounded-xl transition-all ${isDeliverable ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
                 {isDeliverable ? (
                   <div className="text-center">
                     <span className="text-2xl mb-2 block">🎉</span>
