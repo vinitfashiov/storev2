@@ -19,7 +19,8 @@ import ProductDetail from "./pages/store/ProductDetail";
 import CartPage from "./pages/store/CartPage";
 import CheckoutPage from "./pages/store/CheckoutPage";
 import OrderConfirmation from "./pages/store/OrderConfirmation";
-import StoreAuth from "./pages/store/StoreAuth";
+import StoreLogin from "./pages/store/StoreLogin";
+import StoreSignup from "./pages/store/StoreSignup";
 import StoreAccount from "./pages/store/StoreAccount";
 import StoreOrders from "./pages/store/StoreOrders";
 import StoreOrderDetail from "./pages/store/StoreOrderDetail";
@@ -33,10 +34,18 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 // Wrapper components for store pages that need tenant props
-function StoreAuthWrapper() {
+function StoreLoginWrapper() {
   return (
     <StoreGuard>
-      <StoreAuthInner />
+      <StoreLoginInner />
+    </StoreGuard>
+  );
+}
+
+function StoreSignupWrapper() {
+  return (
+    <StoreGuard>
+      <StoreSignupInner />
     </StoreGuard>
   );
 }
@@ -76,10 +85,16 @@ function StoreAddressesWrapper() {
 // Inner components that use the tenant hook
 import { useStoreTenant } from "./hooks/useStoreTenant";
 
-function StoreAuthInner() {
+function StoreLoginInner() {
   const { tenant, loading } = useStoreTenant();
   if (loading || !tenant) return null;
-  return <StoreAuth tenantId={tenant.id} storeName={tenant.store_name} />;
+  return <StoreLogin tenantId={tenant.id} storeName={tenant.store_name} />;
+}
+
+function StoreSignupInner() {
+  const { tenant, loading } = useStoreTenant();
+  if (loading || !tenant) return null;
+  return <StoreSignup tenantId={tenant.id} storeName={tenant.store_name} />;
 }
 
 function StoreAccountInner() {
@@ -128,8 +143,8 @@ function AppContent() {
         <Route path="/store/:slug/cart" element={<StoreGuard><CartPage /></StoreGuard>} />
         <Route path="/store/:slug/checkout" element={<StoreGuard><CheckoutPage /></StoreGuard>} />
         <Route path="/store/:slug/order-confirmation" element={<StoreGuard><OrderConfirmation /></StoreGuard>} />
-        <Route path="/store/:slug/login" element={<StoreAuthWrapper />} />
-        <Route path="/store/:slug/signup" element={<StoreAuthWrapper />} />
+        <Route path="/store/:slug/login" element={<StoreLoginWrapper />} />
+        <Route path="/store/:slug/signup" element={<StoreSignupWrapper />} />
         <Route path="/store/:slug/account" element={<StoreAccountWrapper />} />
         <Route path="/store/:slug/account/orders" element={<StoreOrdersWrapper />} />
         <Route path="/store/:slug/account/orders/:orderId" element={<StoreOrderDetailWrapper />} />

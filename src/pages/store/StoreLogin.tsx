@@ -48,16 +48,15 @@ export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
   const navigate = useNavigate();
   const { signIn, loading: authLoading } = useStoreAuth();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ phone: '', password: '' });
 
-  // Show skeleton while auth is initializing
   if (authLoading) return <LoginSkeleton />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(form.email, form.password, tenantId);
+    const { error } = await signIn(form.phone, form.password, tenantId);
 
     if (error) {
       toast.error(error.message);
@@ -88,14 +87,14 @@ export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
-                  id="email"
-                  type="email"
+                  id="phone"
+                  type="tel"
                   required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="you@example.com"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="9876543210"
                 />
               </div>
               <div>

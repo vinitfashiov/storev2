@@ -11,7 +11,8 @@ import ProductDetail from '@/pages/store/ProductDetail';
 import CartPage from '@/pages/store/CartPage';
 import CheckoutPage from '@/pages/store/CheckoutPage';
 import OrderConfirmation from '@/pages/store/OrderConfirmation';
-import StoreAuth from '@/pages/store/StoreAuth';
+import StoreLogin from '@/pages/store/StoreLogin';
+import StoreSignup from '@/pages/store/StoreSignup';
 import StoreAccount from '@/pages/store/StoreAccount';
 import StoreOrders from '@/pages/store/StoreOrders';
 import StoreOrderDetail from '@/pages/store/StoreOrderDetail';
@@ -79,11 +80,11 @@ export function CustomDomainRoutes() {
         {/* tenant is guaranteed by CustomDomainStoreWrapper; fallbacks satisfy TS */}
         <Route
           path="/login"
-          element={<StoreAuth tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
+          element={<StoreLogin tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
         />
         <Route
           path="/signup"
-          element={<StoreAuth tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
+          element={<StoreSignup tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
         />
         <Route path="/account" element={<StoreAccount storeName={tenant?.store_name ?? ''} />} />
         <Route path="/account/orders" element={<StoreOrders />} />

@@ -46,9 +46,8 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
   const navigate = useNavigate();
   const { signUp, loading: authLoading } = useStoreAuth();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', phone: '', password: '', confirmPassword: '' });
 
-  // Show skeleton while auth is initializing
   if (authLoading) return <SignupSkeleton />;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,14 +63,9 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
       return;
     }
 
-    if (form.phone.length < 10) {
-      toast.error('Please enter a valid phone number');
-      return;
-    }
-
     setLoading(true);
 
-    const { error } = await signUp(form.email, form.password, form.name, form.phone, tenantId);
+    const { error } = await signUp(form.phone, form.password, form.name, tenantId);
 
     if (error) {
       toast.error(error.message);
@@ -102,7 +96,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
@@ -113,7 +107,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="phone">Phone Number *</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -124,18 +118,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="you@example.com"
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -146,7 +129,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
                 />
               </div>
               <div>
-                <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
