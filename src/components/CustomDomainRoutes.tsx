@@ -65,8 +65,8 @@ function CustomDomainStoreWrapper({ children }: { children: ReactNode }) {
 export function CustomDomainRoutes() {
   const { tenant } = useCustomDomain();
 
-  if (!tenant) return null;
-
+  // Always render wrapper so it can show loading/error states.
+  // (Returning null here would cause a white screen when domain isn't mapped.)
   return (
     <CustomDomainStoreWrapper>
       <Routes>
@@ -76,14 +76,23 @@ export function CustomDomainRoutes() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmation" element={<OrderConfirmation />} />
-        <Route path="/login" element={<StoreLogin tenantId={tenant.id} storeName={tenant.store_name} />} />
-        <Route path="/signup" element={<StoreSignup tenantId={tenant.id} storeName={tenant.store_name} />} />
-        <Route path="/account" element={<StoreAccount storeName={tenant.store_name} />} />
+
+        {/* tenant is guaranteed by CustomDomainStoreWrapper; fallbacks satisfy TS */}
+        <Route
+          path="/login"
+          element={<StoreLogin tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
+        />
+        <Route
+          path="/signup"
+          element={<StoreSignup tenantId={tenant?.id ?? ''} storeName={tenant?.store_name ?? ''} />}
+        />
+        <Route path="/account" element={<StoreAccount storeName={tenant?.store_name ?? ''} />} />
         <Route path="/account/orders" element={<StoreOrders />} />
         <Route path="/account/orders/:orderId" element={<StoreOrderDetail />} />
-        <Route path="/account/addresses" element={<StoreAddresses tenantId={tenant.id} />} />
+        <Route path="/account/addresses" element={<StoreAddresses tenantId={tenant?.id ?? ''} />} />
         <Route path="/wishlist" element={<StoreWishlist />} />
         <Route path="/page/:pageSlug" element={<StorePageView />} />
+
         {/* Redirect any /store/slug paths to root */}
         <Route path="/store/*" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -91,3 +100,4 @@ export function CustomDomainRoutes() {
     </CustomDomainStoreWrapper>
   );
 }
+
