@@ -35,27 +35,24 @@ serve(async (req) => {
       return errorResponse('Store not found', 404);
     }
 
-    // Get coupon by code
+    // Get coupon by code - check both 'code' field and look for matching coupon
     const { data: coupon, error: couponError } = await supabase
       .from('coupons')
       .select('*')
       .eq('tenant_id', tenant.id)
       .eq('code', coupon_code.toUpperCase().trim())
+      .eq('is_active', true)
       .maybeSingle();
 
     if (couponError || !coupon) {
       return successResponse({ error: 'Invalid coupon code', valid: false });
     }
 
-    // Check if coupon is active
-    if (!coupon.is_active) {
-      return successResponse({ error: 'Coupon is not active', valid: false });
-    }
-
-    // Check expiry date
-    if (coupon.expires_at) {
-      const expiryDate = new Date(coupon.expires_at);
-      const now = new Date();
+    // Check expiry date (ends_at is the field name in the schema)
+    const now = new Date();
+    
+    if (coupon.ends_at) {
+      const expiryDate = new Date(coupon.ends_at);
       if (expiryDate < now) {
         return successResponse({ error: 'Coupon has expired', valid: false });
       }
@@ -64,75 +61,52 @@ serve(async (req) => {
     // Check start date
     if (coupon.starts_at) {
       const startDate = new Date(coupon.starts_at);
-      const now = new Date();
       if (startDate > now) {
         return successResponse({ error: 'Coupon is not yet active', valid: false });
       }
     }
 
-    // Check minimum purchase amount
-    if (coupon.min_purchase_amount && cart_subtotal < coupon.min_purchase_amount) {
+    // Check minimum cart amount (min_cart_amount is the field name)
+    if (coupon.min_cart_amount && cart_subtotal < coupon.min_cart_amount) {
       return successResponse({
-        error: `Minimum purchase amount of ₹${coupon.min_purchase_amount} required`,
+        error: `Minimum cart amount of ₹${coupon.min_cart_amount} required`,
         valid: false,
       });
     }
 
-    // Check usage limits (if customer_id provided)
-    if (customer_id && coupon.usage_limit_per_customer) {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenant.id)
-        .eq('customer_id', customer_id)
-        .eq('coupon_code', coupon.code);
-
-      if (count && count >= coupon.usage_limit_per_customer) {
-        return successResponse({
-          error: 'You have already used this coupon',
-          valid: false,
-        });
-      }
+    // Check usage limit
+    if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+      return successResponse({
+        error: 'Coupon usage limit reached',
+        valid: false,
+      });
     }
 
-    // Check total usage limit
-    if (coupon.usage_limit) {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenant.id)
-        .eq('coupon_code', coupon.code);
-
-      if (count && count >= coupon.usage_limit) {
-        return successResponse({
-          error: 'Coupon usage limit reached',
-          valid: false,
-        });
-      }
-    }
-
-    // Calculate discount
+    // Calculate discount - coupon.type is 'percent' or 'fixed', coupon.value is the amount
     let discount_amount = 0;
-    if (coupon.discount_type === 'percentage') {
-      discount_amount = (cart_subtotal * coupon.discount_value) / 100;
-      if (coupon.max_discount_amount) {
-        discount_amount = Math.min(discount_amount, coupon.max_discount_amount);
+    if (coupon.type === 'percent') {
+      discount_amount = (cart_subtotal * coupon.value) / 100;
+      // Apply max discount cap if set
+      if (coupon.max_discount_amount && discount_amount > coupon.max_discount_amount) {
+        discount_amount = coupon.max_discount_amount;
       }
     } else {
-      discount_amount = coupon.discount_value;
+      // Fixed discount
+      discount_amount = coupon.value;
     }
 
-    discount_amount = Math.min(discount_amount, cart_subtotal); // Don't exceed cart total
+    // Don't exceed cart total
+    discount_amount = Math.min(discount_amount, cart_subtotal);
 
+    // Return in the format the frontend expects
     return successResponse({
       valid: true,
-      coupon: {
-        code: coupon.code,
-        discount_type: coupon.discount_type,
-        discount_value: coupon.discount_value,
-        discount_amount: Math.round(discount_amount * 100) / 100,
-        description: coupon.description,
-      },
+      coupon_id: coupon.id,
+      coupon_code: coupon.code,
+      coupon_type: coupon.type, // 'percent' or 'fixed'
+      coupon_value: coupon.value,
+      discount_amount: Math.round(discount_amount * 100) / 100,
+      message: `Coupon applied! You save ₹${Math.round(discount_amount)}`
     });
 
   } catch (error) {

@@ -840,9 +840,9 @@ export default function CheckoutPage() {
                           <span className="font-bold text-green-700">{appliedCoupon.coupon_code}</span>
                           <p className="text-sm text-green-600">
                             {appliedCoupon.coupon_type === 'percent' 
-                              ? `${appliedCoupon.coupon_value}% off` 
-                              : `₹${appliedCoupon.coupon_value} off`
-                            } • Saving ₹{discountTotal.toFixed(0)}
+                              ? `${appliedCoupon.coupon_value || 0}% off` 
+                              : `₹${appliedCoupon.coupon_value || 0} off`
+                            } • Saving ₹{(discountTotal || 0).toFixed(0)}
                           </p>
                         </div>
                       </div>
@@ -1013,16 +1013,14 @@ export default function CheckoutPage() {
 
         {/* Mobile Sticky Bottom */}
         <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg safe-area-bottom">
-          {/* Min Order Warning */}
-          {deliverySettings?.min_order_amount > 0 && !meetsMinOrder && (
-            <div className="px-4 py-2 bg-amber-50 text-center">
-              <p className="text-sm text-amber-700">
+          <div className="p-4">
+            {/* Min Order Warning - inline */}
+            {deliverySettings?.min_order_amount > 0 && !meetsMinOrder && (
+              <p className="text-sm text-amber-600 text-center mb-2">
                 Add ₹{(deliverySettings.min_order_amount - subtotal).toFixed(0)} more to proceed
               </p>
-            </div>
-          )}
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
+            )}
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-neutral-500">Total Amount</p>
                 <p className="text-xl font-bold">₹{total.toFixed(0)}</p>
