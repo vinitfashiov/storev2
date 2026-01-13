@@ -16,8 +16,8 @@ interface StoreAuthContextType {
   session: Session | null;
   customer: Customer | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string, phone: string, tenantId: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string, tenantId: string) => Promise<{ error: Error | null }>;
+  signUp: (phone: string, password: string, name: string, tenantId: string) => Promise<{ error: Error | null }>;
+  signIn: (phone: string, password: string, tenantId: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshCustomer: () => Promise<void>;
 }
@@ -79,66 +79,62 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
     return () => subscription.unsubscribe();
   }, [tenantId]);
 
-  const signUp = async (email: string, password: string, name: string, phone: string, tid: string) => {
-    try {
-      // Check if email already exists for THIS tenant (same store)
-      const { data: existingEmailCustomer } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('tenant_id', tid)
-        .eq('email', email)
-        .maybeSingle();
+  // Clean phone number to 10 digits
+  const cleanPhone = (phone: string) => phone.replace(/\D/g, '').slice(-10);
 
-      if (existingEmailCustomer) {
-        return { error: new Error('Email already registered for this store. Please login instead.') };
+  // Generate email from phone for Supabase auth (phone as identifier)
+  const phoneToEmail = (phone: string, tid: string) => `${cleanPhone(phone)}@store.${tid}.local`;
+
+  const signUp = async (phone: string, password: string, name: string, tid: string) => {
+    try {
+      const cleanedPhone = cleanPhone(phone);
+      
+      if (cleanedPhone.length !== 10) {
+        return { error: new Error('Please enter a valid 10-digit phone number') };
       }
 
       // Check if phone already exists for this tenant
-      if (phone) {
-        const { data: existingPhoneCustomer } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('tenant_id', tid)
-          .eq('phone', phone)
-          .maybeSingle();
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', tid)
+        .eq('phone', cleanedPhone)
+        .maybeSingle();
 
-        if (existingPhoneCustomer) {
-          return { error: new Error('Phone number already registered for this store') };
-        }
+      if (existingCustomer) {
+        return { error: new Error('Phone number already registered. Please login instead.') };
       }
 
+      const email = phoneToEmail(cleanedPhone, tid);
       const redirectUrl = `${window.location.origin}/`;
       
-      // Try to sign up - this creates a new auth.user
+      // Try to sign up
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
-          data: { name, phone }
+          data: { name, phone: cleanedPhone }
         }
       });
 
-      // If user already exists in auth.users (from another storefront), try to sign in instead
+      // If user already exists, try to sign in
       if (error?.message?.includes('User already registered')) {
-        // User exists in auth.users but not in this tenant's customers
-        // Sign them in and create a customer record for this tenant
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password
         });
 
         if (signInError) {
-          return { error: new Error('Account exists with different password. Please use the correct password or reset it.') };
+          return { error: new Error('Account exists with different password') };
         }
 
         if (signInData.user) {
-          // Create customer record for this tenant
           const { error: customerError } = await supabase.from('customers').insert({
             tenant_id: tid,
             user_id: signInData.user.id,
             name,
-            phone,
+            phone: cleanedPhone,
             email
           });
 
@@ -156,12 +152,11 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       if (error) return { error };
 
       if (data.user) {
-        // Create customer record for this tenant
         const { error: customerError } = await supabase.from('customers').insert({
           tenant_id: tid,
           user_id: data.user.id,
           name,
-          phone,
+          phone: cleanedPhone,
           email
         });
 
@@ -179,56 +174,42 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
     }
   };
 
-  const signIn = async (email: string, password: string, tid: string) => {
+  const signIn = async (phone: string, password: string, tid: string) => {
     try {
-      // Get current session first to check if already logged in
-      const { data: sessionData } = await supabase.auth.getSession();
+      const cleanedPhone = cleanPhone(phone);
       
-      // If already logged in with same email, just check customer record
-      if (sessionData.session?.user?.email === email) {
-        const { data: customerData } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('user_id', sessionData.session.user.id)
-          .eq('tenant_id', tid)
-          .maybeSingle();
-
-        if (!customerData) {
-          return { error: new Error('No account found for this store. Please sign up first.') };
-        }
-
-        setCustomer(customerData as Customer);
-        return { error: null };
+      if (cleanedPhone.length !== 10) {
+        return { error: new Error('Please enter a valid 10-digit phone number') };
       }
 
-      // Otherwise do fresh login (but store admin session key first)
-      const adminSessionKey = `admin_session_backup`;
-      if (sessionData.session) {
-        localStorage.setItem(adminSessionKey, JSON.stringify(sessionData.session));
+      // Check if customer exists for this tenant
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('tenant_id', tid)
+        .eq('phone', cleanedPhone)
+        .maybeSingle();
+
+      if (!existingCustomer) {
+        return { error: new Error('No account found with this phone number. Please sign up first.') };
       }
+
+      const email = phoneToEmail(cleanedPhone, tid);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) return { error };
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { error: new Error('Incorrect password') };
+        }
+        return { error };
+      }
 
       if (data.user) {
-        // Check if user is a customer of this tenant
-        const { data: customerData } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .eq('tenant_id', tid)
-          .maybeSingle();
-
-        if (!customerData) {
-          // Don't sign out - just return error
-          return { error: new Error('No account found for this store. Please sign up first.') };
-        }
-
-        setCustomer(customerData as Customer);
+        setCustomer(existingCustomer as Customer);
       }
 
       return { error: null };
