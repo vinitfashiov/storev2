@@ -1,6 +1,6 @@
 /**
  * Enterprise Optimized Cart Hook
- * With connection pooling-friendly queries and optimistic updates
+ * With instant optimistic updates for smooth UX
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -32,23 +32,11 @@ interface Cart {
 
 const CART_STORAGE_KEY = 'store_cart_id';
 
-// Debounce utility for batch operations
-function debounce<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout;
-  return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-}
-
 export function useCart(storeSlug: string, tenantId: string | null) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [itemCount, setItemCount] = useState(0);
-  const pendingOperations = useRef<Promise<any>>(Promise.resolve());
+  const operationQueue = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const getCartKey = () => `${CART_STORAGE_KEY}_${storeSlug}`;
 
@@ -69,7 +57,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         return null;
       }
 
-      const { data: items, error: itemsError } = await supabase
+      const { data: items } = await supabase
         .from('cart_items')
         .select(`
           *,
@@ -122,94 +110,124 @@ export function useCart(storeSlug: string, tenantId: string | null) {
   const addToCart = useCallback(async (productId: string, price: number, qty: number = 1) => {
     if (!tenantId) return false;
 
-    // Chain operations to prevent race conditions
-    const operation = pendingOperations.current.then(async () => {
-      try {
-        let currentCart = cart;
-        if (!currentCart) {
-          currentCart = await createCart();
-          if (!currentCart) return false;
-        }
-
-        // Optimistic update
-        const existingItem = currentCart.items.find(item => item.product_id === productId);
-        
-        if (existingItem) {
-          // Update quantity
-          const { error } = await supabase
-            .from('cart_items')
-            .update({ qty: existingItem.qty + qty })
-            .eq('id', existingItem.id);
-
-          if (error) {
-            console.error('Error updating cart item:', error);
-            return false;
-          }
-        } else {
-          // Insert new item
-          const { error } = await supabase
-            .from('cart_items')
-            .insert({
-              tenant_id: tenantId,
-              cart_id: currentCart.id,
-              product_id: productId,
-              qty,
-              unit_price: price
-            });
-
-          if (error) {
-            console.error('Error adding cart item:', error);
-            return false;
-          }
-        }
-
-        // Optimistically update local state
-        setItemCount(prev => prev + qty);
-        
-        // Debounced refresh
-        await fetchCart(currentCart.id);
-        return true;
-      } catch (error) {
-        console.error('Error in addToCart:', error);
-        return false;
+    try {
+      let currentCart = cart;
+      if (!currentCart) {
+        currentCart = await createCart();
+        if (!currentCart) return false;
       }
-    });
 
-    pendingOperations.current = operation;
-    return operation;
+      const existingItem = currentCart.items.find(item => item.product_id === productId);
+      
+      // INSTANT optimistic update
+      const newQty = existingItem ? existingItem.qty + qty : qty;
+      setCart(prev => {
+        if (!prev) return prev;
+        const updatedItems = existingItem
+          ? prev.items.map(item => 
+              item.product_id === productId 
+                ? { ...item, qty: newQty }
+                : item
+            )
+          : [...prev.items, { 
+              id: `temp-${Date.now()}`, 
+              product_id: productId, 
+              qty, 
+              unit_price: price,
+              product: null 
+            }];
+        return { ...prev, items: updatedItems };
+      });
+      setItemCount(prev => prev + qty);
+      
+      // Background DB update
+      if (existingItem) {
+        await supabase
+          .from('cart_items')
+          .update({ qty: newQty })
+          .eq('id', existingItem.id);
+      } else {
+        await supabase
+          .from('cart_items')
+          .insert({
+            tenant_id: tenantId,
+            cart_id: currentCart.id,
+            product_id: productId,
+            qty,
+            unit_price: price
+          });
+      }
+
+      // Sync with DB in background
+      fetchCart(currentCart.id);
+      return true;
+    } catch (error) {
+      console.error('Error in addToCart:', error);
+      return false;
+    }
   }, [cart, tenantId, createCart, fetchCart]);
 
+  // INSTANT optimistic quantity update with debounced DB sync
   const updateQuantity = useCallback(async (itemId: string, qty: number) => {
     if (!cart) return false;
 
-    const operation = pendingOperations.current.then(async () => {
+    // Cancel any pending operation for this item
+    const existingTimeout = operationQueue.current.get(itemId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    const currentItem = cart.items.find(item => item.id === itemId);
+    if (!currentItem) return false;
+
+    // INSTANT optimistic update - no delay
+    if (qty <= 0) {
+      setCart(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.filter(item => item.id !== itemId)
+        };
+      });
+      setItemCount(prev => Math.max(0, prev - currentItem.qty));
+    } else {
+      const qtyDiff = qty - currentItem.qty;
+      setCart(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          items: prev.items.map(item =>
+            item.id === itemId ? { ...item, qty } : item
+          )
+        };
+      });
+      setItemCount(prev => Math.max(0, prev + qtyDiff));
+    }
+
+    // Debounced DB update (150ms) for performance
+    const timeoutId = setTimeout(async () => {
       try {
         if (qty <= 0) {
-          const { error } = await supabase
+          await supabase
             .from('cart_items')
             .delete()
             .eq('id', itemId);
-
-          if (error) return false;
         } else {
-          const { error } = await supabase
+          await supabase
             .from('cart_items')
             .update({ qty })
             .eq('id', itemId);
-
-          if (error) return false;
         }
-
-        await fetchCart(cart.id);
-        return true;
+        operationQueue.current.delete(itemId);
       } catch (error) {
-        console.error('Error updating quantity:', error);
-        return false;
+        console.error('Error syncing quantity:', error);
+        // Rollback on error
+        fetchCart(cart.id);
       }
-    });
+    }, 150);
 
-    pendingOperations.current = operation;
-    return operation;
+    operationQueue.current.set(itemId, timeoutId);
+    return true;
   }, [cart, fetchCart]);
 
   const removeItem = useCallback(async (itemId: string) => {
@@ -246,6 +264,13 @@ export function useCart(storeSlug: string, tenantId: string | null) {
       setLoading(false);
     }
   }, [storeSlug, tenantId, fetchCart]);
+
+  // Cleanup pending operations on unmount
+  useEffect(() => {
+    return () => {
+      operationQueue.current.forEach(timeout => clearTimeout(timeout));
+    };
+  }, []);
 
   return {
     cart,
