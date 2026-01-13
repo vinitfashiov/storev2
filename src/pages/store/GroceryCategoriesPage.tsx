@@ -48,6 +48,7 @@ const categoryEmojis = ['🥬', '🥛', '🥣', '☕', '🥜', '🍪', '🍚', '
 export default function GroceryCategoriesPage() {
   const { slug: urlSlug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const customDomain = useCustomDomain();
   
   const slug = customDomain.isCustomDomain && customDomain.tenant 
@@ -61,10 +62,17 @@ export default function GroceryCategoriesPage() {
   const [productsLoading, setProductsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [addingProduct, setAddingProduct] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   const selectedCategorySlug = searchParams.get('category') || '';
 
   const { itemCount, addToCart, cart } = useCart(slug || '', tenant?.id || null);
+  
+  const { isListening, isSupported, startListening, stopListening } = useVoiceSearch({
+    onResult: (result) => {
+      setSearchQuery(result);
+    }
+  });
 
   // Find selected category
   const selectedCategory = useMemo(() => {
@@ -86,6 +94,14 @@ export default function GroceryCategoriesPage() {
     }
     return quantities;
   }, [cart]);
+
+  // Filter products by search
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery) return products;
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [products, searchQuery]);
 
   // Fetch tenant and categories
   useEffect(() => {
@@ -214,22 +230,6 @@ export default function GroceryCategoriesPage() {
     );
   }
 
-  const navigate = useNavigate();
-  const [showSearch, setShowSearch] = useState(false);
-  
-  const { isListening, isSupported, startListening, stopListening } = useVoiceSearch({
-    onResult: (result) => {
-      setSearchQuery(result);
-    }
-  });
-
-  // Filter products by search
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery) return products;
-    return products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [products, searchQuery]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col pb-20">
