@@ -103,7 +103,12 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
         }
 
         if (!domainData) {
-          setError('Domain not configured');
+          // If the hostname isn't mapped to a tenant custom domain, treat this as the
+          // platform/main app domain (e.g. your SaaS root domain) rather than showing
+          // a hard error.
+          setIsCustomDomain(false);
+          setError(null);
+          setTenant(null);
           setLoading(false);
           domainCache.set(hostname, { tenant: null, expiresAt: Date.now() + CACHE_TTL });
           return;
