@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomDomainProvider, useCustomDomain } from "@/contexts/CustomDomainContext";
 import { CustomDomainRoutes } from "@/components/CustomDomainRoutes";
@@ -133,9 +133,50 @@ function StoreAddressesInner() {
   return <StoreAddresses tenantId={tenant.id} />;
 }
 
+// Wrapper for authenticated routes
+function AuthenticatedRoutes() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/authentication" element={<Auth />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/dashboard/*" element={<Dashboard />} />
+        <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
+        <Route path="/page-builder-legacy" element={<PageBuilder />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AuthProvider>
+  );
+}
+
+// Store routes don't need AuthProvider - they use StoreAuthProvider
+function StoreRoutes() {
+  return (
+    <Routes>
+      <Route path="/store/:slug" element={<StoreGuard><StoreHome /></StoreGuard>} />
+      <Route path="/store/:slug/products" element={<StoreGuard><ProductList /></StoreGuard>} />
+      <Route path="/store/:slug/categories" element={<StoreGuard><GroceryCategoriesPage /></StoreGuard>} />
+      <Route path="/store/:slug/product/:productSlug" element={<StoreGuard><ProductDetail /></StoreGuard>} />
+      <Route path="/store/:slug/cart" element={<StoreGuard><CartPage /></StoreGuard>} />
+      <Route path="/store/:slug/checkout" element={<StoreGuard><CheckoutPage /></StoreGuard>} />
+      <Route path="/store/:slug/order-confirmation" element={<StoreGuard><OrderConfirmation /></StoreGuard>} />
+      <Route path="/store/:slug/login" element={<StoreLoginWrapper />} />
+      <Route path="/store/:slug/signup" element={<StoreSignupWrapper />} />
+      <Route path="/store/:slug/account" element={<StoreAccountWrapper />} />
+      <Route path="/store/:slug/account/orders" element={<StoreOrdersWrapper />} />
+      <Route path="/store/:slug/account/orders/:orderId" element={<StoreOrderDetailWrapper />} />
+      <Route path="/store/:slug/account/addresses" element={<StoreAddressesWrapper />} />
+      <Route path="/store/:slug/wishlist" element={<StoreGuard><StoreWishlist /></StoreGuard>} />
+      <Route path="/store/:slug/page/:pageSlug" element={<StoreGuard><StorePageView /></StoreGuard>} />
+      <Route path="/store/:slug/delivery" element={<DeliveryPanel />} />
+    </Routes>
+  );
+}
+
 // Main app content that conditionally renders based on custom domain
 function AppContent() {
   const { isCustomDomain, loading } = useCustomDomain();
+  const location = useLocation();
 
   if (loading) {
     return <AppFallback />;
@@ -146,36 +187,18 @@ function AppContent() {
     return <CustomDomainRoutes />;
   }
 
-  // Platform routes (admin, auth, and /store/:slug routes)
-  return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/authentication" element={<Auth />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/dashboard/*" element={<Dashboard />} />
-        <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
-        <Route path="/page-builder-legacy" element={<PageBuilder />} />
-        <Route path="/store/:slug" element={<StoreGuard><StoreHome /></StoreGuard>} />
-        <Route path="/store/:slug/products" element={<StoreGuard><ProductList /></StoreGuard>} />
-        <Route path="/store/:slug/categories" element={<StoreGuard><GroceryCategoriesPage /></StoreGuard>} />
-        <Route path="/store/:slug/product/:productSlug" element={<StoreGuard><ProductDetail /></StoreGuard>} />
-        <Route path="/store/:slug/cart" element={<StoreGuard><CartPage /></StoreGuard>} />
-        <Route path="/store/:slug/checkout" element={<StoreGuard><CheckoutPage /></StoreGuard>} />
-        <Route path="/store/:slug/order-confirmation" element={<StoreGuard><OrderConfirmation /></StoreGuard>} />
-        <Route path="/store/:slug/login" element={<StoreLoginWrapper />} />
-        <Route path="/store/:slug/signup" element={<StoreSignupWrapper />} />
-        <Route path="/store/:slug/account" element={<StoreAccountWrapper />} />
-        <Route path="/store/:slug/account/orders" element={<StoreOrdersWrapper />} />
-        <Route path="/store/:slug/account/orders/:orderId" element={<StoreOrderDetailWrapper />} />
-        <Route path="/store/:slug/account/addresses" element={<StoreAddressesWrapper />} />
-        <Route path="/store/:slug/wishlist" element={<StoreGuard><StoreWishlist /></StoreGuard>} />
-        <Route path="/store/:slug/page/:pageSlug" element={<StoreGuard><StorePageView /></StoreGuard>} />
-        <Route path="/store/:slug/delivery" element={<DeliveryPanel />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </AuthProvider>
-  );
+  // Landing page - render immediately without any auth overhead
+  if (location.pathname === '/') {
+    return <Index />;
+  }
+
+  // Store routes - separate from auth provider
+  if (location.pathname.startsWith('/store/')) {
+    return <StoreRoutes />;
+  }
+
+  // Authenticated platform routes
+  return <AuthenticatedRoutes />;
 }
 
 const App = () => (
@@ -184,11 +207,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<AppFallback />}>
-          <CustomDomainProvider>
+        <CustomDomainProvider>
+          <Suspense fallback={<AppFallback />}>
             <AppContent />
-          </CustomDomainProvider>
-        </Suspense>
+          </Suspense>
+        </CustomDomainProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
