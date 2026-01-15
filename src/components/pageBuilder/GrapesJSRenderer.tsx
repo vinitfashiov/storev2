@@ -90,9 +90,11 @@ function useGrapesJSLayout(tenantId: string | undefined) {
       return layoutData;
     },
     enabled: !!tenantId,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    // Performance: layouts rarely change; avoid refetching on every navigation/focus
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 60, // 1 hour
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
   });
 }
 

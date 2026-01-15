@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,32 +7,57 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CustomDomainProvider, useCustomDomain } from "@/contexts/CustomDomainContext";
 import { CustomDomainRoutes } from "@/components/CustomDomainRoutes";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Onboarding from "./pages/Onboarding";
-import Dashboard from "./pages/Dashboard";
-import PageBuilder from "./pages/admin/PageBuilder";
-import GrapesJSPageBuilder from "./pages/admin/GrapesJSPageBuilder";
-import StoreHome from "./pages/store/StoreHome";
-import ProductList from "./pages/store/ProductList";
-import GroceryCategoriesPage from "./pages/store/GroceryCategoriesPage";
-import ProductDetail from "./pages/store/ProductDetail";
-import CartPage from "./pages/store/CartPage";
-import CheckoutPage from "./pages/store/CheckoutPage";
-import OrderConfirmation from "./pages/store/OrderConfirmation";
-import StoreLogin from "./pages/store/StoreLogin";
-import StoreSignup from "./pages/store/StoreSignup";
-import StoreAccount from "./pages/store/StoreAccount";
-import StoreOrders from "./pages/store/StoreOrders";
-import StoreOrderDetail from "./pages/store/StoreOrderDetail";
-import StoreAddresses from "./pages/store/StoreAddresses";
-import StoreWishlist from "./pages/store/StoreWishlist";
-import StorePageView from "./pages/store/StorePageView";
 import StoreGuard from "./components/storefront/StoreGuard";
-import DeliveryPanel from "./pages/delivery/DeliveryPanel";
-import NotFound from "./pages/NotFound";
+import { useStoreTenant } from "./hooks/useStoreTenant";
 
-const queryClient = new QueryClient();
+// Route-level code splitting to reduce initial bundle and speed up first paint
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const PageBuilder = lazy(() => import("./pages/admin/PageBuilder"));
+const GrapesJSPageBuilder = lazy(() => import("./pages/admin/GrapesJSPageBuilder"));
+
+const StoreHome = lazy(() => import("./pages/store/StoreHome"));
+const ProductList = lazy(() => import("./pages/store/ProductList"));
+const GroceryCategoriesPage = lazy(() => import("./pages/store/GroceryCategoriesPage"));
+const ProductDetail = lazy(() => import("./pages/store/ProductDetail"));
+const CartPage = lazy(() => import("./pages/store/CartPage"));
+const CheckoutPage = lazy(() => import("./pages/store/CheckoutPage"));
+const OrderConfirmation = lazy(() => import("./pages/store/OrderConfirmation"));
+const StoreLogin = lazy(() => import("./pages/store/StoreLogin"));
+const StoreSignup = lazy(() => import("./pages/store/StoreSignup"));
+const StoreAccount = lazy(() => import("./pages/store/StoreAccount"));
+const StoreOrders = lazy(() => import("./pages/store/StoreOrders"));
+const StoreOrderDetail = lazy(() => import("./pages/store/StoreOrderDetail"));
+const StoreAddresses = lazy(() => import("./pages/store/StoreAddresses"));
+const StoreWishlist = lazy(() => import("./pages/store/StoreWishlist"));
+const StorePageView = lazy(() => import("./pages/store/StorePageView"));
+const DeliveryPanel = lazy(() => import("./pages/delivery/DeliveryPanel"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Performance: avoid refetch storms on focus/navigation
+      staleTime: 1000 * 60, // 1 min
+      gcTime: 1000 * 60 * 10, // 10 min
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
+
+function AppFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 // Wrapper components for store pages that need tenant props
 function StoreLoginWrapper() {
@@ -83,8 +109,6 @@ function StoreAddressesWrapper() {
 }
 
 // Inner components that use the tenant hook
-import { useStoreTenant } from "./hooks/useStoreTenant";
-
 function StoreLoginInner() {
   const { tenant, loading } = useStoreTenant();
   if (loading || !tenant) return null;
@@ -114,11 +138,7 @@ function AppContent() {
   const { isCustomDomain, loading } = useCustomDomain();
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <AppFallback />;
   }
 
   // If custom domain, render storefront routes only
@@ -164,9 +184,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <CustomDomainProvider>
-          <AppContent />
-        </CustomDomainProvider>
+        <Suspense fallback={<AppFallback />}>
+          <CustomDomainProvider>
+            <AppContent />
+          </CustomDomainProvider>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

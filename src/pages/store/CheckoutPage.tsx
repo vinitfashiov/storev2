@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,38 @@ import { toast } from 'sonner';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
-import { 
-  CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin, 
+import {
+  CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin,
   Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield
 } from 'lucide-react';
+
+// Shared singleton for script loading across navigations
+let razorpayScriptPromise: Promise<void> | null = null;
+
+async function loadRazorpayScript(): Promise<void> {
+  if (typeof window !== 'undefined' && (window as any).Razorpay) return;
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true });
+      existing.addEventListener('error', () => reject(new Error('Failed to load payment SDK')), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load payment SDK'));
+    document.body.appendChild(script);
+  });
+
+  return razorpayScriptPromise;
+}
 
 interface Tenant { id: string; store_name: string; store_slug: string; business_type: 'ecommerce' | 'grocery'; }
 
@@ -187,13 +215,23 @@ export default function CheckoutPage() {
     setForm(prev => ({ ...prev, line1: '', line2: '', city: '', state: '', pincode: '' }));
   };
 
+  // Performance: load Razorpay script only when needed (and only once)
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
-  }, []);
+    if (paymentMethod !== 'razorpay') return;
+
+    let cancelled = false;
+
+    const load = async () => {
+      await loadRazorpayScript();
+      if (cancelled) return;
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [paymentMethod]);
 
   useEffect(() => {
     if (!form.pincode || form.pincode.length < 6 || tenant?.business_type !== 'grocery') {
@@ -287,6 +325,10 @@ export default function CheckoutPage() {
 
   const handleRazorpayPayment = async (paymentIntentId: string, orderNumber: string, amount: number) => {
     try {
+      // Ensure the SDK is available before initiating payment
+      await loadRazorpayScript();
+      if (!window.Razorpay) throw new Error('Payment SDK not available');
+
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: { store_slug: slug, payment_intent_id: paymentIntentId }
       });
@@ -294,8 +336,8 @@ export default function CheckoutPage() {
       const { key_id, razorpay_order_id, currency } = data;
 
       const options = {
-        key: key_id, 
-        amount: Math.round(amount * 100), 
+        key: key_id,
+        amount: Math.round(amount * 100),
         currency,
         name: tenant?.store_name || 'Store',
         description: `Order ${orderNumber}`,
@@ -309,19 +351,19 @@ export default function CheckoutPage() {
             await clearCart();
             toast.success('Payment successful!');
             navigate(`/store/${slug}/order-confirmation?order=${verifyData.order_number || orderNumber}`);
-          } catch (err: any) { 
-            toast.error(err.message || 'Payment verification failed'); 
+          } catch (err: any) {
+            toast.error(err.message || 'Payment verification failed');
             setSubmitting(false);
           }
         },
         prefill: { name: form.name, email: form.email, contact: form.phone },
         theme: { color: '#16a34a' },
-        modal: { 
-          ondismiss: async () => { 
+        modal: {
+          ondismiss: async () => {
             await supabase.from('payment_intents').update({ status: 'cancelled' }).eq('id', paymentIntentId);
-            toast.error('Payment cancelled.'); 
-            setSubmitting(false); 
-          } 
+            toast.error('Payment cancelled.');
+            setSubmitting(false);
+          }
         }
       };
       const razorpay = new window.Razorpay(options);
@@ -466,18 +508,27 @@ export default function CheckoutPage() {
           await supabase.from('order_items').insert(orderItems);
           await supabase.from('carts').update({ status: 'converted' }).eq('id', cart.id);
 
-          for (const item of orderItemsData) {
-            const { data: product } = await supabase
+          // Performance: avoid N+1 (fetch+update) loops; batch fetch and run updates in parallel
+          const productIds = orderItemsData.map(i => i.product_id).filter(Boolean) as string[];
+          if (productIds.length > 0) {
+            const { data: productsForStock } = await supabase
               .from('products')
-              .select('stock_qty')
-              .eq('id', item.product_id)
-              .single();
-            if (product) {
-              await supabase
-                .from('products')
-                .update({ stock_qty: Math.max(0, product.stock_qty - item.qty) })
-                .eq('id', item.product_id);
-            }
+              .select('id, stock_qty')
+              .in('id', productIds);
+
+            const stockMap = new Map<string, number>();
+            (productsForStock || []).forEach((p: any) => stockMap.set(p.id, Number(p.stock_qty || 0)));
+
+            await Promise.all(
+              orderItemsData.map(async (item) => {
+                const current = stockMap.get(item.product_id) ?? 0;
+                const next = Math.max(0, current - item.qty);
+                return supabase
+                  .from('products')
+                  .update({ stock_qty: next })
+                  .eq('id', item.product_id);
+              })
+            );
           }
         }
 
