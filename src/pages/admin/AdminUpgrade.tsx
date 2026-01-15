@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +31,13 @@ interface Tenant {
   trial_ends_at: string;
 }
 
+interface PreparedOrder {
+  order_id: string;
+  amount: number;
+  currency: string;
+  key_id: string;
+}
+
 const PRO_FEATURES = [
   'Unlimited products',
   'Unlimited orders',
@@ -44,24 +51,64 @@ const PRO_FEATURES = [
 
 const PLAN_PRICE = 1; // ₹1 (testing)
 
+// Preload Razorpay script immediately (module level for fastest load)
+const razorpayScriptPromise = new Promise<void>((resolve) => {
+  if (typeof window !== 'undefined') {
+    if (window.Razorpay) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  }
+});
+
 export default function AdminUpgrade() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(!!window.Razorpay);
+  
+  // Pre-created order cache
+  const preparedOrderRef = useRef<PreparedOrder | null>(null);
+  const orderCreationPromiseRef = useRef<Promise<PreparedOrder | null> | null>(null);
+
+  // Pre-create order in background
+  const preCreateOrder = useCallback(async (): Promise<PreparedOrder | null> => {
+    if (!tenant || tenant.plan === 'pro') return null;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('create-upgrade-order', {
+        body: { tenant_id: tenant.id, amount: PLAN_PRICE }
+      });
+      
+      if (error || !data?.order_id) return null;
+      
+      const order: PreparedOrder = {
+        order_id: data.order_id,
+        amount: data.amount,
+        currency: data.currency,
+        key_id: data.key_id
+      };
+      preparedOrderRef.current = order;
+      return order;
+    } catch {
+      return null;
+    }
+  }, [tenant]);
 
   useEffect(() => {
-    // Load Razorpay script
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => setScriptLoaded(true);
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+    // Mark script as loaded when ready
+    razorpayScriptPromise.then(() => setScriptLoaded(true));
+    
+    // Pre-create order immediately when page loads (for trial users)
+    if (tenant && tenant.plan !== 'pro' && !orderCreationPromiseRef.current) {
+      orderCreationPromiseRef.current = preCreateOrder();
+    }
+  }, [tenant, preCreateOrder]);
 
   const getDaysRemaining = () => {
     if (!tenant?.trial_ends_at) return 0;
@@ -72,34 +119,53 @@ export default function AdminUpgrade() {
   };
 
   const handleUpgrade = async () => {
-    if (!tenant || !scriptLoaded) return;
+    if (!tenant) return;
 
     setLoading(true);
 
     try {
-      // Create order via edge function
-      const { data, error } = await supabase.functions.invoke('create-upgrade-order', {
-        body: { 
-          tenant_id: tenant.id, 
-          amount: PLAN_PRICE 
+      // Wait for script if not ready (should be instant since preloaded)
+      await razorpayScriptPromise;
+      
+      // Use pre-created order or wait for it / create new one
+      let orderData = preparedOrderRef.current;
+      
+      if (!orderData) {
+        // Wait for existing creation or create new
+        if (orderCreationPromiseRef.current) {
+          orderData = await orderCreationPromiseRef.current;
         }
-      });
-
-      if (error || !data?.order_id) {
-        throw new Error(data?.error || 'Failed to create payment order');
+        if (!orderData) {
+          // Fallback: create order now
+          const { data, error } = await supabase.functions.invoke('create-upgrade-order', {
+            body: { tenant_id: tenant.id, amount: PLAN_PRICE }
+          });
+          if (error || !data?.order_id) {
+            throw new Error(data?.error || 'Failed to create payment order');
+          }
+          orderData = {
+            order_id: data.order_id,
+            amount: data.amount,
+            currency: data.currency,
+            key_id: data.key_id
+          };
+        }
       }
 
-      // Open Razorpay checkout
+      // Clear cached order (will need new one if user cancels)
+      preparedOrderRef.current = null;
+      orderCreationPromiseRef.current = null;
+
+      // Open Razorpay checkout immediately
       const options = {
-        key: data.key_id,
-        amount: data.amount,
-        currency: data.currency,
-        order_id: data.order_id,
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        order_id: orderData.order_id,
         name: 'Sellify Pro',
         description: 'Upgrade to Pro Plan - ₹1/month (testing)',
         handler: async function (response: any) {
           try {
-            // Verify payment
             const { data: verifyData, error: verifyError } = await supabase.functions.invoke('verify-upgrade-payment', {
               body: {
                 razorpay_order_id: response.razorpay_order_id,
@@ -115,22 +181,19 @@ export default function AdminUpgrade() {
             }
 
             toast.success('Upgraded to Pro successfully!');
-            // Refresh to update tenant data
             window.location.href = '/dashboard';
           } catch (err: any) {
             console.error('Verification error:', err);
             toast.error(err.message || 'Payment verification failed');
           }
         },
-        prefill: {
-          name: tenant.store_name,
-        },
-        theme: {
-          color: '#6366f1'
-        },
+        prefill: { name: tenant.store_name },
+        theme: { color: '#6366f1' },
         modal: {
           ondismiss: function() {
             setLoading(false);
+            // Pre-create new order for next attempt
+            orderCreationPromiseRef.current = preCreateOrder();
           }
         }
       };
@@ -142,6 +205,8 @@ export default function AdminUpgrade() {
       console.error('Upgrade error:', error);
       toast.error(error.message || 'Failed to initiate payment');
       setLoading(false);
+      // Pre-create new order for retry
+      orderCreationPromiseRef.current = preCreateOrder();
     }
   };
 
