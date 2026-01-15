@@ -10,8 +10,8 @@ import { CustomDomainRoutes } from "@/components/CustomDomainRoutes";
 import StoreGuard from "./components/storefront/StoreGuard";
 import { useStoreTenant } from "./hooks/useStoreTenant";
 
-// Route-level code splitting to reduce initial bundle and speed up first paint
-const Index = lazy(() => import("./pages/Index"));
+// Landing page is NOT lazy loaded - it's the first thing users see
+import Index from "./pages/Index";
 const Auth = lazy(() => import("./pages/Auth"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
