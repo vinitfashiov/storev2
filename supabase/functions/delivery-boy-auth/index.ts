@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { getSupabaseClient, getTenantBySlug, successResponse, errorResponse } from "../_shared/utils.ts";
 import { monitor, createContext } from "../_shared/monitoring.ts";
 
@@ -16,9 +17,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
     const supabase = getSupabaseClient();
 
     const { action, mobile_number, password, store_slug } = await req.json();
@@ -57,12 +55,31 @@ serve(async (req) => {
         return errorResponse('Invalid credentials', 401);
       }
 
-      // Verify password (simple comparison - in production, use bcrypt)
-      if (deliveryBoy.password !== password) {
+      // Verify password using bcrypt
+      let isValidPassword = false;
+      try {
+        // Try bcrypt verification first (for properly hashed passwords)
+        isValidPassword = await bcrypt.compare(password, deliveryBoy.password_hash);
+      } catch {
+        // Fallback for legacy plaintext passwords - compare directly
+        // This allows existing users to login and they should reset password
+        isValidPassword = deliveryBoy.password_hash === password;
+        
+        // If plaintext match, upgrade to bcrypt hash
+        if (isValidPassword) {
+          const newHash = await bcrypt.hash(password);
+          await supabase
+            .from('delivery_boys')
+            .update({ password_hash: newHash })
+            .eq('id', deliveryBoy.id);
+        }
+      }
+
+      if (!isValidPassword) {
         return errorResponse('Invalid credentials', 401);
       }
 
-      // Create or update session token (simplified - use proper JWT in production)
+      // Create session token
       const sessionToken = crypto.randomUUID();
 
       const { error: sessionError } = await supabase
@@ -81,15 +98,14 @@ serve(async (req) => {
         success: true,
         delivery_boy: {
           id: deliveryBoy.id,
-          name: deliveryBoy.name,
+          name: deliveryBoy.full_name,
           mobile_number: deliveryBoy.mobile_number,
           tenant_id: deliveryBoy.tenant_id,
         },
-        token: sessionToken, // In production, use proper JWT
+        token: sessionToken,
       });
 
     } else if (action === 'logout') {
-      // Handle logout if needed
       return successResponse({ success: true });
     } else {
       return errorResponse('Invalid action', 400);
