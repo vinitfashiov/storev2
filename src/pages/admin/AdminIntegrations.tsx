@@ -27,9 +27,10 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
 
   useEffect(() => {
     const fetchIntegrations = async () => {
+      // Use the safe view that excludes sensitive secrets (razorpay_key_secret, shiprocket_password)
       const { data } = await supabase
-        .from('tenant_integrations')
-        .select('razorpay_key_id, shiprocket_email, shiprocket_pickup_location')
+        .from('tenant_integrations_safe')
+        .select('razorpay_key_id, shiprocket_email, shiprocket_pickup_location, has_razorpay_secret, has_shiprocket_password')
         .eq('tenant_id', tenantId)
         .maybeSingle();
 

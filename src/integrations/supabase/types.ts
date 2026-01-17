@@ -3081,6 +3081,57 @@ export type Database = {
       }
     }
     Views: {
+      tenant_integrations_safe: {
+        Row: {
+          created_at: string | null
+          has_razorpay_secret: boolean | null
+          has_shiprocket_password: boolean | null
+          id: string | null
+          razorpay_key_id: string | null
+          shiprocket_email: string | null
+          shiprocket_pickup_location: string | null
+          tenant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          has_razorpay_secret?: never
+          has_shiprocket_password?: never
+          id?: string | null
+          razorpay_key_id?: string | null
+          shiprocket_email?: string | null
+          shiprocket_pickup_location?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          has_razorpay_secret?: never
+          has_shiprocket_password?: never
+          id?: string | null
+          razorpay_key_id?: string | null
+          shiprocket_email?: string | null
+          shiprocket_pickup_location?: string | null
+          tenant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants_public: {
         Row: {
           business_type: Database["public"]["Enums"]["business_type"] | null
