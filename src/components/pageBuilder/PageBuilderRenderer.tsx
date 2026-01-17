@@ -687,10 +687,12 @@ const CustomHtmlBlockRenderer = memo(({ block }: { block: any }) => {
     });
   }, [data.html]);
 
-  // Scope CSS to this block only
+  // Sanitize and scope CSS to this block only - blocks dangerous patterns
   const scopedCss = useMemo(() => {
     if (!data.css) return '';
-    return data.css.replace(/([^{}]+)\{/g, `#${blockId} $1{`);
+    // Import sanitizer dynamically to avoid circular dependencies
+    const { sanitizeAndScopeCss } = require('@/lib/cssSanitizer');
+    return sanitizeAndScopeCss(data.css, blockId);
   }, [data.css, blockId]);
 
   return (
