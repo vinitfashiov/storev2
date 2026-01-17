@@ -141,39 +141,43 @@ export default function DeliveryDashboard() {
     },
   });
 
-  // Update order status mutation
+  // Update order status mutation - uses secure edge function
   const updateStatusMutation = useMutation({
     mutationFn: async ({ assignmentId, status, oldStatus }: { 
       assignmentId: string; 
       status: DeliveryStatus;
       oldStatus: DeliveryStatus;
     }) => {
-      const updateData: any = { status };
-      if (status === 'picked_up') updateData.picked_up_at = new Date().toISOString();
-      if (status === 'delivered') updateData.delivered_at = new Date().toISOString();
+      // Use secure edge function with validation
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-delivery-status`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            assignment_id: assignmentId,
+            delivery_boy_id: deliveryBoy!.id,
+            new_status: status,
+            notes: `Status updated from ${oldStatus} to ${status}`,
+          }),
+        }
+      );
 
-      const { error } = await supabase
-        .from('delivery_assignments')
-        .update(updateData)
-        .eq('id', assignmentId);
-      if (error) throw error;
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update status');
+      }
 
-      await supabase.from('delivery_status_logs').insert({
-        tenant_id: tenant!.id,
-        assignment_id: assignmentId,
-        delivery_boy_id: deliveryBoy!.id,
-        old_status: oldStatus,
-        new_status: status,
-      });
-
-      // If delivered, calculate and add earnings
+      // If delivered, calculate and add earnings via edge function or local
       if (status === 'delivered' && deliveryBoy) {
         const assignment = orders?.find((o: any) => o.id === assignmentId);
         const orderTotal = assignment?.orders?.total || 0;
         let earningAmount = 0;
 
         if (deliveryBoy.payment_type === 'fixed_per_order') {
-          // Fetch per_order_amount from DB since it's not in session
           const { data: boyData } = await supabase
             .from('delivery_boys')
             .select('per_order_amount, percentage_value')
@@ -192,6 +196,8 @@ export default function DeliveryDashboard() {
         }
 
         if (earningAmount > 0) {
+          // Earnings are now handled via owner policies in the database
+          // The edge function handles status updates securely
           await supabase.from('delivery_earnings').insert({
             tenant_id: tenant!.id,
             delivery_boy_id: deliveryBoy.id,
