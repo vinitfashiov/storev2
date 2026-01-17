@@ -2903,6 +2903,13 @@ export type Database = {
           id: string
           razorpay_key_id: string | null
           razorpay_key_secret: string | null
+          razorpay_oauth_access_token: string | null
+          razorpay_oauth_connected: boolean | null
+          razorpay_oauth_merchant_id: string | null
+          razorpay_oauth_public_token: string | null
+          razorpay_oauth_refresh_token: string | null
+          razorpay_oauth_state: string | null
+          razorpay_oauth_token_expires_at: string | null
           shiprocket_email: string | null
           shiprocket_password: string | null
           shiprocket_pickup_location: string | null
@@ -2914,6 +2921,13 @@ export type Database = {
           id?: string
           razorpay_key_id?: string | null
           razorpay_key_secret?: string | null
+          razorpay_oauth_access_token?: string | null
+          razorpay_oauth_connected?: boolean | null
+          razorpay_oauth_merchant_id?: string | null
+          razorpay_oauth_public_token?: string | null
+          razorpay_oauth_refresh_token?: string | null
+          razorpay_oauth_state?: string | null
+          razorpay_oauth_token_expires_at?: string | null
           shiprocket_email?: string | null
           shiprocket_password?: string | null
           shiprocket_pickup_location?: string | null
@@ -2925,6 +2939,13 @@ export type Database = {
           id?: string
           razorpay_key_id?: string | null
           razorpay_key_secret?: string | null
+          razorpay_oauth_access_token?: string | null
+          razorpay_oauth_connected?: boolean | null
+          razorpay_oauth_merchant_id?: string | null
+          razorpay_oauth_public_token?: string | null
+          razorpay_oauth_refresh_token?: string | null
+          razorpay_oauth_state?: string | null
+          razorpay_oauth_token_expires_at?: string | null
           shiprocket_email?: string | null
           shiprocket_password?: string | null
           shiprocket_pickup_location?: string | null
@@ -3218,6 +3239,9 @@ export type Database = {
           has_shiprocket_password: boolean | null
           id: string | null
           razorpay_key_id: string | null
+          razorpay_oauth_connected: boolean | null
+          razorpay_oauth_merchant_id: string | null
+          razorpay_oauth_public_token: string | null
           shiprocket_email: string | null
           shiprocket_pickup_location: string | null
           tenant_id: string | null
@@ -3229,6 +3253,9 @@ export type Database = {
           has_shiprocket_password?: never
           id?: string | null
           razorpay_key_id?: string | null
+          razorpay_oauth_connected?: boolean | null
+          razorpay_oauth_merchant_id?: string | null
+          razorpay_oauth_public_token?: string | null
           shiprocket_email?: string | null
           shiprocket_pickup_location?: string | null
           tenant_id?: string | null
@@ -3240,6 +3267,9 @@ export type Database = {
           has_shiprocket_password?: never
           id?: string | null
           razorpay_key_id?: string | null
+          razorpay_oauth_connected?: boolean | null
+          razorpay_oauth_merchant_id?: string | null
+          razorpay_oauth_public_token?: string | null
           shiprocket_email?: string | null
           shiprocket_pickup_location?: string | null
           tenant_id?: string | null
