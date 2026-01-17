@@ -1,4 +1,5 @@
 import { memo, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { PageBuilderBlock } from '@/types/pageBuilder';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -570,19 +571,29 @@ const CustomHtmlPreview = memo(({ block }: { block: any }) => {
   const { data } = block;
   const blockId = `preview-html-${block.id}`;
   
+  // Sanitize HTML with DOMPurify
   const sanitizedHtml = useMemo(() => {
     const html = data.html || '';
-    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 'span', 'div', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'pre', 'code', 'section', 'article', 'header', 'footer', 'nav', 'figure', 'figcaption'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'target', 'rel', 'id', 'width', 'height'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onkeydown', 'onkeyup']
+    });
   }, [data.html]);
+
+  // Scope CSS to this block only
+  const scopedCss = useMemo(() => {
+    if (!data.css) return '';
+    return data.css.replace(/([^{}]+)\{/g, `#${blockId} $1{`);
+  }, [data.css, blockId]);
 
   // If there's actual content, render it
   if (sanitizedHtml && sanitizedHtml.trim()) {
     return (
       <div id={blockId} className="custom-html-preview">
-        {data.css && (
-          <style dangerouslySetInnerHTML={{ 
-            __html: data.css.replace(/([^{}]+)\{/g, `#${blockId} $1{`) 
-          }} />
+        {scopedCss && (
+          <style dangerouslySetInnerHTML={{ __html: scopedCss }} />
         )}
         <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
       </div>
