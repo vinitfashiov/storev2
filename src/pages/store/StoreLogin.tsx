@@ -65,13 +65,14 @@ export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
     }
 
     toast.success('Logged in successfully!');
-    navigate(`/store/${slug}`);
+    // Navigate to store - use slug if available, otherwise go to root (for custom domains)
+    navigate(slug ? `/store/${slug}` : '/');
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link to={`/store/${slug}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={slug ? `/store/${slug}` : '/'} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to store
         </Link>
@@ -114,7 +115,7 @@ export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
               Don't have an account?{' '}
-              <Link to={`/store/${slug}/signup`} className="text-primary hover:underline">
+              <Link to={slug ? `/store/${slug}/signup` : '/signup'} className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>
