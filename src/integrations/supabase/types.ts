@@ -51,6 +51,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "attribute_values_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       attributes: {
@@ -78,6 +85,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attributes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -116,6 +130,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "brands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -174,6 +195,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cart_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cart_items_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -210,6 +238,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "carts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -255,6 +290,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -316,6 +358,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coupon_redemptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       coupons: {
@@ -372,6 +421,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coupons_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       custom_domains: {
@@ -402,6 +458,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -461,6 +524,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customer_addresses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customers: {
@@ -502,6 +572,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_areas: {
@@ -538,6 +615,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -617,6 +701,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_boy_areas: {
@@ -661,6 +752,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_boy_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -737,6 +835,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_boys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_earnings: {
@@ -802,6 +907,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_earnings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_payout_requests: {
@@ -854,6 +966,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_payout_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -917,6 +1036,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_slots: {
@@ -956,6 +1082,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_slots_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -1020,6 +1153,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_status_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_zones: {
@@ -1053,6 +1193,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_zones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1094,6 +1241,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homepage_layouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1160,6 +1314,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "inventory_movements_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -1204,6 +1365,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventory_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       layout_versions: {
@@ -1237,6 +1405,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layout_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1301,6 +1476,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -1430,6 +1612,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       otp_verifications: {
@@ -1517,6 +1706,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payment_intents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pos_sale_items: {
@@ -1589,6 +1785,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sale_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -1686,6 +1889,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pos_sales_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       pos_sessions: {
@@ -1737,6 +1947,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1794,6 +2011,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_batches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -1857,6 +2081,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_variants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       product_zone_availability: {
@@ -1897,6 +2128,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_zone_availability_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -1991,6 +2229,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -2030,6 +2275,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2097,6 +2349,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
           {
@@ -2172,6 +2431,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "purchase_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       shiprocket_shipments: {
@@ -2224,6 +2490,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shiprocket_shipments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2279,6 +2552,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "store_banners_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       store_pages: {
@@ -2318,6 +2598,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2373,6 +2660,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "store_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       subscriptions: {
@@ -2412,6 +2706,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2461,6 +2762,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "suppliers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tenant_delivery_settings: {
@@ -2497,6 +2805,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2541,6 +2856,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_integrations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2618,6 +2940,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_tenants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2709,11 +3038,41 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "wishlists_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      tenants_public: {
+        Row: {
+          business_type: Database["public"]["Enums"]["business_type"] | null
+          id: string | null
+          is_active: boolean | null
+          store_name: string | null
+          store_slug: string | null
+        }
+        Insert: {
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          id?: string | null
+          is_active?: boolean | null
+          store_name?: string | null
+          store_slug?: string | null
+        }
+        Update: {
+          business_type?: Database["public"]["Enums"]["business_type"] | null
+          id?: string | null
+          is_active?: boolean | null
+          store_name?: string | null
+          store_slug?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_stock_availability: {
