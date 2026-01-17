@@ -46,7 +46,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
   const navigate = useNavigate();
   const { signUp, loading: authLoading } = useStoreAuth();
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
 
   if (authLoading) return <SignupSkeleton />;
 
@@ -65,7 +65,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
 
     setLoading(true);
 
-    const { error } = await signUp(form.phone, form.password, form.name, tenantId);
+    const { error } = await signUp(form.phone, form.password, form.name, tenantId, form.email);
 
     if (error) {
       toast.error(error.message);
@@ -116,6 +116,16 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="9876543210"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email (for order notifications)</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="you@example.com"
                 />
               </div>
               <div>

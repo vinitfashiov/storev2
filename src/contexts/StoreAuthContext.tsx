@@ -16,7 +16,7 @@ interface StoreAuthContextType {
   session: Session | null;
   customer: Customer | null;
   loading: boolean;
-  signUp: (phone: string, password: string, name: string, tenantId: string) => Promise<{ error: Error | null }>;
+  signUp: (phone: string, password: string, name: string, tenantId: string, email?: string) => Promise<{ error: Error | null }>;
   signIn: (phone: string, password: string, tenantId: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshCustomer: () => Promise<void>;
@@ -85,7 +85,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   // Generate email from phone for Supabase auth (phone as identifier)
   const phoneToEmail = (phone: string, tid: string) => `${cleanPhone(phone)}@store.${tid}.local`;
 
-  const signUp = async (phone: string, password: string, name: string, tid: string) => {
+  const signUp = async (phone: string, password: string, name: string, tid: string, customerEmail?: string) => {
     try {
       const cleanedPhone = cleanPhone(phone);
       
@@ -135,7 +135,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
             user_id: signInData.user.id,
             name,
             phone: cleanedPhone,
-            email
+            email: customerEmail || null
           });
 
           if (customerError) {
@@ -157,7 +157,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
           user_id: data.user.id,
           name,
           phone: cleanedPhone,
-          email
+          email: customerEmail || null
         });
 
         if (customerError) {
