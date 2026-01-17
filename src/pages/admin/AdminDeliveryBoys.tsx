@@ -106,21 +106,27 @@ export default function AdminDeliveryBoys({ tenantId }: AdminDeliveryBoysProps) 
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('delivery_boys').insert({
-        tenant_id: tenantId,
-        full_name: data.full_name,
-        mobile_number: data.mobile_number,
-        password_hash: data.password, // In production, hash this on server
-        payment_type: data.payment_type,
-        monthly_salary: data.monthly_salary,
-        per_order_amount: data.per_order_amount,
-        percentage_value: data.percentage_value,
-        account_holder_name: data.account_holder_name || null,
-        account_number: data.account_number || null,
-        upi_id: data.upi_id || null,
-        ifsc_code: data.ifsc_code || null,
+      // Use secure edge function with bcrypt password hashing
+      const { data: result, error } = await supabase.functions.invoke('delivery-boy-manage', {
+        body: {
+          action: 'create',
+          data: {
+            full_name: data.full_name,
+            mobile_number: data.mobile_number,
+            password: data.password,
+            payment_type: data.payment_type,
+            monthly_salary: data.monthly_salary,
+            per_order_amount: data.per_order_amount,
+            percentage_value: data.percentage_value,
+            account_holder_name: data.account_holder_name || null,
+            account_number: data.account_number || null,
+            upi_id: data.upi_id || null,
+            ifsc_code: data.ifsc_code || null,
+          }
+        }
       });
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-boys'] });
@@ -135,23 +141,28 @@ export default function AdminDeliveryBoys({ tenantId }: AdminDeliveryBoysProps) 
 
   const updateMutation = useMutation({
     mutationFn: async (data: typeof formData & { id: string }) => {
-      const updateData: any = {
-        full_name: data.full_name,
-        mobile_number: data.mobile_number,
-        payment_type: data.payment_type,
-        monthly_salary: data.monthly_salary,
-        per_order_amount: data.per_order_amount,
-        percentage_value: data.percentage_value,
-        account_holder_name: data.account_holder_name || null,
-        account_number: data.account_number || null,
-        upi_id: data.upi_id || null,
-        ifsc_code: data.ifsc_code || null,
-      };
-      if (data.password) {
-        updateData.password_hash = data.password;
-      }
-      const { error } = await supabase.from('delivery_boys').update(updateData).eq('id', data.id);
+      // Use secure edge function with bcrypt password hashing
+      const { data: result, error } = await supabase.functions.invoke('delivery-boy-manage', {
+        body: {
+          action: 'update',
+          data: {
+            id: data.id,
+            full_name: data.full_name,
+            mobile_number: data.mobile_number,
+            password: data.password || undefined,
+            payment_type: data.payment_type,
+            monthly_salary: data.monthly_salary,
+            per_order_amount: data.per_order_amount,
+            percentage_value: data.percentage_value,
+            account_holder_name: data.account_holder_name || null,
+            account_number: data.account_number || null,
+            upi_id: data.upi_id || null,
+            ifsc_code: data.ifsc_code || null,
+          }
+        }
+      });
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-boys'] });
