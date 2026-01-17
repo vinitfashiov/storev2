@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
 import { supabase } from '@/integrations/supabase/client';
 import { PageBuilderBlock, HomepageLayout } from '@/types/pageBuilder';
 import { Button } from '@/components/ui/button';
@@ -675,18 +676,27 @@ const CustomHtmlBlockRenderer = memo(({ block }: { block: any }) => {
   const { data } = block;
   const blockId = `custom-html-${block.id}`;
   
-  // Basic HTML sanitization (remove script tags)
+  // Sanitize HTML with DOMPurify - remove scripts and dangerous attributes
   const sanitizedHtml = useMemo(() => {
     const html = data.html || '';
-    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 'span', 'div', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'pre', 'code', 'section', 'article', 'header', 'footer', 'nav', 'figure', 'figcaption'],
+      ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'target', 'rel', 'id', 'width', 'height'],
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onkeydown', 'onkeyup']
+    });
   }, [data.html]);
+
+  // Scope CSS to this block only
+  const scopedCss = useMemo(() => {
+    if (!data.css) return '';
+    return data.css.replace(/([^{}]+)\{/g, `#${blockId} $1{`);
+  }, [data.css, blockId]);
 
   return (
     <div id={blockId} className="custom-html-block">
-      {data.css && (
-        <style dangerouslySetInnerHTML={{ 
-          __html: data.css.replace(/([^{}]+)\{/g, `#${blockId} $1{`) 
-        }} />
+      {scopedCss && (
+        <style dangerouslySetInnerHTML={{ __html: scopedCss }} />
       )}
       <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
     </div>

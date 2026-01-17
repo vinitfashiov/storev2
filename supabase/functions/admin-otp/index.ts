@@ -9,15 +9,14 @@ const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Use a consistent password salt that won't change with API provider
-const PASSWORD_SALT = "storekriti_otp_v1";
-
 function generateOTP(): string {
   return (100000 + Math.floor(Math.random() * 900000)).toString();
 }
 
-function generatePassword(phone: string): string {
-  return `phone_${phone}_${PASSWORD_SALT}`;
+// Generate a cryptographically secure random password
+function generatePassword(): string {
+  // Use crypto.randomUUID for strong random password
+  return crypto.randomUUID() + crypto.randomUUID().slice(0, 8);
 }
 
 interface CheckRequest {
@@ -62,7 +61,7 @@ Deno.serve(async (req) => {
     // Create Supabase client with service role for full access
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const email = `${cleanPhone}@phone.storekriti.com`;
-    const password = generatePassword(cleanPhone);
+    const password = generatePassword();
 
     // Clean expired OTPs periodically
     await supabase
