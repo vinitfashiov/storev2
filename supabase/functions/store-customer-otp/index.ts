@@ -10,15 +10,14 @@ const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Use a consistent password salt
-const PASSWORD_SALT = "storekriti_customer_v1";
-
 function generateOTP(): string {
   return (100000 + Math.floor(Math.random() * 900000)).toString();
 }
 
-function generatePassword(phone: string): string {
-  return `customer_${phone}_${PASSWORD_SALT}`;
+// Generate a cryptographically secure random password
+function generatePassword(): string {
+  // Use crypto.randomUUID for strong random password
+  return crypto.randomUUID() + crypto.randomUUID().slice(0, 8);
 }
 
 function cleanPhoneNumber(phone: string): string {
@@ -177,7 +176,7 @@ serve(async (req: Request) => {
     if (action === "verify") {
       const otpKey = `${cleanPhone}_${tenantId}`;
       const email = `customer_${cleanPhone}@store.storekriti.com`;
-      const password = generatePassword(cleanPhone);
+      const password = generatePassword();
 
       // Get stored OTP
       const { data: otpRecord, error: otpError } = await supabase

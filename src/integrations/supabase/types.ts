@@ -763,6 +763,38 @@ export type Database = {
           },
         ]
       }
+      delivery_boy_sessions: {
+        Row: {
+          created_at: string
+          delivery_boy_id: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_boy_id: string
+          expires_at: string
+          id?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_boy_id?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_boy_sessions_delivery_boy_id_fkey"
+            columns: ["delivery_boy_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_boys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       delivery_boys: {
         Row: {
           account_holder_name: string | null
@@ -3153,6 +3185,10 @@ export type Database = {
       set_primary_tenant: {
         Args: { target_tenant_id: string }
         Returns: boolean
+      }
+      validate_delivery_boy_session: {
+        Args: { p_token: string }
+        Returns: string
       }
     }
     Enums: {

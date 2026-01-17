@@ -26,13 +26,30 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { assignment_id, delivery_boy_id, new_status, notes, cod_collected } = await req.json();
+    const { assignment_id, delivery_boy_id, new_status, notes, cod_collected, session_token } = await req.json();
 
     if (!assignment_id || !delivery_boy_id || !new_status) {
       return new Response(
         JSON.stringify({ error: 'assignment_id, delivery_boy_id, and new_status are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Validate session token if provided
+    if (session_token) {
+      const { data: session } = await supabase
+        .from('delivery_boy_sessions')
+        .select('delivery_boy_id')
+        .eq('token', session_token)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
+
+      if (!session || session.delivery_boy_id !== delivery_boy_id) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired session' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Fetch the assignment and verify ownership

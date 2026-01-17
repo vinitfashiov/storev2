@@ -79,20 +79,31 @@ serve(async (req) => {
         return errorResponse('Invalid credentials', 401);
       }
 
-      // Create session token
+      // Create session token with proper storage and expiry
       const sessionToken = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
 
+      // Store session in database
       const { error: sessionError } = await supabase
-        .from('delivery_boys')
-        .update({
-          last_login_at: new Date().toISOString(),
-        })
-        .eq('id', deliveryBoy.id);
+        .from('delivery_boy_sessions')
+        .insert({
+          delivery_boy_id: deliveryBoy.id,
+          token: sessionToken,
+          expires_at: expiresAt,
+        });
 
       if (sessionError) {
         await monitor.logError(sessionError, context);
         return errorResponse('Failed to create session', 500);
       }
+
+      // Update last login time
+      await supabase
+        .from('delivery_boys')
+        .update({
+          last_login_at: new Date().toISOString(),
+        })
+        .eq('id', deliveryBoy.id);
 
       return successResponse({
         success: true,
@@ -103,6 +114,7 @@ serve(async (req) => {
           tenant_id: deliveryBoy.tenant_id,
         },
         token: sessionToken,
+        expires_at: expiresAt,
       });
 
     } else if (action === 'logout') {

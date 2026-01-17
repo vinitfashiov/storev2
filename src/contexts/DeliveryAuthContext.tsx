@@ -10,6 +10,11 @@ interface DeliveryBoy {
   total_paid: number;
 }
 
+interface SessionData {
+  token: string;
+  expires_at: string;
+}
+
 interface Tenant {
   id: string;
   store_name: string;
@@ -26,9 +31,11 @@ interface DeliveryAuthContextType {
   tenant: Tenant | null;
   assignedAreas: DeliveryArea[];
   loading: boolean;
+  sessionToken: string | null;
   login: (mobile: string, password: string, storeSlug: string) => Promise<{ error?: string }>;
   logout: () => void;
   refreshData: () => Promise<void>;
+  isSessionValid: () => boolean;
 }
 
 const DeliveryAuthContext = createContext<DeliveryAuthContextType | undefined>(undefined);
@@ -40,6 +47,7 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [assignedAreas, setAssignedAreas] = useState<DeliveryArea[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
 
   useEffect(() => {
     // Check for existing session
@@ -47,9 +55,16 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
     if (stored) {
       try {
         const session = JSON.parse(stored);
-        setDeliveryBoy(session.delivery_boy);
-        setTenant(session.tenant);
-        setAssignedAreas(session.assigned_areas || []);
+        // Check if session is expired
+        if (session.expires_at && new Date(session.expires_at) > new Date()) {
+          setDeliveryBoy(session.delivery_boy);
+          setTenant(session.tenant);
+          setAssignedAreas(session.assigned_areas || []);
+          setSessionData({ token: session.token, expires_at: session.expires_at });
+        } else {
+          // Session expired, clear it
+          localStorage.removeItem(`${STORAGE_KEY}_${storeSlug}`);
+        }
       } catch (e) {
         localStorage.removeItem(`${STORAGE_KEY}_${storeSlug}`);
       }
@@ -82,11 +97,12 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
         return { error: data.error || 'Login failed' };
       }
 
-      // Store session
+      // Store session with token
       localStorage.setItem(`${STORAGE_KEY}_${slug}`, JSON.stringify(data));
       setDeliveryBoy(data.delivery_boy);
       setTenant(data.tenant);
       setAssignedAreas(data.assigned_areas || []);
+      setSessionData({ token: data.token, expires_at: data.expires_at });
 
       return {};
     } catch (error: any) {
@@ -100,6 +116,7 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
     setDeliveryBoy(null);
     setTenant(null);
     setAssignedAreas([]);
+    setSessionData(null);
   };
 
   const refreshData = async () => {
@@ -110,13 +127,24 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
     if (stored) {
       try {
         const session = JSON.parse(stored);
-        setDeliveryBoy(session.delivery_boy);
-        setTenant(session.tenant);
-        setAssignedAreas(session.assigned_areas || []);
+        if (session.expires_at && new Date(session.expires_at) > new Date()) {
+          setDeliveryBoy(session.delivery_boy);
+          setTenant(session.tenant);
+          setAssignedAreas(session.assigned_areas || []);
+          setSessionData({ token: session.token, expires_at: session.expires_at });
+        } else {
+          // Session expired
+          logout();
+        }
       } catch (e) {
         // Ignore
       }
     }
+  };
+
+  const isSessionValid = (): boolean => {
+    if (!sessionData) return false;
+    return new Date(sessionData.expires_at) > new Date();
   };
 
   return (
@@ -125,9 +153,11 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
       tenant,
       assignedAreas,
       loading,
+      sessionToken: sessionData?.token || null,
       login,
       logout,
       refreshData,
+      isSessionValid,
     }}>
       {children}
     </DeliveryAuthContext.Provider>
