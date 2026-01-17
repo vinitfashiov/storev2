@@ -37,7 +37,7 @@ serve(async (req: Request) => {
     const { action, phone, otp, tenantId, name } = await req.json();
     const cleanPhone = cleanPhoneNumber(phone);
     
-    console.log(`Store Customer OTP - Action: ${action}, Phone: ${cleanPhone}, Tenant: ${tenantId}`);
+    console.log(`Store Customer OTP - Action: ${action}, Phone: ${cleanPhone}, Tenant: ${tenantId}, Name: ${name || 'not provided'}`);
 
     if (!cleanPhone || cleanPhone.length !== 10) {
       return new Response(
@@ -178,12 +178,11 @@ serve(async (req: Request) => {
       const email = `customer_${cleanPhone}@store.storekriti.com`;
       const password = generatePassword();
 
-      // Get stored OTP
+      // Get stored OTP - check for both verified and unverified (for name submission flow)
       const { data: otpRecord, error: otpError } = await supabase
         .from("otp_verifications")
         .select("*")
         .eq("phone", otpKey)
-        .eq("verified", false)
         .maybeSingle();
 
       if (otpError || !otpRecord) {
@@ -203,19 +202,16 @@ serve(async (req: Request) => {
         );
       }
 
-      // Check OTP match
-      if (otpRecord.otp !== otp) {
-        return new Response(
-          JSON.stringify({ error: "Invalid OTP. Please try again." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // If OTP is not yet verified, check the OTP code
+      if (!otpRecord.verified) {
+        if (otpRecord.otp !== otp) {
+          return new Response(
+            JSON.stringify({ error: "Invalid OTP. Please try again." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
-
-      // Mark OTP as verified
-      await supabase
-        .from("otp_verifications")
-        .update({ verified: true })
-        .eq("id", otpRecord.id);
+      // If OTP is already verified (name submission flow), we skip OTP check
 
       // Check if customer exists
       const { data: existingCustomer } = await supabase
@@ -227,6 +223,9 @@ serve(async (req: Request) => {
 
       if (existingCustomer) {
         // LOGIN FLOW - User exists
+        // Mark OTP as verified and delete
+        await supabase.from("otp_verifications").delete().eq("id", otpRecord.id);
+
         // Update password for consistency
         if (existingCustomer.user_id) {
           await supabase.auth.admin.updateUserById(
@@ -234,9 +233,6 @@ serve(async (req: Request) => {
             { password }
           );
         }
-
-        // Delete OTP record
-        await supabase.from("otp_verifications").delete().eq("id", otpRecord.id);
 
         return new Response(
           JSON.stringify({
@@ -251,7 +247,12 @@ serve(async (req: Request) => {
       } else {
         // SIGNUP FLOW - New user, need name
         if (!name) {
-          // Return that we need name
+          // Mark OTP as verified but don't delete - we need it for name submission
+          await supabase
+            .from("otp_verifications")
+            .update({ verified: true })
+            .eq("id", otpRecord.id);
+
           return new Response(
             JSON.stringify({
               success: true,
@@ -261,6 +262,9 @@ serve(async (req: Request) => {
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+
+        // Name provided - complete signup
+        console.log(`Creating account for ${cleanPhone} with name: ${name}`);
 
         // Create auth user
         const { data: existingUsers } = await supabase.auth.admin.listUsers();
@@ -272,6 +276,7 @@ serve(async (req: Request) => {
           // Update password
           await supabase.auth.admin.updateUserById(existingAuthUser.id, { password });
           userId = existingAuthUser.id;
+          console.log(`Updated existing auth user: ${userId}`);
         } else {
           // Create new user
           const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -290,6 +295,7 @@ serve(async (req: Request) => {
           }
 
           userId = newUser.user.id;
+          console.log(`Created new auth user: ${userId}`);
         }
 
         // Create customer record
@@ -306,13 +312,15 @@ serve(async (req: Request) => {
         if (customerError) {
           console.error("Failed to create customer:", customerError);
           return new Response(
-            JSON.stringify({ error: "Failed to create account" }),
+            JSON.stringify({ error: "Failed to create account. Please try again." }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
         // Delete OTP record
         await supabase.from("otp_verifications").delete().eq("id", otpRecord.id);
+
+        console.log(`Customer created successfully for ${cleanPhone}`);
 
         return new Response(
           JSON.stringify({
