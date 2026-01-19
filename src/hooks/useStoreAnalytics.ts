@@ -17,6 +17,8 @@ interface PerformanceMetrics {
   dom_complete_ms?: number;
 }
 
+type ClientGeo = { lat: number; lng: number; accuracy?: number };
+
 // Get or create session ID
 function getSessionId(): string {
   let sessionId = sessionStorage.getItem('analytics_session_id');
@@ -35,6 +37,46 @@ function getVisitorId(): string {
     localStorage.setItem('analytics_visitor_id', visitorId);
   }
   return visitorId;
+}
+
+function readStoredGeo(): ClientGeo | null {
+  try {
+    const raw = sessionStorage.getItem('analytics_geo');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.lat !== 'number' || typeof parsed?.lng !== 'number') return null;
+    return parsed as ClientGeo;
+  } catch {
+    return null;
+  }
+}
+
+async function getClientGeoOnce(): Promise<ClientGeo | null> {
+  const cached = readStoredGeo();
+  if (cached) return cached;
+
+  if (!('geolocation' in navigator)) return null;
+
+  // Only prompt once per tab session.
+  const prompted = sessionStorage.getItem('analytics_geo_prompted');
+  if (prompted === '1') return null;
+  sessionStorage.setItem('analytics_geo_prompted', '1');
+
+  return await new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const geo: ClientGeo = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+        };
+        sessionStorage.setItem('analytics_geo', JSON.stringify(geo));
+        resolve(geo);
+      },
+      () => resolve(null),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10 * 60 * 1000 }
+    );
+  });
 }
 
 // Detect device type
@@ -138,28 +180,41 @@ export function useStoreAnalytics({ tenantId, enabled = true }: AnalyticsConfig)
   useEffect(() => {
     if (!enabled || !tenantId) return;
 
-    // Check if this is a new session (30 min timeout)
-    const lastActivity = sessionStorage.getItem('analytics_last_activity');
-    const isNewSession = !lastActivity || Date.now() - parseInt(lastActivity) > 30 * 60 * 1000;
+    let disposed = false;
 
-    if (isNewSession) {
-      hasEnded.current = false;
-      sessionId.current = uuidv4();
-      sessionStorage.setItem('analytics_session_id', sessionId.current);
-      sessionStartTime.current = Date.now();
-      pageViewCount.current = 0;
-      lastTrackedPath.current = null;
+    const boot = async () => {
+      // Check if this is a new session (30 min timeout)
+      const lastActivity = sessionStorage.getItem('analytics_last_activity');
+      const isNewSession = !lastActivity || Date.now() - parseInt(lastActivity) > 30 * 60 * 1000;
 
-      void track('session_start', {
-        device_type: getDeviceType(),
-        browser: getBrowser(),
-        os: getOS(),
-        referrer: document.referrer || null,
-        landing_page: window.location.pathname,
-      });
-    }
+      if (isNewSession) {
+        hasEnded.current = false;
+        sessionId.current = uuidv4();
+        sessionStorage.setItem('analytics_session_id', sessionId.current);
+        sessionStartTime.current = Date.now();
+        pageViewCount.current = 0;
+        lastTrackedPath.current = null;
 
-    sessionStorage.setItem('analytics_last_activity', Date.now().toString());
+        // Best-effort: use browser geolocation when allowed (much more accurate than IP).
+        const geo = await getClientGeoOnce();
+        if (disposed) return;
+
+        void track('session_start', {
+          device_type: getDeviceType(),
+          browser: getBrowser(),
+          os: getOS(),
+          referrer: document.referrer || null,
+          landing_page: window.location.pathname,
+          geo_lat: geo?.lat ?? null,
+          geo_lng: geo?.lng ?? null,
+          geo_accuracy_m: geo?.accuracy ?? null,
+        });
+      }
+
+      sessionStorage.setItem('analytics_last_activity', Date.now().toString());
+    };
+
+    void boot();
 
     const onVisibilityChange = () => {
       // When the user backgrounds the tab/app, treat it as session end.
@@ -178,6 +233,7 @@ export function useStoreAnalytics({ tenantId, enabled = true }: AnalyticsConfig)
     window.addEventListener('beforeunload', onBeforeUnload);
 
     return () => {
+      disposed = true;
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('pagehide', onPageHide);
       window.removeEventListener('beforeunload', onBeforeUnload);

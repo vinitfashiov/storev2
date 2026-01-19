@@ -66,6 +66,57 @@ async function getGeoFromIp(ip: string): Promise<{
   }
 }
 
+async function reverseGeoFromCoords(lat: number, lon: number): Promise<{
+  country?: string;
+  country_code?: string;
+  city?: string;
+  region?: string;
+} | null> {
+  // OpenStreetMap Nominatim reverse geocode (no key). Keep very tight timeouts.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1200);
+
+  try {
+    const url = new URL('https://nominatim.openstreetmap.org/reverse');
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('lat', String(lat));
+    url.searchParams.set('lon', String(lon));
+    url.searchParams.set('zoom', '10');
+    url.searchParams.set('addressdetails', '1');
+
+    const res = await fetch(url.toString(), {
+      signal: controller.signal,
+      headers: {
+        // Nominatim requires a valid UA
+        'User-Agent': 'store-analytics/1.0',
+        'Accept-Language': 'en',
+      },
+    });
+
+    if (!res.ok) return null;
+    const json = await res.json();
+    const addr = json?.address || {};
+
+    const city =
+      (typeof addr.city === 'string' && addr.city) ||
+      (typeof addr.town === 'string' && addr.town) ||
+      (typeof addr.village === 'string' && addr.village) ||
+      (typeof addr.county === 'string' && addr.county) ||
+      undefined;
+
+    return {
+      city,
+      region: typeof addr.state === 'string' ? addr.state : undefined,
+      country: typeof addr.country === 'string' ? addr.country : undefined,
+      country_code: typeof addr.country_code === 'string' ? String(addr.country_code).toUpperCase() : undefined,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -93,7 +144,11 @@ serve(async (req) => {
     const body: TrackingEvent = await req.json();
     const { type, session_id, visitor_id, data } = body;
 
-    // Prefer geo headers if provided by the edge network, otherwise fallback to IP lookup.
+    // 1) Prefer client-provided geo (browser permission) when present.
+    const clientLat = typeof (data as any).geo_lat === 'number' ? ((data as any).geo_lat as number) : null;
+    const clientLon = typeof (data as any).geo_lng === 'number' ? ((data as any).geo_lng as number) : null;
+
+    // 2) Then try edge-network geo headers.
     const headerCountryCode = req.headers.get("cf-ipcountry") || req.headers.get("x-country") || null;
     const headerCity = req.headers.get("cf-ipcity") || req.headers.get("x-city") || null;
     const headerRegion = req.headers.get("cf-ipregion") || req.headers.get("x-region") || null;
@@ -107,7 +162,22 @@ serve(async (req) => {
     let latitude: number | null = Number.isFinite(headerLat) ? headerLat : null;
     let longitude: number | null = Number.isFinite(headerLon) ? headerLon : null;
 
-    if (!latitude || !longitude || !city || !country_code) {
+    // If browser geo is available, use it (and reverse geocode to improve city accuracy).
+    if (clientLat !== null && clientLon !== null) {
+      latitude = clientLat;
+      longitude = clientLon;
+      const rev = await reverseGeoFromCoords(clientLat, clientLon);
+      if (rev) {
+        country = rev.country ?? country;
+        country_code = rev.country_code ?? country_code;
+        city = rev.city ?? city;
+        region = rev.region ?? region;
+      }
+    }
+
+    // If we still don't have good geo, fallback to IP.
+    const needsIpFallback = latitude === null || longitude === null || !city || !country_code;
+    if (needsIpFallback) {
       const ip = getClientIp(req);
       if (ip) {
         const geo = await getGeoFromIp(ip);

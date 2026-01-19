@@ -90,21 +90,20 @@ export default function AdminAnalytics({ tenantId }: AdminAnalyticsProps) {
   const { data: dailyData, isLoading: dailyLoading } = useQuery({
     queryKey: ['daily-analytics', tenantId, dateRange.from, dateRange.to],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('store_analytics_daily')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .gte('date', format(dateRange.from, 'yyyy-MM-dd'))
-        .lte('date', format(dateRange.to, 'yyyy-MM-dd'))
-        .order('date', { ascending: true });
+      const { data, error } = await supabase.rpc('get_analytics_daily', {
+        p_tenant_id: tenantId,
+        p_date_from: format(dateRange.from, 'yyyy-MM-dd'),
+        p_date_to: format(dateRange.to, 'yyyy-MM-dd'),
+      });
       if (error) throw error;
-      return (data || []).map(d => ({
+
+      return (data || []).map((d: any) => ({
         date: d.date,
-        sessions: d.total_sessions,
-        pageViews: d.page_views,
-        orders: d.total_orders,
-        revenue: Number(d.total_revenue),
-        visitors: d.unique_visitors,
+        sessions: Number(d.total_sessions) || 0,
+        pageViews: Number(d.page_views) || 0,
+        orders: Number(d.total_orders) || 0,
+        revenue: Number(d.total_revenue) || 0,
+        visitors: Number(d.unique_visitors) || 0,
       }));
     },
     staleTime: 60000,

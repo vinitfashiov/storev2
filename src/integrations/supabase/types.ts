@@ -3676,6 +3676,17 @@ export type Database = {
         }[]
       }
       delete_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
+      get_analytics_daily: {
+        Args: { p_date_from: string; p_date_to: string; p_tenant_id: string }
+        Returns: {
+          date: string
+          page_views: number
+          total_orders: number
+          total_revenue: number
+          total_sessions: number
+          unique_visitors: number
+        }[]
+      }
       get_analytics_summary: {
         Args: { p_date_from?: string; p_date_to?: string; p_tenant_id: string }
         Returns: {

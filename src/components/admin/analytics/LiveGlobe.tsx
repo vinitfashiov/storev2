@@ -57,9 +57,20 @@ export function LiveGlobe({ locations, className = '' }: LiveGlobeProps) {
       size: Math.min(1.5, 0.3 + loc.count * 0.2),
       color: `rgba(99, 102, 241, ${Math.min(1, 0.4 + loc.count * 0.1)})`,
       label: `${loc.city}, ${loc.country}: ${loc.count} session${loc.count > 1 ? 's' : ''}`,
-      count: loc.count
+      count: loc.count,
     }));
   }, [locations]);
+
+  // Heatmap (hex bins) – intensity by region
+  const heatmapData = useMemo(() => {
+    return locations
+      .filter((l) => Number.isFinite(l.lat) && Number.isFinite(l.lng))
+      .map((l) => ({ lat: l.lat, lng: l.lng, weight: l.count }));
+  }, [locations]);
+
+  const maxHeatWeight = useMemo(() => {
+    return Math.max(1, ...heatmapData.map((d) => d.weight));
+  }, [heatmapData]);
 
   // Arcs for visual effect (connecting active sessions to center)
   const arcsData = useMemo(() => {
@@ -98,6 +109,15 @@ export function LiveGlobe({ locations, className = '' }: LiveGlobeProps) {
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        // Heatmap overlay
+        hexBinPointsData={heatmapData}
+        hexBinPointWeight={(d: any) => d.weight}
+        hexBinResolution={isMobile ? 3 : 4}
+        hexBinMerge={true}
+        hexAltitude={(d: any) => 0.05 + (d.sumWeight / maxHeatWeight) * 0.35}
+        hexTopColor={(d: any) => `rgba(99, 102, 241, ${Math.min(0.9, 0.15 + (d.sumWeight / maxHeatWeight) * 0.85)})`}
+        hexSideColor={(d: any) => `rgba(99, 102, 241, ${Math.min(0.6, 0.08 + (d.sumWeight / maxHeatWeight) * 0.5)})`}
+        // Point markers
         pointsData={pointsData}
         pointAltitude={(d: any) => d.size * 0.01}
         pointColor={(d: any) => d.color}
