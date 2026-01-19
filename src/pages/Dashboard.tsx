@@ -40,6 +40,7 @@ import AdminDeliveryAreas from './admin/AdminDeliveryAreas';
 import AdminDeliveryOrders from './admin/AdminDeliveryOrders';
 import AdminDeliveryPayouts from './admin/AdminDeliveryPayouts';
 import AdminAccount from './admin/AdminAccount';
+import AdminAnalytics from './admin/AdminAnalytics';
 
 // Wrapper to pass productId from route params
 function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled: boolean }) {
@@ -173,6 +174,7 @@ export default function Dashboard() {
         <Route path="domains" element={<AdminDomains />} />
         <Route path="stores" element={<AdminStores onTenantChange={handleTenantChange} onRefresh={refreshTenants} />} />
         <Route path="account" element={<AdminAccount />} />
+        <Route path="analytics" element={<AdminAnalytics tenantId={tenant.id} />} />
         {/* Inventory Management - Both business types */}
         <Route path="inventory" element={<AdminInventory tenantId={tenant.id} />} />
         <Route path="suppliers" element={<AdminSuppliers tenantId={tenant.id} />} />

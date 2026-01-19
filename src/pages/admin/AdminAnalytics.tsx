@@ -29,8 +29,26 @@ export default function AdminAnalytics({ tenantId }: AdminAnalyticsProps) {
   });
   const [activeTab, setActiveTab] = useState('live');
 
+  interface SessionLocation {
+    country: string;
+    country_code: string;
+    city: string;
+    lat: number;
+    lng: number;
+    count: number;
+  }
+
+  interface LiveStats {
+    active_sessions: number;
+    visitors_right_now: number;
+    active_carts: number;
+    checking_out: number;
+    purchased: number;
+    top_locations: SessionLocation[];
+  }
+
   // Live stats query - refreshes every 30 seconds
-  const { data: liveStats, isLoading: liveLoading, refetch: refetchLive } = useQuery({
+  const { data: liveStats, isLoading: liveLoading, refetch: refetchLive } = useQuery<LiveStats | null>({
     queryKey: ['live-stats', tenantId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_live_session_stats', {
@@ -38,7 +56,16 @@ export default function AdminAnalytics({ tenantId }: AdminAnalyticsProps) {
         p_minutes: 10
       });
       if (error) throw error;
-      return data?.[0] || null;
+      const raw = data?.[0];
+      if (!raw) return null;
+      return {
+        active_sessions: raw.active_sessions || 0,
+        visitors_right_now: raw.visitors_right_now || 0,
+        active_carts: raw.active_carts || 0,
+        checking_out: raw.checking_out || 0,
+        purchased: raw.purchased || 0,
+        top_locations: Array.isArray(raw.top_locations) ? (raw.top_locations as unknown as SessionLocation[]) : [],
+      };
     },
     refetchInterval: 30000,
     staleTime: 10000,

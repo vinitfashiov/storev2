@@ -27,11 +27,13 @@ import {
   ClipboardList,
   Monitor,
   BarChart3,
-  Calendar
+  Calendar,
+  Activity
 } from 'lucide-react';
 
 const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: Activity },
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/categories', label: 'Categories', icon: FolderTree },
   { href: '/dashboard/brands', label: 'Brands', icon: Tag },
