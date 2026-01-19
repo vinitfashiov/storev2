@@ -2582,6 +2582,87 @@ export type Database = {
           },
         ]
       }
+      store_analytics_daily: {
+        Row: {
+          avg_load_time_ms: number | null
+          avg_session_duration_seconds: number | null
+          bounce_rate: number | null
+          conversion_rate: number | null
+          country_breakdown: Json | null
+          created_at: string
+          date: string
+          device_breakdown: Json | null
+          failed_payments: number | null
+          id: string
+          page_views: number | null
+          successful_payments: number | null
+          tenant_id: string
+          top_pages: Json | null
+          top_referrers: Json | null
+          total_orders: number | null
+          total_revenue: number | null
+          total_sessions: number | null
+          unique_visitors: number | null
+        }
+        Insert: {
+          avg_load_time_ms?: number | null
+          avg_session_duration_seconds?: number | null
+          bounce_rate?: number | null
+          conversion_rate?: number | null
+          country_breakdown?: Json | null
+          created_at?: string
+          date: string
+          device_breakdown?: Json | null
+          failed_payments?: number | null
+          id?: string
+          page_views?: number | null
+          successful_payments?: number | null
+          tenant_id: string
+          top_pages?: Json | null
+          top_referrers?: Json | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          total_sessions?: number | null
+          unique_visitors?: number | null
+        }
+        Update: {
+          avg_load_time_ms?: number | null
+          avg_session_duration_seconds?: number | null
+          bounce_rate?: number | null
+          conversion_rate?: number | null
+          country_breakdown?: Json | null
+          created_at?: string
+          date?: string
+          device_breakdown?: Json | null
+          failed_payments?: number | null
+          id?: string
+          page_views?: number | null
+          successful_payments?: number | null
+          tenant_id?: string
+          top_pages?: Json | null
+          top_referrers?: Json | null
+          total_orders?: number | null
+          total_revenue?: number | null
+          total_sessions?: number | null
+          unique_visitors?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_analytics_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_analytics_daily_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_banners: {
         Row: {
           created_at: string
@@ -2642,6 +2723,102 @@ export type Database = {
           },
         ]
       }
+      store_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          page_url: string | null
+          session_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          page_url?: string | null
+          session_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          page_url?: string | null
+          session_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_page_views: {
+        Row: {
+          id: string
+          load_time_ms: number | null
+          page_title: string | null
+          page_url: string
+          scroll_depth: number | null
+          session_id: string
+          tenant_id: string
+          time_on_page_seconds: number | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          load_time_ms?: number | null
+          page_title?: string | null
+          page_url: string
+          scroll_depth?: number | null
+          session_id: string
+          tenant_id: string
+          time_on_page_seconds?: number | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          load_time_ms?: number | null
+          page_title?: string | null
+          page_url?: string
+          scroll_depth?: number | null
+          session_id?: string
+          tenant_id?: string
+          time_on_page_seconds?: number | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_page_views_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_page_views_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_pages: {
         Row: {
           content_html: string
@@ -2683,6 +2860,175 @@ export type Database = {
           },
           {
             foreignKeyName: "store_pages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_performance_metrics: {
+        Row: {
+          cls: number | null
+          connection_type: string | null
+          device_type: string | null
+          dom_complete_ms: number | null
+          dom_interactive_ms: number | null
+          fcp_ms: number | null
+          fid_ms: number | null
+          id: string
+          lcp_ms: number | null
+          measured_at: string
+          page_url: string
+          tenant_id: string
+          ttfb_ms: number | null
+        }
+        Insert: {
+          cls?: number | null
+          connection_type?: string | null
+          device_type?: string | null
+          dom_complete_ms?: number | null
+          dom_interactive_ms?: number | null
+          fcp_ms?: number | null
+          fid_ms?: number | null
+          id?: string
+          lcp_ms?: number | null
+          measured_at?: string
+          page_url: string
+          tenant_id: string
+          ttfb_ms?: number | null
+        }
+        Update: {
+          cls?: number | null
+          connection_type?: string | null
+          device_type?: string | null
+          dom_complete_ms?: number | null
+          dom_interactive_ms?: number | null
+          fcp_ms?: number | null
+          fid_ms?: number | null
+          id?: string
+          lcp_ms?: number | null
+          measured_at?: string
+          page_url?: string
+          tenant_id?: string
+          ttfb_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_performance_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_performance_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_sessions: {
+        Row: {
+          browser: string | null
+          cart_value: number | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          device_type: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          exit_page: string | null
+          id: string
+          is_bounce: boolean | null
+          is_converted: boolean | null
+          landing_page: string | null
+          latitude: number | null
+          longitude: number | null
+          order_id: string | null
+          os: string | null
+          page_views: number | null
+          referrer: string | null
+          region: string | null
+          session_id: string
+          started_at: string
+          tenant_id: string
+          visitor_id: string | null
+        }
+        Insert: {
+          browser?: string | null
+          cart_value?: number | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          exit_page?: string | null
+          id?: string
+          is_bounce?: boolean | null
+          is_converted?: boolean | null
+          landing_page?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          order_id?: string | null
+          os?: string | null
+          page_views?: number | null
+          referrer?: string | null
+          region?: string | null
+          session_id: string
+          started_at?: string
+          tenant_id: string
+          visitor_id?: string | null
+        }
+        Update: {
+          browser?: string | null
+          cart_value?: number | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          exit_page?: string | null
+          id?: string
+          is_bounce?: boolean | null
+          is_converted?: boolean | null
+          landing_page?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          order_id?: string | null
+          os?: string | null
+          page_views?: number | null
+          referrer?: string | null
+          region?: string | null
+          session_id?: string
+          started_at?: string
+          tenant_id?: string
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_sessions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_sessions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants_public"
@@ -3329,6 +3675,22 @@ export type Database = {
         }[]
       }
       delete_tenant: { Args: { target_tenant_id: string }; Returns: boolean }
+      get_analytics_summary: {
+        Args: { p_date_from?: string; p_date_to?: string; p_tenant_id: string }
+        Returns: {
+          avg_load_time: number
+          avg_session_duration: number
+          bounce_rate: number
+          conversion_rate: number
+          failed_payments: number
+          successful_payments: number
+          total_orders: number
+          total_page_views: number
+          total_revenue: number
+          total_sessions: number
+          unique_visitors: number
+        }[]
+      }
       get_dashboard_stats: {
         Args: { p_date_from?: string; p_date_to?: string; p_tenant_id: string }
         Returns: {
@@ -3343,6 +3705,17 @@ export type Database = {
       get_delivery_boy_tenant_id: {
         Args: { delivery_boy_uuid: string }
         Returns: string
+      }
+      get_live_session_stats: {
+        Args: { p_minutes?: number; p_tenant_id: string }
+        Returns: {
+          active_carts: number
+          active_sessions: number
+          checking_out: number
+          purchased: number
+          top_locations: Json
+          visitors_right_now: number
+        }[]
       }
       get_paginated_orders: {
         Args: {
