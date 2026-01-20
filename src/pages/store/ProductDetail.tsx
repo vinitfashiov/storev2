@@ -293,40 +293,41 @@ export default function ProductDetail() {
     );
   }
 
-  // Grocery Mobile Layout
-  if (isGrocery) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col pb-32 lg:pb-0">
-        {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
-          <div className="flex items-center justify-between p-4">
-            <button onClick={() => navigate(-1)} className="p-2 -ml-2">
-              <ChevronLeft className="w-6 h-6" />
+  // Common Product Detail Layout - Works for both Grocery and E-commerce
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Mobile Header */}
+      <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
+        <div className="flex items-center justify-between p-4">
+          <button onClick={() => navigate(-1)} className="p-2 -ml-2">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleToggleWishlist} className="p-2">
+              <Heart className={`w-6 h-6 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
             </button>
-            <div className="flex items-center gap-2">
-              <button onClick={handleToggleWishlist} className="p-2">
-                <Heart className={`w-6 h-6 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-              </button>
-              <button className="p-2">
-                <Share2 className="w-6 h-6" />
-              </button>
-            </div>
+            <button className="p-2">
+              <Share2 className="w-6 h-6" />
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Desktop Header */}
-        <div className="hidden lg:block">
-          <StoreHeader
-            storeName={tenant.store_name}
-            storeSlug={tenant.store_slug}
-            businessType={tenant.business_type}
-            cartCount={itemCount}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-        </div>
+      {/* Desktop Header */}
+      <div className="hidden lg:block">
+        <StoreHeader
+          storeName={tenant.store_name}
+          storeSlug={tenant.store_slug}
+          businessType={tenant.business_type}
+          cartCount={itemCount}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+      </div>
 
-        <main className="flex-1">
+      <main className="flex-1">
+        {/* Mobile Layout */}
+        <div className="lg:hidden pb-32">
           {/* Product Image */}
           <div className="relative bg-neutral-50">
             <div className="aspect-square overflow-hidden">
@@ -346,7 +347,7 @@ export default function ProductDetail() {
             {/* Discount Badge */}
             {discount > 0 && (
               <div className="absolute top-4 left-4">
-                <Badge className="bg-green-600 text-white">{discount}% OFF</Badge>
+                <Badge className={isGrocery ? "bg-green-600 text-white" : "bg-primary text-primary-foreground"}>{discount}% OFF</Badge>
               </div>
             )}
 
@@ -358,7 +359,7 @@ export default function ProductDetail() {
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
                     className={`w-2 h-2 rounded-full transition-all ${
-                      selectedImage === idx ? 'bg-green-600 w-4' : 'bg-neutral-400'
+                      selectedImage === idx ? (isGrocery ? 'bg-green-600 w-4' : 'bg-primary w-4') : 'bg-neutral-400'
                     }`}
                   />
                 ))}
@@ -368,17 +369,19 @@ export default function ProductDetail() {
 
           {/* Product Info */}
           <div className="p-4 space-y-4">
-            {/* Delivery Time Badge */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-neutral-100 rounded-full px-3 py-1">
-                <Clock className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium">10-15 mins</span>
+            {/* Delivery Time Badge (Grocery only) */}
+            {isGrocery && (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-neutral-100 rounded-full px-3 py-1">
+                  <Clock className="w-4 h-4 text-green-600" />
+                  <span className="text-sm font-medium">10-15 mins</span>
+                </div>
+                <div className="flex items-center gap-1 text-sm text-neutral-500">
+                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  <span>4.5 (1.2k)</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1 text-sm text-neutral-500">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span>4.5 (1.2k)</span>
-              </div>
-            </div>
+            )}
 
             {/* Product Name */}
             <div>
@@ -394,7 +397,7 @@ export default function ProductDetail() {
               {displayComparePrice && (
                 <>
                   <span className="text-lg text-neutral-400 line-through">₹{displayComparePrice}</span>
-                  <span className="text-sm font-medium text-green-600">{discount}% off</span>
+                  <span className={`text-sm font-medium ${isGrocery ? 'text-green-600' : 'text-primary'}`}>{discount}% off</span>
                 </>
               )}
             </div>
@@ -412,7 +415,7 @@ export default function ProductDetail() {
                           onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
                           className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             selectedAttributes[attr.name] === value
-                              ? 'border-green-600 bg-green-50 text-green-700'
+                              ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
                               : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
                           }`}
                         >
@@ -428,11 +431,8 @@ export default function ProductDetail() {
             {/* Description */}
             {product.description && (
               <div className="pt-4 border-t border-neutral-100">
-                <button className="text-green-600 font-medium text-sm flex items-center gap-1">
-                  View product details
-                  <ChevronLeft className="w-4 h-4 rotate-180" />
-                </button>
-                <p className="text-neutral-600 text-sm mt-2 hidden">{product.description}</p>
+                <h3 className="font-medium text-neutral-900 mb-2">Description</h3>
+                <p className="text-neutral-600 text-sm">{product.description}</p>
               </div>
             )}
 
@@ -443,265 +443,236 @@ export default function ProductDetail() {
               ) : displayStockQty <= 5 ? (
                 <span className="text-orange-600 font-medium">Only {displayStockQty} left!</span>
               ) : (
-                <span className="text-green-600 font-medium flex items-center gap-1">
+                <span className={`font-medium flex items-center gap-1 ${isGrocery ? 'text-green-600' : 'text-primary'}`}>
                   <Check className="w-4 h-4" /> In Stock
                 </span>
               )}
             </div>
           </div>
-        </main>
+        </div>
 
-        {/* Sticky Bottom Bar */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 p-4 lg:relative lg:border-none">
-          <div className="flex items-center gap-4">
-            {/* Price Summary */}
-            <div className="flex-1">
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-bold">₹{displayPrice}</span>
-                {displayComparePrice && (
-                  <span className="text-sm text-neutral-400 line-through">₹{displayComparePrice}</span>
+        {/* Desktop Layout - 2 Column Grid */}
+        <div className="hidden lg:block max-w-7xl mx-auto px-6 py-8">
+          <Link 
+            to={`/store/${slug}/products`}
+            className="inline-flex items-center text-sm text-neutral-500 hover:text-neutral-900 mb-6"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back to Products
+          </Link>
+
+          <div className="grid grid-cols-2 gap-12">
+            {/* Left Column - Images */}
+            <div className="space-y-4">
+              <div className="aspect-square rounded-2xl bg-neutral-50 overflow-hidden relative">
+                {product.images && product.images.length > 0 ? (
+                  <img 
+                    src={getImageUrl(product.images[selectedImage])} 
+                    alt={product.name}
+                    className="w-full h-full object-contain p-4"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-32 h-32 text-neutral-300" />
+                  </div>
+                )}
+                
+                {/* Discount Badge */}
+                {discount > 0 && (
+                  <div className="absolute top-4 left-4">
+                    <Badge className={`${isGrocery ? 'bg-green-600' : 'bg-primary'} text-white text-sm px-3 py-1`}>
+                      {discount}% OFF
+                    </Badge>
+                  </div>
                 )}
               </div>
-              <p className="text-xs text-neutral-500">Inclusive of all taxes</p>
+              
+              {/* Thumbnails */}
+              {product.images && product.images.length > 1 && (
+                <div className="flex gap-3">
+                  {product.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
+                        selectedImage === idx 
+                          ? (isGrocery ? 'border-green-600' : 'border-primary') 
+                          : 'border-transparent hover:border-neutral-300'
+                      }`}
+                    >
+                      <img src={getImageUrl(img)} alt="" className="w-full h-full object-contain bg-neutral-50 p-1" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {/* Quantity or Add Button */}
-            {quantity === 0 || isOutOfStock ? (
-              <Button 
-                size="lg"
-                className="bg-green-600 hover:bg-green-700 text-white font-bold px-8"
-                disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                onClick={() => { setQuantity(1); handleAddToCart(); }}
-              >
-                {adding ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to cart'}
-              </Button>
-            ) : (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center border border-green-600 rounded-lg overflow-hidden">
+            {/* Right Column - Details */}
+            <div className="space-y-6">
+              {/* Badges */}
+              <div className="flex items-center gap-2">
+                {product.brand && (
+                  <Badge variant="outline" className="text-sm">{product.brand.name}</Badge>
+                )}
+                {product.category && (
+                  <Badge variant="secondary" className="text-sm">{product.category.name}</Badge>
+                )}
+              </div>
+
+              {/* Title */}
+              <h1 className="text-3xl font-bold text-neutral-900">{product.name}</h1>
+
+              {/* Price */}
+              <div className="flex items-baseline gap-3">
+                <span className="text-4xl font-bold text-neutral-900">₹{displayPrice}</span>
+                {displayComparePrice && (
+                  <>
+                    <span className="text-xl text-neutral-400 line-through">₹{displayComparePrice}</span>
+                    <Badge className={`${isGrocery ? 'bg-green-600' : 'bg-primary'} text-white`}>{discount}% OFF</Badge>
+                  </>
+                )}
+              </div>
+
+              {/* Stock Status */}
+              <div className="flex items-center gap-2">
+                {isOutOfStock ? (
+                  <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">Out of Stock</span>
+                  </div>
+                ) : displayStockQty <= 5 ? (
+                  <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">Only {displayStockQty} left!</span>
+                  </div>
+                ) : (
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${isGrocery ? 'text-green-600 bg-green-50' : 'text-primary bg-primary/10'}`}>
+                    <Check className="w-5 h-5" />
+                    <span className="font-medium">In Stock</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Variant Selectors */}
+              {product.has_variants && attributeOptions.length > 0 && (
+                <div className="space-y-4 pt-4 border-t border-neutral-200">
+                  {attributeOptions.map(attr => (
+                    <div key={attr.name}>
+                      <label className="text-sm font-medium text-neutral-700 mb-3 block">{attr.name}</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {attr.values.map(value => (
+                          <button
+                            key={value}
+                            onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
+                            className={`px-5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                              selectedAttributes[attr.name] === value
+                                ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
+                                : 'border-neutral-200 text-neutral-700 hover:border-neutral-400'
+                            }`}
+                          >
+                            {value}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Quantity & Add to Cart */}
+              <div className="flex items-center gap-4 pt-4">
+                <div className="flex items-center border-2 border-neutral-200 rounded-xl">
                   <button
-                    onClick={() => setQuantity(Math.max(0, quantity - 1))}
-                    className="p-3 text-green-600 hover:bg-green-50"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={isOutOfStock}
+                    className="p-3 hover:bg-neutral-100 rounded-l-xl transition-colors"
                   >
                     <Minus className="w-5 h-5" />
                   </button>
-                  <span className="w-10 text-center font-bold text-green-600">{quantity}</span>
+                  <span className="w-14 text-center font-bold text-lg">{quantity}</span>
                   <button
                     onClick={() => setQuantity(Math.min(displayStockQty, quantity + 1))}
-                    className="p-3 text-green-600 hover:bg-green-50"
-                    disabled={quantity >= displayStockQty}
+                    disabled={isOutOfStock || quantity >= displayStockQty}
+                    className="p-3 hover:bg-neutral-100 rounded-r-xl transition-colors"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
                 </div>
+
                 <Button 
-                  size="lg"
-                  className="bg-green-600 hover:bg-green-700 text-white font-bold px-6"
-                  disabled={adding}
+                  size="lg" 
+                  className={`flex-1 h-14 text-lg font-bold rounded-xl ${isGrocery ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                  disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
                   onClick={handleAddToCart}
                 >
-                  {adding ? 'Adding...' : 'Add to cart'}
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {adding ? 'Adding...' : 'Add to Cart'}
                 </Button>
-              </div>
-            )}
-          </div>
-        </div>
 
-
-        {/* Desktop Footer */}
-        <div className="hidden lg:block">
-          <StoreFooter
-            storeName={tenant.store_name}
-            storeSlug={tenant.store_slug}
-            address={tenant.address}
-            phone={tenant.phone}
-          />
-        </div>
-      </div>
-    );
-  }
-
-  // E-commerce Layout (Original)
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <StoreHeader
-        storeName={tenant.store_name}
-        storeSlug={tenant.store_slug}
-        businessType={tenant.business_type}
-        cartCount={itemCount}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <Link 
-          to={`/store/${slug}/products`}
-          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Products
-        </Link>
-
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-          {/* Images */}
-          <div className="space-y-4">
-            <div className="aspect-square rounded-xl bg-muted overflow-hidden relative">
-              {product.images && product.images.length > 0 ? (
-                <img 
-                  src={getImageUrl(product.images[selectedImage])} 
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Package className="w-24 h-24 text-muted-foreground/30" />
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 bg-background/80 hover:bg-background"
-                onClick={handleToggleWishlist}
-              >
-                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-destructive text-destructive' : ''}`} />
-              </Button>
-            </div>
-            
-            {product.images && product.images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setSelectedImage(idx)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden shrink-0 border-2 transition-colors ${
-                      selectedImage === idx ? 'border-primary' : 'border-transparent'
-                    }`}
-                  >
-                    <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Details */}
-          <div>
-            {product.brand && (
-              <Badge variant="outline" className="mb-2">{product.brand.name}</Badge>
-            )}
-            {product.category && (
-              <Badge variant="secondary" className="mb-2 ml-2">{product.category.name}</Badge>
-            )}
-            
-            <h1 className="text-2xl md:text-3xl font-display font-bold mb-4">{product.name}</h1>
-            
-            <div className="flex items-baseline gap-3 mb-4">
-              <span className="text-3xl font-display font-bold text-primary">
-                ₹{displayPrice.toFixed(2)}
-              </span>
-              {displayComparePrice && (
-                <>
-                  <span className="text-lg text-muted-foreground line-through">
-                    ₹{displayComparePrice.toFixed(2)}
-                  </span>
-                  <Badge className="bg-destructive">{discount}% OFF</Badge>
-                </>
-              )}
-            </div>
-
-            {/* Stock Status */}
-            <div className="mb-6">
-              {isOutOfStock ? (
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Out of Stock</span>
-                </div>
-              ) : displayStockQty <= 5 ? (
-                <div className="flex items-center gap-2 text-warning">
-                  <AlertCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">Only {displayStockQty} left!</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-success">
-                  <Check className="w-4 h-4" />
-                  <span className="text-sm font-medium">In Stock</span>
-                </div>
-              )}
-            </div>
-
-            {/* Variant Selectors */}
-            {product.has_variants && attributeOptions.length > 0 && (
-              <div className="space-y-4 mb-6">
-                {attributeOptions.map(attr => (
-                  <div key={attr.name}>
-                    <label className="text-sm font-medium mb-2 block">{attr.name}</label>
-                    <Select
-                      value={selectedAttributes[attr.name] || ''}
-                      onValueChange={(value) => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
-                    >
-                      <SelectTrigger className="w-full max-w-xs">
-                        <SelectValue placeholder={`Select ${attr.name}`} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {attr.values.map(value => (
-                          <SelectItem key={value} value={value}>{value}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {product.description && (
-              <p className="text-muted-foreground mb-6">{product.description}</p>
-            )}
-
-            {(selectedVariant?.sku || product.sku) && (
-              <p className="text-sm text-muted-foreground mb-6">SKU: {selectedVariant?.sku || product.sku}</p>
-            )}
-
-            {/* Quantity & Add to Cart */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex items-center border rounded-lg">
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={isOutOfStock}
+                  variant="outline"
+                  size="lg"
+                  className="h-14 w-14 rounded-xl"
+                  onClick={handleToggleWishlist}
                 >
-                  <Minus className="w-4 h-4" />
-                </Button>
-                <span className="w-12 text-center font-medium">{quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setQuantity(Math.min(displayStockQty, quantity + 1))}
-                  disabled={isOutOfStock || quantity >= displayStockQty}
-                >
-                  <Plus className="w-4 h-4" />
+                  <Heart className={`w-6 h-6 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
               </div>
 
-              <Button 
-                size="lg" 
-                className="flex-1"
-                disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {adding ? 'Adding...' : 'Add to Cart'}
-              </Button>
+              {/* Description */}
+              {product.description && (
+                <div className="pt-6 border-t border-neutral-200">
+                  <h3 className="font-bold text-lg text-neutral-900 mb-3">Description</h3>
+                  <p className="text-neutral-600 leading-relaxed">{product.description}</p>
+                </div>
+              )}
+
+              {/* SKU */}
+              {(selectedVariant?.sku || product.sku) && (
+                <p className="text-sm text-neutral-500">SKU: {selectedVariant?.sku || product.sku}</p>
+              )}
             </div>
           </div>
         </div>
       </main>
 
-      <StoreFooter
-        storeName={tenant.store_name}
-        storeSlug={tenant.store_slug}
-        address={tenant.address}
-        phone={tenant.phone}
-      />
+      {/* Mobile Sticky Bottom Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 p-4 safe-area-bottom">
+        <div className="flex items-center gap-4">
+          {/* Price Summary */}
+          <div className="flex-1">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl font-bold">₹{displayPrice}</span>
+              {displayComparePrice && (
+                <span className="text-sm text-neutral-400 line-through">₹{displayComparePrice}</span>
+              )}
+            </div>
+            <p className="text-xs text-neutral-500">Inclusive of all taxes</p>
+          </div>
+
+          {/* Add to Cart Button */}
+          <Button 
+            size="lg"
+            className={`px-8 font-bold ${isGrocery ? 'bg-green-600 hover:bg-green-700' : ''}`}
+            disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
+            onClick={handleAddToCart}
+          >
+            {adding ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          </Button>
+        </div>
+      </div>
+
+      {/* Desktop Footer */}
+      <div className="hidden lg:block">
+        <StoreFooter
+          storeName={tenant.store_name}
+          storeSlug={tenant.store_slug}
+          address={tenant.address}
+          phone={tenant.phone}
+        />
+      </div>
     </div>
   );
+
 }
+
