@@ -3502,7 +3502,6 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           has_bank_account: boolean | null
-          has_password: boolean | null
           has_upi: boolean | null
           id: string | null
           is_active: boolean | null
@@ -3523,7 +3522,6 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           has_bank_account?: never
-          has_password?: never
           has_upi?: never
           id?: string | null
           is_active?: boolean | null
@@ -3544,7 +3542,6 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           has_bank_account?: never
-          has_password?: never
           has_upi?: never
           id?: string | null
           is_active?: boolean | null
