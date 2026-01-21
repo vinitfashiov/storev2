@@ -9,7 +9,8 @@ interface Banner {
   title: string | null;
   subtitle: string | null;
   image_path: string;
-  link_url: string | null;
+  link_url?: string | null;
+  cta_url?: string | null;
   cta_text: string | null;
 }
 
@@ -132,9 +133,9 @@ export function D2CHeroBanner({
               {currentBanner.title}
             </h2>
           )}
-          {currentBanner.link_url && (
+          {(currentBanner.link_url || currentBanner.cta_url) && (
             <Link 
-              to={currentBanner.link_url}
+              to={currentBanner.link_url || currentBanner.cta_url || '#'}
               className={cn(
                 "inline-block px-10 py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-medium hover:bg-neutral-100 transition-all duration-500 delay-200",
                 isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
