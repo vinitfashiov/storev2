@@ -1,155 +1,48 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Store,
-  ArrowRight,
-  Zap,
-  Shield,
-  Globe,
-  CreditCard,
-  Check,
-  Users,
-  BarChart3,
-  Sparkles,
-  TrendingUp,
-  Lock,
-  Rocket,
-  Code,
-  Layers,
-} from "lucide-react";
-import { useState, useEffect } from "react";
+import { Store, ArrowRight, Zap, Shield, Globe, CreditCard, Check, Users, BarChart3 } from "lucide-react";
 
 export default function Index() {
-  const [scrolled, setScrolled] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % 6);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const features = [
-    {
-      icon: Zap,
-      title: "Lightning Fast Setup",
-      desc: "Launch your enterprise store in under 5 minutes. No technical expertise needed.",
-      gradient: "from-yellow-500 to-orange-500",
-      bg: "bg-yellow-500/10",
-    },
-    {
-      icon: Globe,
-      title: "Multi-Tenant Architecture",
-      desc: "Scalable infrastructure with complete data isolation for each business.",
-      gradient: "from-blue-500 to-cyan-500",
-      bg: "bg-blue-500/10",
-    },
-    {
-      icon: Shield,
-      title: "Enterprise-Grade Security",
-      desc: "SOC 2 compliant with end-to-end encryption and tenant isolation.",
-      gradient: "from-emerald-500 to-teal-500",
-      bg: "bg-emerald-500/10",
-    },
-    {
-      icon: CreditCard,
-      title: "Unified Payment Gateway",
-      desc: "Razorpay integration with support for 100+ payment methods.",
-      gradient: "from-purple-500 to-pink-500",
-      bg: "bg-purple-500/10",
-    },
-    {
-      icon: Users,
-      title: "Advanced CRM",
-      desc: "360° customer view with purchase history, preferences, and behavior tracking.",
-      gradient: "from-rose-500 to-red-500",
-      bg: "bg-rose-500/10",
-    },
-    {
-      icon: BarChart3,
-      title: "Real-Time Analytics",
-      desc: "AI-powered insights with predictive analytics and custom dashboards.",
-      gradient: "from-indigo-500 to-violet-500",
-      bg: "bg-indigo-500/10",
-    },
-  ];
-
-  const stats = [
-    { value: "99.99%", label: "Uptime SLA", icon: TrendingUp },
-    { value: "<100ms", label: "API Response", icon: Zap },
-    { value: "5000+", label: "Active Stores", icon: Store },
-    { value: "ISO 27001", label: "Certified", icon: Lock },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white overflow-x-hidden">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "4s" }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "6s", animationDelay: "1s" }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "8s", animationDelay: "2s" }}
-        />
-      </div>
-
-      {/* Navigation */}
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-slate-950/80 backdrop-blur-xl border-b border-white/10 shadow-2xl" : "bg-transparent"}`}
-      >
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between">
-            <div className="flex items-center gap-3 group cursor-pointer">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-blue-500/50 group-hover:shadow-blue-500/80 transition-all duration-300 group-hover:scale-110">
-                  <Store className="w-6 h-6 text-white" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-950 animate-pulse" />
-              </div>
-              <div className="leading-tight">
-                <div className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Storekriti
-                </div>
-                <div className="text-xs text-slate-400">Enterprise Commerce Platform</div>
-              </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-8 text-sm">
-              {["Features", "Solutions", "Pricing", "Enterprise"].map((item) => (
-                <a
-                  key={item}
-                  href={`#${item.toLowerCase()}`}
-                  className="text-slate-300 hover:text-white transition-colors relative group"
-                >
-                  {item}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 group-hover:w-full transition-all duration-300" />
-                </a>
-              ))}
-            </div>
-
+    <div className="min-h-screen bg-background">
+      {/* Top Nav */}
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" className="hidden sm:inline-flex text-white hover:text-white hover:bg-white/10">
-                <Link to="/authentication">Sign In</Link>
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-glow" />
+                <div className="absolute inset-0 w-10 h-10 rounded-xl flex items-center justify-center">
+                  <Store className="w-5 h-5 text-primary-foreground" />
+                </div>
+              </div>
+              <div className="leading-none">
+                <div className="text-lg font-display font-bold tracking-tight">Storekriti</div>
+                <div className="text-[11px] text-muted-foreground">Multi-tenant commerce</div>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="#features" className="hover:text-foreground transition">
+                Features
+              </a>
+              <a href="#pricing" className="hover:text-foreground transition">
+                Pricing
+              </a>
+              <a href="#security" className="hover:text-foreground transition">
+                Security
+              </a>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" className="hidden sm:inline-flex">
+                <Link to="/authentication">Log In</Link>
               </Button>
-              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all duration-300">
-                <Link to="/authentication" className="flex items-center gap-2">
-                  Start Free Trial
-                  <ArrowRight className="w-4 h-4" />
+              <Button asChild className="shadow-glow">
+                <Link to="/authentication">
+                  Get Started <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
             </div>
@@ -157,155 +50,156 @@ export default function Index() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="text-center max-w-5xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 backdrop-blur-sm mb-8 animate-pulse">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-300">Trusted by 5000+ B2B businesses worldwide</span>
-            </div>
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        {/* background */}
+        <div className="absolute inset-0 gradient-hero" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,hsl(var(--primary)/0.18),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,hsl(var(--accent)/0.14),transparent_50%)]" />
+        <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
 
-            <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-[1.1]">
-              Build Your
+        <div className="container mx-auto px-4 relative">
+          <div className="py-20 md:py-28 text-center">
+            <Badge variant="secondary" className="mb-6">
+              ✨ Launch your store in minutes
+            </Badge>
+
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold tracking-tight text-foreground leading-[1.05]">
+              Build your online
               <br />
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-pulse">
-                Commerce Empire
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
+                business—beautifully
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-              The all-in-one B2B eCommerce platform trusted by enterprises. Launch faster, scale smarter, and sell more
-              with our enterprise-grade infrastructure.
+            <p className="mt-6 text-base md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              The all-in-one multi-tenant platform to launch, manage, and scale your e-commerce or grocery store. Fast
+              setup. Secure by design. No coding required.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-10 py-7 shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 transition-all duration-300 hover:scale-105"
-              >
-                <Link to="/authentication" className="flex items-center gap-2">
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white/20 text-white hover:bg-white/10 text-lg px-10 py-7 backdrop-blur-sm"
-              >
-                <Link to="/authentication" className="flex items-center gap-2">
-                  Watch Demo
-                  <Rocket className="w-5 h-5" />
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Button asChild size="lg" className="shadow-glow text-base px-8 py-6">
+                <Link to="/authentication">
+                  Start Free Trial <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
             </div>
 
-            <div className="text-sm text-slate-400 mb-16">
-              ✓ 14-day free trial • ✓ No credit card required • ✓ Full feature access
+            <div className="mt-6 text-xs sm:text-sm text-muted-foreground">
+              7-day free trial • No credit card required • Cancel anytime
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-              {stats.map((stat, idx) => (
-                <div
-                  key={idx}
-                  className="group relative p-6 rounded-2xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-white/10 backdrop-blur-sm hover:border-blue-500/50 transition-all duration-300 hover:scale-105"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-purple-500/0 group-hover:from-blue-500/10 group-hover:to-purple-500/10 rounded-2xl transition-all duration-300" />
-                  <stat.icon className="w-8 h-8 text-blue-400 mb-3 mx-auto group-hover:scale-110 transition-transform duration-300" />
-                  <div className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-1">
-                    {stat.value}
-                  </div>
-                  <div className="text-xs text-slate-400">{stat.label}</div>
+            {/* Trust row */}
+            <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
+              {[
+                { k: "99.9%", v: "Uptime SLA" },
+                { k: "Razorpay", v: "Payments" },
+                { k: "1-Click", v: "Store setup" },
+                { k: "Secure", v: "Isolated tenants" },
+              ].map((i) => (
+                <div key={i.k} className="rounded-xl border bg-background/40 backdrop-blur px-4 py-3 text-left">
+                  <div className="font-display font-bold tracking-tight">{i.k}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{i.v}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-
-        {/* Floating elements */}
-        <div
-          className="absolute top-1/4 left-10 w-20 h-20 bg-blue-500/20 rounded-2xl blur-xl animate-pulse"
-          style={{ animationDelay: "0s", animationDuration: "3s" }}
-        />
-        <div
-          className="absolute bottom-1/4 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl animate-pulse"
-          style={{ animationDelay: "1s", animationDuration: "4s" }}
-        />
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 md:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-blue-500/20 text-blue-300 border-blue-500/30 px-4 py-2">Platform Features</Badge>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6">
-              Everything Your Business
-              <br />
-              <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Needs to Succeed
-              </span>
+      {/* Features */}
+      <section id="features" className="py-20 md:py-24 px-4">
+        <div className="container mx-auto">
+          <div className="text-center mb-14">
+            <Badge className="mb-4" variant="outline">
+              Features
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+              Everything you need to succeed
             </h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Enterprise-grade features designed to help you scale without limits
+            <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Powerful tools to launch, grow, and manage your store with enterprise-level performance and simplicity.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-            {features.map((feature, idx) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Zap,
+                title: "Instant Setup",
+                desc: "Go from idea to live store in minutes with guided onboarding.",
+                tone: "bg-primary/10 text-primary",
+              },
+              {
+                icon: Globe,
+                title: "Multi-Tenant Architecture",
+                desc: "Isolated stores and data separation — built for scale and safety.",
+                tone: "bg-accent/10 text-accent",
+              },
+              {
+                icon: Shield,
+                title: "Enterprise Security",
+                desc: "Bank-grade protections with tenant isolation and best practices.",
+                tone: "bg-emerald-500/10 text-emerald-600",
+              },
+              {
+                icon: CreditCard,
+                title: "Integrated Payments",
+                desc: "Accept Razorpay payments with secure, reliable processing.",
+                tone: "bg-amber-500/10 text-amber-600",
+              },
+              {
+                icon: Users,
+                title: "Customer Management",
+                desc: "Track customers, orders, and retention — all from one place.",
+                tone: "bg-sky-500/10 text-sky-600",
+              },
+              {
+                icon: BarChart3,
+                title: "Analytics Dashboard",
+                desc: "Real-time insights to make better decisions, faster.",
+                tone: "bg-violet-500/10 text-violet-600",
+              },
+            ].map((f) => (
               <Card
-                key={idx}
-                className={`group relative overflow-hidden border-0 bg-gradient-to-br from-slate-800/80 to-slate-900/80 backdrop-blur-xl transition-all duration-500 hover:scale-105 cursor-pointer ${activeFeature === idx ? "ring-2 ring-blue-500 shadow-2xl shadow-blue-500/50" : ""}`}
-                onMouseEnter={() => setActiveFeature(idx)}
+                key={f.title}
+                className="group relative overflow-hidden border bg-background/60 backdrop-blur transition-all hover:-translate-y-0.5 hover:shadow-lg"
               >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
-                />
-                <CardContent className="p-8 relative z-10">
+                <div className="pointer-events-none absolute -top-12 -right-12 h-28 w-28 rounded-full bg-muted/30 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardContent className="pt-8">
                   <div
-                    className={`w-16 h-16 rounded-2xl ${feature.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+                    className={`w-14 h-14 rounded-2xl ${f.tone} flex items-center justify-center mb-6 transition-transform group-hover:scale-110`}
                   >
-                    <feature.icon
-                      className={`w-8 h-8 bg-gradient-to-br ${feature.gradient} bg-clip-text text-transparent`}
-                      style={{ WebkitTextFillColor: "transparent", WebkitBackgroundClip: "text" }}
-                    />
+                    <f.icon className="w-7 h-7" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-3 text-white group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:from-blue-400 group-hover:to-purple-400 transition-all duration-300">
-                    {feature.title}
-                  </h3>
-                  <p className="text-slate-400 leading-relaxed">{feature.desc}</p>
+                  <h3 className="text-lg md:text-xl font-display font-semibold mb-2">{f.title}</h3>
+                  <p className="text-muted-foreground">{f.desc}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
 
-          {/* Security Banner */}
-          <div className="relative rounded-3xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-white/10 p-8 md:p-12 backdrop-blur-xl overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="flex-1">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/30 mb-4">
-                  <Shield className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm text-emerald-300">Enterprise Security</span>
+          {/* Security strip */}
+          <div id="security" className="mt-12 rounded-2xl border bg-muted/20 p-6 md:p-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border bg-background/60 px-3 py-1 text-xs text-muted-foreground">
+                  <Shield className="w-4 h-4" />
+                  Security by design
                 </div>
-                <h3 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                  Bank-Grade Security.
-                  <br />
-                  Zero Compromises.
+                <h3 className="mt-3 text-2xl font-display font-bold tracking-tight">
+                  Isolated stores. Protected data.
                 </h3>
-                <p className="text-slate-300 text-lg max-w-2xl">
-                  SOC 2 Type II certified with complete tenant isolation, end-to-end encryption, and 24/7 security
-                  monitoring. Your data is protected by the same standards used by financial institutions.
+                <p className="mt-2 text-muted-foreground max-w-2xl">
+                  Every tenant is separated to keep customer data secure. Built with best practices and modern
+                  infrastructure patterns.
                 </p>
               </div>
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg shadow-xl shadow-blue-500/30"
-              >
-                <Link to="/authentication" className="flex items-center gap-2">
-                  Learn More
-                  <ArrowRight className="w-5 h-5" />
+
+              <Button asChild className="shadow-glow">
+                <Link to="/authentication">
+                  Start Free Trial <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>
             </div>
@@ -313,122 +207,84 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 md:py-32 relative">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-500/30 px-4 py-2">
-              Transparent Pricing
+      {/* Pricing */}
+      <section id="pricing" className="py-20 md:py-24 px-4 bg-muted/30">
+        <div className="container mx-auto">
+          <div className="text-center mb-14">
+            <Badge className="mb-4" variant="outline">
+              Pricing
             </Badge>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6">
-              Choose Your
-              <br />
-              <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Growth Plan
-              </span>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+              Simple, transparent pricing
             </h2>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Flexible pricing that scales with your business. No hidden fees.
+            <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
+              Start free, upgrade when you're ready. No hidden fees.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {/* Starter */}
-            <Card className="relative border-0 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl overflow-hidden group hover:scale-105 transition-all duration-300">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-2 text-white">Starter</h3>
-                <p className="text-slate-400 mb-6">Perfect for testing</p>
-                <div className="mb-8">
-                  <span className="text-5xl font-black text-white">₹0</span>
-                  <span className="text-slate-400 ml-2">/ 14 days</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <Card className="relative border bg-background/70 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-2xl font-display font-bold">Free Trial</CardTitle>
+                <CardDescription>Perfect for getting started</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-bold tracking-tight">₹0</span>
+                  <span className="text-muted-foreground"> / 7 days</span>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "Full platform access",
-                    "Up to 100 products",
-                    "Basic analytics",
-                    "Email support",
-                    "SSL certificate",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">{item}</span>
-                    </li>
-                  ))}
+
+                <ul className="space-y-3 mb-8">
+                  {["Full store functionality", "Up to 10 products", "Basic analytics", "Email support"].map(
+                    (feature) => (
+                      <li key={feature} className="flex items-center gap-2">
+                        <Check className="w-5 h-5 text-emerald-600" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </li>
+                    ),
+                  )}
                 </ul>
-                <Button variant="outline" className="w-full border-2 border-white/20 text-white hover:bg-white/10 py-6">
+
+                <Button asChild variant="outline" className="w-full">
                   <Link to="/authentication">Start Free Trial</Link>
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Professional */}
-            <Card className="relative border-2 border-blue-500/50 bg-gradient-to-br from-slate-800 to-slate-900 backdrop-blur-xl overflow-hidden shadow-2xl shadow-blue-500/30 scale-105">
-              <div className="absolute -top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 px-3 py-1">
-                  Popular
-                </Badge>
+            <Card className="relative border-primary/50 shadow-glow bg-background/70 backdrop-blur">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <Badge className="gradient-primary text-primary-foreground border-0">Most Popular</Badge>
               </div>
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Professional
-                </h3>
-                <p className="text-slate-400 mb-6">For growing businesses</p>
-                <div className="mb-8">
-                  <span className="text-5xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    ₹1
-                  </span>
-                  <span className="text-slate-400 ml-2">/ month</span>
+
+              <CardHeader>
+                <CardTitle className="text-2xl font-display font-bold">Pro Plan</CardTitle>
+                <CardDescription>For growing businesses</CardDescription>
+              </CardHeader>
+
+              <CardContent className="pt-0">
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-bold tracking-tight">₹1</span>
+                  <span className="text-muted-foreground"> / month</span>
                 </div>
-                <ul className="space-y-4 mb-8">
+
+                <ul className="space-y-3 mb-8">
                   {[
                     "Unlimited products",
                     "Advanced analytics",
                     "Priority support",
                     "Custom domain",
+                    "Remove branding",
                     "API access",
-                    "Multi-currency",
-                    "Advanced integrations",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-white">{item}</span>
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                      <span className="text-muted-foreground">{feature}</span>
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 shadow-lg shadow-blue-500/50">
-                  <Link to="/authentication">Get Started</Link>
-                </Button>
-              </CardContent>
-            </Card>
 
-            {/* Enterprise */}
-            <Card className="relative border-0 bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl overflow-hidden group hover:scale-105 transition-all duration-300">
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-2 text-white">Enterprise</h3>
-                <p className="text-slate-400 mb-6">For large organizations</p>
-                <div className="mb-8">
-                  <span className="text-5xl font-black text-white">Custom</span>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  {[
-                    "Everything in Pro",
-                    "Dedicated infrastructure",
-                    "Custom integrations",
-                    "24/7 phone support",
-                    "SLA guarantee",
-                    "Advanced security",
-                    "Custom contracts",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
-                      <span className="text-slate-300">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full border-2 border-white/20 text-white hover:bg-white/10 py-6">
-                  <Link to="/authentication">Contact Sales</Link>
+                <Button asChild className="w-full shadow-glow">
+                  <Link to="/authentication">Get Started</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -436,62 +292,44 @@ export default function Index() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20" />
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 backdrop-blur-sm mb-8">
-              <Rocket className="w-4 h-4 text-blue-400" />
-              <span className="text-sm text-blue-300">Join 5000+ successful businesses</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6">
-              Ready to Transform Your
-              <br />
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Business Online?
-              </span>
+      {/* CTA */}
+      <section className="py-20 md:py-24 px-4">
+        <div className="container mx-auto text-center">
+          <div className="max-w-3xl mx-auto rounded-3xl border bg-muted/20 px-6 md:px-10 py-12">
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground tracking-tight">
+              Ready to launch your store?
             </h2>
-            <p className="text-xl md:text-2xl text-slate-300 mb-12 max-w-2xl mx-auto">
-              Start your 14-day free trial today. No credit card required. Full access to all features.
+            <p className="mt-4 text-base md:text-xl text-muted-foreground">
+              Join entrepreneurs building modern online businesses with Storekriti.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-lg px-12 py-7 shadow-2xl shadow-blue-500/50 hover:shadow-blue-500/70 transition-all duration-300 hover:scale-105"
-              >
-                <Link to="/authentication" className="flex items-center gap-2">
-                  Start Free Trial
-                  <ArrowRight className="w-5 h-5" />
+            <div className="mt-8">
+              <Button asChild size="lg" className="shadow-glow text-base px-10 py-6">
+                <Link to="/authentication">
+                  Start Your Free Trial <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white/20 text-white hover:bg-white/10 text-lg px-12 py-7 backdrop-blur-sm"
-              >
-                <Link to="/authentication">Schedule Demo</Link>
-              </Button>
             </div>
+            <div className="mt-4 text-xs text-muted-foreground">No credit card required</div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12 relative">
-        <div className="container mx-auto px-4 sm:px-6">
+      <footer className="border-t border-border/60 py-10 px-4">
+        <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-                <Store className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
+                <Store className="w-4 h-4 text-primary-foreground" />
               </div>
-              <div className="leading-tight">
-                <div className="font-bold text-white">Storekriti</div>
-                <div className="text-xs text-slate-400">Enterprise Commerce Platform</div>
+              <div className="leading-none">
+                <div className="font-display font-semibold tracking-tight">Storekriti</div>
+                <div className="text-[11px] text-muted-foreground">Built for modern commerce</div>
               </div>
             </div>
-            <p className="text-sm text-slate-400">
-              © 2026 Storekriti. Owned and Operated by: Shailendra Singh. All rights reserved.
+
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              © 2026 Storekriti. Owned and Operated by: Shailendra Singh.
             </p>
           </div>
         </div>
