@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PreloadLink } from "@/components/PreloadLink";
 import {
   Store,
   ArrowRight,
@@ -137,14 +138,14 @@ export default function Index() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button asChild variant="ghost" className="hidden sm:inline-flex">
-                <Link to="/authentication">Log In</Link>
+              <Button variant="ghost" className="hidden sm:inline-flex" asChild>
+                <PreloadLink to="/authentication">Log In</PreloadLink>
               </Button>
-              <Button asChild className="rounded-full">
-                <Link to="/authentication">
+              <Button className="rounded-full" asChild>
+                <PreloadLink to="/authentication">
                   Contact sales
                   <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+                </PreloadLink>
               </Button>
             </div>
           </div>
@@ -212,10 +213,10 @@ export default function Index() {
                 />
               </div>
 
-              <Button asChild className="h-11 rounded-full bg-white text-[#0b5b6a] hover:bg-white/90">
-                <Link to="/authentication">
+              <Button className="h-11 rounded-full bg-white text-[#0b5b6a] hover:bg-white/90" asChild>
+                <PreloadLink to="/authentication">
                   Start free <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+                </PreloadLink>
               </Button>
             </div>
 
@@ -550,10 +551,10 @@ export default function Index() {
                 </div>
 
                 <div className="mt-6">
-                  <Button asChild className="rounded-full bg-white text-[#0b5b6a] hover:bg-white/90">
-                    <Link to="/authentication">
+                  <Button className="rounded-full bg-white text-[#0b5b6a] hover:bg-white/90" asChild>
+                    <PreloadLink to="/authentication">
                       Explore enterprise <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
+                    </PreloadLink>
                   </Button>
                 </div>
               </div>
@@ -720,8 +721,8 @@ export default function Index() {
                   )}
                 </ul>
 
-                <Button asChild variant="outline" className="w-full rounded-full">
-                  <Link to="/authentication">Start Free Trial</Link>
+                <Button variant="outline" className="w-full rounded-full" asChild>
+                  <PreloadLink to="/authentication">Start Free Trial</PreloadLink>
                 </Button>
               </CardContent>
             </Card>
@@ -758,10 +759,10 @@ export default function Index() {
                   ))}
                 </ul>
 
-                <Button asChild className="w-full rounded-full bg-emerald-600 hover:bg-emerald-600/90">
-                  <Link to="/authentication">
+                <Button className="w-full rounded-full bg-emerald-600 hover:bg-emerald-600/90" asChild>
+                  <PreloadLink to="/authentication">
                     Get Started <ArrowRight className="w-4 h-4 ml-2" />
-                  </Link>
+                  </PreloadLink>
                 </Button>
               </CardContent>
             </Card>
@@ -777,13 +778,13 @@ export default function Index() {
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2">
-              <Button asChild className="rounded-full bg-emerald-600 hover:bg-emerald-600/90">
-                <Link to="/authentication">
+              <Button className="rounded-full bg-emerald-600 hover:bg-emerald-600/90" asChild>
+                <PreloadLink to="/authentication">
                   Get started for free <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+                </PreloadLink>
               </Button>
-              <Button asChild variant="outline" className="rounded-full">
-                <Link to="/authentication">Get a demo</Link>
+              <Button variant="outline" className="rounded-full" asChild>
+                <PreloadLink to="/authentication">Get a demo</PreloadLink>
               </Button>
             </div>
           </div>

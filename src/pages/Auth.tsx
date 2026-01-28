@@ -41,11 +41,12 @@ type AuthStep = "phone" | "otp" | "name";
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, profile, signIn } = useAuth();
+  const { user, profile, loading, signIn } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<AuthStep>("phone");
   const [isNewUser, setIsNewUser] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   // Form states
   const [phone, setPhone] = useState("");
@@ -53,13 +54,22 @@ export default function Auth() {
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0);
 
-  // Redirect if already logged in
+  // Single redirect effect - only runs once when we have definitive auth state
   useEffect(() => {
-    if (user && profile) {
-      if (!profile.onboarding_completed) navigate("/onboarding");
-      else navigate("/dashboard");
+    // Wait for auth to finish loading
+    if (loading) return;
+    
+    // If user is logged in, redirect
+    if (user) {
+      setRedirecting(true);
+      if (profile && !profile.onboarding_completed) {
+        navigate("/onboarding", { replace: true });
+      } else if (profile) {
+        navigate("/dashboard", { replace: true });
+      }
+      // If no profile yet, wait for it to load
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, loading, navigate]);
 
   // Countdown timer for resend
   useEffect(() => {
@@ -160,15 +170,18 @@ export default function Auth() {
 
       // Existing user - sign in directly
       if (data.email && data.password) {
+        setRedirecting(true);
         const { error: signInError } = await signIn(data.email, data.password);
         if (signInError) {
           console.error("Sign in after OTP error:", signInError);
           toast.error("Verification successful but login failed. Please try again.");
           setIsLoading(false);
+          setRedirecting(false);
           return;
         }
 
         toast.success("Welcome back!");
+        // Navigation will happen via useEffect
       }
     } catch (error: any) {
       console.error("Verify OTP error:", error);
@@ -212,15 +225,18 @@ export default function Auth() {
 
       // Sign in with the created credentials
       if (data.email && data.password) {
+        setRedirecting(true);
         const { error: signInError } = await signIn(data.email, data.password);
         if (signInError) {
           console.error("Sign in after signup error:", signInError);
           toast.error("Account created but login failed. Please try again.");
           setIsLoading(false);
+          setRedirecting(false);
           return;
         }
 
         toast.success("Account created! Setting up your store...");
+        // Navigation will happen via useEffect
       }
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -290,6 +306,37 @@ export default function Auth() {
       case "name": return <User className="w-8 h-8 text-primary" />;
     }
   };
+
+  // Show skeleton while checking auth or redirecting - feels instant
+  if (loading || redirecting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="h-14 w-14 rounded-2xl bg-primary/20 mx-auto mb-4 animate-pulse" />
+            <div className="h-8 w-32 bg-muted/60 rounded mx-auto mb-2 animate-pulse" />
+            <div className="h-4 w-48 bg-muted/40 rounded mx-auto animate-pulse" />
+          </div>
+          <div className="rounded-3xl border bg-card/50 p-6 space-y-4">
+            <div className="h-1.5 w-full bg-primary/30 -mt-6 -mx-6 rounded-none animate-pulse" />
+            <div className="flex justify-center py-4">
+              <div className="h-16 w-16 rounded-2xl bg-muted/60 animate-pulse" />
+            </div>
+            <div className="h-8 w-32 bg-muted/60 rounded mx-auto animate-pulse" />
+            <div className="h-4 w-48 bg-muted/40 rounded mx-auto animate-pulse" />
+            <div className="space-y-2 pt-4">
+              <div className="h-4 w-24 bg-muted/60 rounded animate-pulse" />
+              <div className="h-11 w-full bg-muted/40 rounded-xl animate-pulse" />
+            </div>
+            <div className="h-11 w-full bg-primary/30 rounded-xl animate-pulse" />
+          </div>
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            {redirecting ? "Redirecting to dashboard..." : "Checking authentication..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

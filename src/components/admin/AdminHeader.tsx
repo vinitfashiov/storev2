@@ -31,12 +31,15 @@ import {
   ClipboardList,
   Monitor,
   BarChart3,
-  Calendar
+  Calendar,
+  Activity,  // Added for Analytics
+  User       // Added for My Account
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const baseNavItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: Activity },  // Added - was missing!
   { href: '/dashboard/products', label: 'Products', icon: Package },
   { href: '/dashboard/categories', label: 'Categories', icon: FolderTree },
   { href: '/dashboard/brands', label: 'Brands', icon: Tag },
@@ -68,12 +71,15 @@ const groceryNavItems = [
 
 const storeNavItems = [
   { href: '/dashboard/store-settings', label: 'Store Settings', icon: Palette },
+  { href: '/dashboard/page-builder', label: 'Page Builder', icon: Layers },  // Added - was missing!
   { href: '/dashboard/banners', label: 'Banners', icon: Image },
   { href: '/dashboard/pages', label: 'Pages', icon: FileText },
   { href: '/dashboard/domains', label: 'Custom Domains', icon: ExternalLink },
 ];
 
 const settingsNavItems = [
+  { href: '/dashboard/account', label: 'My Account', icon: User },        // Added - was missing!
+  { href: '/dashboard/stores', label: 'My Stores', icon: Store },          // Added - was missing!
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
   { href: '/dashboard/integrations', label: 'Integrations', icon: Plug },
   { href: '/dashboard/subscription', label: 'Subscription', icon: CreditCard },

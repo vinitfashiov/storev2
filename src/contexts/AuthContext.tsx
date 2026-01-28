@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,6 +42,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Cache for profile/tenant to avoid redundant fetches
+const dataCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 30000; // 30 seconds
+
+function getCached<T>(key: string): T | null {
+  const cached = dataCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data as T;
+  }
+  return null;
+}
+
+function setCache(key: string, data: any) {
+  dataCache.set(key, { data, timestamp: Date.now() });
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -49,8 +65,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Track if initial load is in progress to prevent duplicate fetches
+  const loadingRef = useRef(false);
+  const initializedRef = useRef(false);
 
-  const fetchProfile = async (userId: string) => {
+  // Optimized fetch functions with caching
+  const fetchProfile = useCallback(async (userId: string, useCache = true): Promise<Profile | null> => {
+    const cacheKey = `profile:${userId}`;
+    
+    if (useCache) {
+      const cached = getCached<Profile>(cacheKey);
+      if (cached) {
+        setProfile(cached);
+        return cached;
+      }
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -58,13 +89,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .maybeSingle();
     
     if (!error && data) {
-      setProfile(data as Profile);
-      return data;
+      const profileData = data as Profile;
+      setCache(cacheKey, profileData);
+      setProfile(profileData);
+      return profileData;
     }
     return null;
-  };
+  }, []);
 
-  const fetchUserTenants = async () => {
+  const fetchUserTenants = useCallback(async (useCache = true): Promise<Tenant[]> => {
+    const cacheKey = 'tenants';
+    
+    if (useCache) {
+      const cached = getCached<Tenant[]>(cacheKey);
+      if (cached) {
+        setTenants(cached);
+        return cached;
+      }
+    }
+
     const { data, error } = await supabase.rpc('get_user_tenants');
     
     if (!error && data) {
@@ -80,13 +123,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         phone: null,
         is_primary: t.is_primary
       }));
+      setCache(cacheKey, mappedTenants);
       setTenants(mappedTenants);
       return mappedTenants;
     }
     return [];
-  };
+  }, []);
 
-  const fetchTenant = async (tenantId: string) => {
+  const fetchTenant = useCallback(async (tenantId: string, useCache = true): Promise<Tenant | null> => {
+    const cacheKey = `tenant:${tenantId}`;
+    
+    if (useCache) {
+      const cached = getCached<Tenant>(cacheKey);
+      if (cached) {
+        setTenant(cached);
+        return cached;
+      }
+    }
+
     const { data, error } = await supabase
       .from('tenants')
       .select('*')
@@ -94,95 +148,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .maybeSingle();
     
     if (!error && data) {
-      setTenant(data as Tenant);
-      return data;
+      const tenantData = data as Tenant;
+      setCache(cacheKey, tenantData);
+      setTenant(tenantData);
+      return tenantData;
     }
     return null;
-  };
+  }, []);
 
-  const refreshProfile = async () => {
-    if (user) {
-      const profileData = await fetchProfile(user.id);
+  // OPTIMIZED: Load all user data in PARALLEL
+  const loadUserData = useCallback(async (userId: string) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+
+    try {
+      // Run profile and tenants fetch in PARALLEL
+      const [profileData, userTenants] = await Promise.all([
+        fetchProfile(userId),
+        fetchUserTenants()
+      ]);
+
+      // Determine which tenant to load
+      let tenantIdToLoad: string | null = null;
+
       if (profileData?.tenant_id) {
-        await fetchTenant(profileData.tenant_id);
+        tenantIdToLoad = profileData.tenant_id;
+      } else if (userTenants.length > 0) {
+        const primaryTenant = userTenants.find((t: Tenant) => t.is_primary) || userTenants[0];
+        tenantIdToLoad = primaryTenant.id;
       }
-      await fetchUserTenants();
-    }
-  };
 
-  const refreshTenant = async () => {
+      // Fetch tenant if we have an ID
+      if (tenantIdToLoad) {
+        await fetchTenant(tenantIdToLoad);
+      }
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
+    }
+  }, [fetchProfile, fetchUserTenants, fetchTenant]);
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      const profileData = await fetchProfile(user.id, false);
+      if (profileData?.tenant_id) {
+        await fetchTenant(profileData.tenant_id, false);
+      }
+      await fetchUserTenants(false);
+    }
+  }, [user, fetchProfile, fetchTenant, fetchUserTenants]);
+
+  const refreshTenant = useCallback(async () => {
     if (profile?.tenant_id) {
-      await fetchTenant(profile.tenant_id);
+      await fetchTenant(profile.tenant_id, false);
     }
-  };
+  }, [profile?.tenant_id, fetchTenant]);
 
-  const refreshTenants = async () => {
-    await fetchUserTenants();
-  };
+  const refreshTenants = useCallback(async () => {
+    await fetchUserTenants(false);
+  }, [fetchUserTenants]);
 
-  const switchTenant = async (tenantId: string) => {
+  const switchTenant = useCallback(async (tenantId: string) => {
     const { error } = await supabase.rpc('set_primary_tenant', { target_tenant_id: tenantId });
     
     if (!error) {
-      // Refresh profile first to get updated tenant_id from database
+      // Clear cache and refresh
+      dataCache.clear();
       await refreshProfile();
-      await fetchTenant(tenantId);
-      await fetchUserTenants();
+      await fetchTenant(tenantId, false);
+      await fetchUserTenants(false);
     }
-  };
+  }, [refreshProfile, fetchTenant, fetchUserTenants]);
 
+  // Initialize auth state
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
-            const userTenants = await fetchUserTenants();
-            
-            if (profileData?.tenant_id) {
-              await fetchTenant(profileData.tenant_id);
-            } else if (userTenants.length > 0) {
-              // If no tenant_id in profile but user has tenants, use the primary one
-              const primaryTenant = userTenants.find((t: Tenant) => t.is_primary) || userTenants[0];
-              await fetchTenant(primaryTenant.id);
-            }
-          }, 0);
-        } else {
-          setProfile(null);
-          setTenant(null);
-          setTenants([]);
-        }
-      }
-    );
+    if (initializedRef.current) return;
+    initializedRef.current = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      setUser(initialSession?.user ?? null);
       
-      if (session?.user) {
-        fetchProfile(session.user.id).then(async (profileData) => {
-          const userTenants = await fetchUserTenants();
-          
-          if (profileData?.tenant_id) {
-            await fetchTenant(profileData.tenant_id);
-          } else if (userTenants.length > 0) {
-            const primaryTenant = userTenants.find((t: Tenant) => t.is_primary) || userTenants[0];
-            await fetchTenant(primaryTenant.id);
-          }
-          setLoading(false);
-        });
+      if (initialSession?.user) {
+        loadUserData(initialSession.user.id);
       } else {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          // Clear cache on sign in
+          dataCache.clear();
+          loadUserData(newSession.user.id);
+          
+          // Dispatch custom event for useInstantAuth
+          window.dispatchEvent(new Event('supabase-auth-change'));
+        } else if (event === 'SIGNED_OUT') {
+          setProfile(null);
+          setTenant(null);
+          setTenants([]);
+          dataCache.clear();
+          setLoading(false);
+          
+          // Dispatch custom event for useInstantAuth
+          window.dispatchEvent(new Event('supabase-auth-change'));
+        }
+      }
+    );
 
-  const signUp = async (email: string, password: string, name: string) => {
+    return () => subscription.unsubscribe();
+  }, [loadUserData]);
+
+  const signUp = useCallback(async (email: string, password: string, name: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -195,23 +279,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     
     return { error };
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
     
     return { error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
     setTenant(null);
     setTenants([]);
-  };
+    dataCache.clear();
+  }, []);
 
   return (
     <AuthContext.Provider value={{

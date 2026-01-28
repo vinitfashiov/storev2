@@ -5,6 +5,68 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* Enable hardware acceleration for smooth animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Force GPU rendering for animated elements */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Optimize content rendering - skip offscreen content */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 500px;
+}
+
+/* Instant transitions for critical UI elements */
+.instant-transition {
+  transition-duration: 0ms !important;
+}
+
+/* Fast fade for route transitions */
+.fast-fade {
+  animation: fastFade 0.1s ease-out;
+}
+
+@keyframes fastFade {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
+/* Optimized spinner */
+@keyframes fast-spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fast-spin {
+  animation: fast-spin 0.6s linear infinite;
+}
+
 @layer base {
   :root {
     --background: 210 20% 98%;
