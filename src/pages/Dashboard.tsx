@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLayout } from '@/components/admin/AdminLayout';
@@ -45,6 +45,62 @@ const AdminDeliveryPayouts = lazy(() => import('./admin/AdminDeliveryPayouts'));
 const AdminAccount = lazy(() => import('./admin/AdminAccount'));
 const AdminAnalytics = lazy(() => import('./admin/AdminAnalytics'));
 
+// PRELOAD ALL ADMIN CHUNKS - eliminates first-load delay on sidebar navigation
+// This runs when Dashboard mounts and loads all page modules in background
+function preloadAllAdminPages() {
+  // Use requestIdleCallback for non-blocking preload, with setTimeout fallback
+  const schedulePreload = (fn: () => void, delay: number) => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(fn, { timeout: delay });
+    } else {
+      setTimeout(fn, delay);
+    }
+  };
+
+  // Priority 1: Most commonly used pages (100ms intervals)
+  schedulePreload(() => import('./admin/AdminProducts'), 100);
+  schedulePreload(() => import('./admin/AdminOrders'), 200);
+  schedulePreload(() => import('./admin/AdminCategories'), 300);
+  
+  // Priority 2: Frequently used pages (400-800ms)
+  schedulePreload(() => import('./admin/AdminCustomers'), 400);
+  schedulePreload(() => import('./admin/AdminSettings'), 500);
+  schedulePreload(() => import('./admin/AdminAnalytics'), 600);
+  schedulePreload(() => import('./admin/AdminBrands'), 700);
+  schedulePreload(() => import('./admin/AdminCoupons'), 800);
+  
+  // Priority 3: Other pages (900ms+)
+  schedulePreload(() => import('./admin/AdminProductForm'), 900);
+  schedulePreload(() => import('./admin/AdminOrderDetail'), 1000);
+  schedulePreload(() => import('./admin/AdminAttributes'), 1100);
+  schedulePreload(() => import('./admin/AdminIntegrations'), 1200);
+  schedulePreload(() => import('./admin/AdminStores'), 1300);
+  schedulePreload(() => import('./admin/AdminStoreSettings'), 1400);
+  schedulePreload(() => import('./admin/AdminPageBuilder'), 1500);
+  schedulePreload(() => import('./admin/AdminStoreBanners'), 1600);
+  schedulePreload(() => import('./admin/AdminStorePages'), 1700);
+  schedulePreload(() => import('./admin/AdminPaymentIntents'), 1800);
+  schedulePreload(() => import('./admin/AdminUpgrade'), 1900);
+  schedulePreload(() => import('./admin/AdminSubscription'), 2000);
+  schedulePreload(() => import('./admin/AdminDomains'), 2100);
+  schedulePreload(() => import('./admin/AdminAccount'), 2200);
+  
+  // Priority 4: Inventory & Grocery pages (2300ms+)
+  schedulePreload(() => import('./admin/AdminInventory'), 2300);
+  schedulePreload(() => import('./admin/AdminSuppliers'), 2400);
+  schedulePreload(() => import('./admin/AdminPurchaseOrders'), 2500);
+  schedulePreload(() => import('./admin/AdminBatches'), 2600);
+  schedulePreload(() => import('./admin/AdminPOS'), 2700);
+  schedulePreload(() => import('./admin/AdminPOSReports'), 2800);
+  schedulePreload(() => import('./admin/AdminDeliveryBoys'), 2900);
+  schedulePreload(() => import('./admin/AdminDeliveryAreas'), 3000);
+  schedulePreload(() => import('./admin/AdminDeliveryOrders'), 3100);
+  schedulePreload(() => import('./admin/AdminDeliveryPayouts'), 3200);
+  schedulePreload(() => import('./admin/AdminDeliverySlots'), 3300);
+  schedulePreload(() => import('./admin/AdminDeliverySettings'), 3400);
+  schedulePreload(() => import('./admin/AdminProductAvailability'), 3500);
+}
+
 // Skeleton loading for route transitions - feels much faster than spinner
 function PageLoader() {
   return <DashboardSkeleton />;
@@ -64,6 +120,15 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants } = useAuth();
   const [showTrialPopup, setShowTrialPopup] = useState(false);
+  const preloadedRef = useRef(false);
+
+  // PRELOAD ALL ADMIN PAGES on first mount - eliminates sidebar navigation delay
+  useEffect(() => {
+    if (!preloadedRef.current) {
+      preloadedRef.current = true;
+      preloadAllAdminPages();
+    }
+  }, []);
 
   // Single redirect effect - runs once when auth state is determined
   useEffect(() => {
