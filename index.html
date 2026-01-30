@@ -1,62 +1,59 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Storekriti - India&#39;s First D2C Ecommerce Business Enabler</title>
-    <meta name="description" content="Launch your online store in minutes. The all-in-one multi-tenant platform to launch, manage, and scale your e-commerce or grocery store. Fast setup. Secure by design. No coding required.">
-    <meta name="author" content="Storekriti" />
+    <title>Storekriti</title>
+    <meta name="trustpilot-one-time-domain-verification-id" content="57dc881a-c4c7-4ca1-b33c-8e19cf134b95" />
 
-    <!-- Performance: warm up critical third-party origins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://pxoidghxgtlcqbnsnmvl.supabase.co" crossorigin />
-    <link rel="dns-prefetch" href="https://pxoidghxgtlcqbnsnmvl.supabase.co" />
-    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-    <link rel="dns-prefetch" href="https://unpkg.com" />
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
-    
-    <!-- Preload critical font with display=swap for faster LCP -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:ital,wght@0,400..800;1,400..800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Text:wght@400;500;600;700&display=swap" /></noscript>
+    <!-- Favicon link -->
+    <link rel="icon" href="/whawha.png" type="image/x-icon" />
 
     <style>
-      html, body { height: 100%; margin: 0; }
-      body { background: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
-      /* Critical CSS for instant FCP */
-      #root:empty::before {
-        content: '';
-        display: block;
-        height: 100vh;
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      /* Remove margins and paddings */
+      * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
       }
-      #root:empty::after {
-        content: '';
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        border: 3px solid #e2e8f0;
-        border-top-color: #6366f1;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+
+      /* Remove scroll bars from the body */
+      body, html {
+          overflow: hidden;
+          height: 100%;
       }
-      @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+      /* Full-page iframe to cover the whole viewport with invisible scroll bars */
+      .iframe-container {
+          width: 100vw;
+          height: 100vh;
+          border: none;
+          overflow: hidden;
+      }
+
+      /* Hide scrollbar in iframe */
+      .iframe-container::-webkit-scrollbar {
+          display: none; /* for Chrome, Safari, and Opera */
+      }
+
+      .iframe-container {
+          -ms-overflow-style: none;  /* for Internet Explorer and Edge */
+          scrollbar-width: none;     /* for Firefox */
+      }
     </style>
-    <meta property="og:title" content="Storekriti - India&#39;s First D2C Ecommerce Business Enabler">
-  <meta name="twitter:title" content="Storekriti - India&#39;s First D2C Ecommerce Business Enabler">
-  <meta property="og:description" content="Launch your online store in minutes. The all-in-one multi-tenant platform to launch, manage, and scale your e-commerce or grocery store. Fast setup. Secure by design. No coding required.">
-  <meta name="twitter:description" content="Launch your online store in minutes. The all-in-one multi-tenant platform to launch, manage, and scale your e-commerce or grocery store. Fast setup. Secure by design. No coding required.">
-  <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/r5zMYOZto8M7Hm3bg2A2dTDOg102/uploads/1768904723466-01KEWN099JJ3PTZSXSYK576QDP-removebg-preview.png">
-  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/r5zMYOZto8M7Hm3bg2A2dTDOg102/social-images/social-1768904748169-1080x360.jpeg">
-  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/r5zMYOZto8M7Hm3bg2A2dTDOg102/social-images/social-1768904748169-1080x360.jpeg">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta property="og:type" content="website">
-</head>
+  </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Embedded iframe with hidden scrollbars but scrollable content -->
+    <iframe src="https://harmonious-play-170638.framer.app/" class="iframe-container"></iframe>
+
+    <!-- Intercom Chat Widget -->
+    <script>
+      window.intercomSettings = {
+          app_id: "djsbwoav"
+      };
+    </script>
+    <script>
+      (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/djsbwoav';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else{w.addEventListener('load',l,false);}}})();
+    </script>
   </body>
 </html>
