@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Track if initial load is in progress to prevent duplicate fetches
   const loadingRef = useRef(false);
   const initializedRef = useRef(false);
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Optimized fetch functions with caching
   const fetchProfile = useCallback(async (userId: string, useCache = true): Promise<Profile | null> => {
     const cacheKey = `profile:${userId}`;
-    
+
     if (useCache) {
       const cached = getCached<Profile>(cacheKey);
       if (cached) {
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .select('*')
       .eq('id', userId)
       .maybeSingle();
-    
+
     if (!error && data) {
       const profileData = data as Profile;
       setCache(cacheKey, profileData);
@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserTenants = useCallback(async (useCache = true): Promise<Tenant[]> => {
     const cacheKey = 'tenants';
-    
+
     if (useCache) {
       const cached = getCached<Tenant[]>(cacheKey);
       if (cached) {
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const { data, error } = await supabase.rpc('get_user_tenants');
-    
+
     if (!error && data) {
       const mappedTenants = data.map((t: any) => ({
         id: t.id,
@@ -132,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchTenant = useCallback(async (tenantId: string, useCache = true): Promise<Tenant | null> => {
     const cacheKey = `tenant:${tenantId}`;
-    
+
     if (useCache) {
       const cached = getCached<Tenant>(cacheKey);
       if (cached) {
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .select('*')
       .eq('id', tenantId)
       .maybeSingle();
-    
+
     if (!error && data) {
       const tenantData = data as Tenant;
       setCache(cacheKey, tenantData);
@@ -210,7 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchTenant = useCallback(async (tenantId: string) => {
     const { error } = await supabase.rpc('set_primary_tenant', { target_tenant_id: tenantId });
-    
+
     if (!error) {
       // Clear cache and refresh
       dataCache.clear();
@@ -226,15 +226,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializedRef.current = true;
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
-      setSession(initialSession);
-      setUser(initialSession?.user ?? null);
-      
-      if (initialSession?.user) {
-        loadUserData(initialSession.user.id);
+    // Get initial session with improved error handling
+    supabase.auth.getSession().then(({ data: { session: initialSession }, error }) => {
+      if (error) {
+        console.error("Session init error:", error);
+        // If session is invalid, clear everything to prevent loops
+        signOut();
       } else {
-        setLoading(false);
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+
+        if (initialSession?.user) {
+          loadUserData(initialSession.user.id);
+        } else {
+          setLoading(false);
+        }
       }
+    }).catch(err => {
+      console.error("Unexpected auth error:", err);
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -242,12 +252,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (event, newSession) => {
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        
+
         if (event === 'SIGNED_IN' && newSession?.user) {
           // Clear cache on sign in
           dataCache.clear();
           loadUserData(newSession.user.id);
-          
+
           // Dispatch custom event for useInstantAuth
           window.dispatchEvent(new Event('supabase-auth-change'));
         } else if (event === 'SIGNED_OUT') {
@@ -256,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTenants([]);
           dataCache.clear();
           setLoading(false);
-          
+
           // Dispatch custom event for useInstantAuth
           window.dispatchEvent(new Event('supabase-auth-change'));
         }
@@ -268,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = useCallback(async (email: string, password: string, name: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -277,7 +287,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         data: { name }
       }
     });
-    
+
     return { error };
   }, []);
 
@@ -286,7 +296,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password
     });
-    
+
     return { error };
   }, []);
 

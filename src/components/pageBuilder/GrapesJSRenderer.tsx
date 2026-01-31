@@ -14,8 +14,8 @@ const externalCSSLinks = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
   // Bootstrap CSS
   'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css',
-  // Tailwind CSS
-  'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
+  // Tailwind CSS - REMOVED: Use local Tailwind classes instead to avoid conflicts and warnings
+  // 'https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css',
   // Animate.css
   'https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css',
   // Boxicons
@@ -54,21 +54,21 @@ function useGrapesJSLayout(tenantId: string | undefined) {
     queryKey: ['grapesjs-layout', tenantId],
     queryFn: async (): Promise<LayoutData | null> => {
       if (!tenantId) return null;
-      
+
       const { data, error } = await supabase
         .from('homepage_layouts')
         .select('layout_data, published_at')
         .eq('tenant_id', tenantId)
         .not('published_at', 'is', null)
         .maybeSingle();
-      
+
       if (error) {
         console.error('[GrapesJSRenderer] Error fetching layout:', error);
         return null;
       }
-      
+
       if (!data) return null;
-      
+
       // Parse layout_data
       let layoutData: LayoutData | null = null;
       try {
@@ -81,12 +81,12 @@ function useGrapesJSLayout(tenantId: string | undefined) {
         console.error('[GrapesJSRenderer] Error parsing layout:', e);
         return null;
       }
-      
+
       // Check if this is a GrapesJS layout
       if (layoutData?.type !== 'grapesjs') {
         return null;
       }
-      
+
       return layoutData;
     },
     enabled: !!tenantId,
@@ -113,13 +113,13 @@ export const GrapesJSRenderer = memo(function GrapesJSRenderer({ tenantId }: Gra
   const { data: layout, isLoading } = useGrapesJSLayout(tenantId);
 
   // Build external CSS links
-  const cssLinksHTML = useMemo(() => 
+  const cssLinksHTML = useMemo(() =>
     externalCSSLinks.map(url => `<link rel="stylesheet" href="${url}">`).join('\n'),
     []
   );
 
   // Build external scripts
-  const scriptsHTML = useMemo(() => 
+  const scriptsHTML = useMemo(() =>
     externalScripts.map(url => `<script src="${url}"></script>`).join('\n'),
     []
   );
@@ -188,7 +188,7 @@ export const GrapesJSRenderer = memo(function GrapesJSRenderer({ tenantId }: Gra
       <iframe
         srcDoc={fullHTML}
         className="w-full border-0"
-        style={{ 
+        style={{
           minHeight: '100vh',
           display: 'block',
         }}

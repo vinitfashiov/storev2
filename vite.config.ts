@@ -23,9 +23,14 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
+          'vendor-ui': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-slot', '@radix-ui/react-toast'],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-charts': ['recharts'],
+          'vendor-utils': ['lodash', 'date-fns', 'clsx', 'tailwind-merge'],
+          'editor-core': ['grapesjs'],
+          'editor-plugins': ['grapesjs-preset-webpage', 'grapesjs-plugin-forms'],
+          'vendor-maps': ['react-globe.gl'],
+          'animation': ['framer-motion'],
         },
       },
     },

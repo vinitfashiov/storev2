@@ -17,10 +17,10 @@ interface AdminLayoutProps {
   onUpgrade: () => void;
 }
 
-export function AdminLayout({ 
-  children, 
-  storeName, 
-  storeSlug, 
+export function AdminLayout({
+  children,
+  storeName,
+  storeSlug,
   tenantId,
   businessType,
   onSignOut,
@@ -31,17 +31,17 @@ export function AdminLayout({
   return (
     <div className="min-h-screen bg-background flex w-full">
       <AdminSidebar storeSlug={storeSlug} storeName={storeName} businessType={businessType} />
-      
+
       <div className="flex-1 flex flex-col min-w-0">
-        <AdminHeader 
-          storeName={storeName} 
-          storeSlug={storeSlug} 
+        <AdminHeader
+          storeName={storeName}
+          storeSlug={storeSlug}
           tenantId={tenantId}
-          businessType={businessType} 
+          businessType={businessType}
           onSignOut={onSignOut}
           onTenantChange={onTenantChange}
         />
-        
+
         {isTrialExpired && (
           <div className="p-3 md:p-4">
             <div className="border border-destructive bg-destructive/5 rounded-lg p-3 md:p-4">
@@ -61,7 +61,7 @@ export function AdminLayout({
             </div>
           </div>
         )}
-        
+
         <main className="flex-1 p-3 md:p-6 overflow-auto">
           {children}
         </main>

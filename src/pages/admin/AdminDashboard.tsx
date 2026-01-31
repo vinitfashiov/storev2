@@ -55,7 +55,7 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id)
           .eq('is_active', true);
-        
+
         // Check if payment provider is configured
         const { data: integration } = await supabase
           .from('tenant_integrations')
@@ -63,42 +63,42 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
           .eq('tenant_id', tenant.id)
           .maybeSingle();
         const hasPayment = !!(integration?.razorpay_key_id && integration?.razorpay_key_secret);
-        
+
         // Check if shipping rates are configured (delivery_zones or delivery_settings)
         const { count: zonesCount } = await supabase
           .from('delivery_zones')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id)
           .eq('is_active', true);
-        
+
         const { data: deliverySettings } = await supabase
           .from('tenant_delivery_settings')
           .select('*')
           .eq('tenant_id', tenant.id)
           .maybeSingle();
-        
+
         const hasShipping = (zonesCount && zonesCount > 0) || !!deliverySettings;
-        
+
         // Check if custom domain is configured
         const { count: domainsCount } = await supabase
           .from('custom_domains')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id)
           .eq('status', 'active');
-        
+
         // Check if store has banners or pages (design store)
         const { count: bannersCount } = await supabase
           .from('store_banners')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id)
           .eq('is_active', true);
-        
+
         const { count: pagesCount } = await supabase
           .from('store_pages')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant.id)
           .eq('is_published', true);
-        
+
         setTodos({
           storeCreated: true,
           addProducts: (productsCount || 0) > 0,
@@ -172,8 +172,8 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
       {/* Stats Grid */}
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold">Overview (Last 30 Days)</h2>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={() => refetch()}
           disabled={isFetching}
@@ -182,7 +182,7 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
           Refresh
         </Button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -342,22 +342,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Store Created - Links to Settings */}
                 <Link
                   to="/dashboard/settings"
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.storeCreated 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.storeCreated
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.storeCreated ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.storeCreated 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.storeCreated
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Add store name
                   </span>
                 </Link>
@@ -365,22 +363,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Add Products - Links to Products */}
                 <Link
                   to={todos.addProducts ? "/dashboard/products" : "/dashboard/products/new"}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.addProducts 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.addProducts
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.addProducts ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.addProducts 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.addProducts
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Add your first product
                   </span>
                 </Link>
@@ -388,22 +384,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Design Store - Links to Store Settings/Banners */}
                 <Link
                   to="/dashboard/store-settings"
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.designStore 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.designStore
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.designStore ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.designStore 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.designStore
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Design your store
                   </span>
                 </Link>
@@ -411,22 +405,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Setup Payment - Links to Integrations */}
                 <Link
                   to="/dashboard/integrations"
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.setupPayment 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.setupPayment
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.setupPayment ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.setupPayment 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.setupPayment
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Set up a payment provider
                   </span>
                 </Link>
@@ -434,22 +426,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Review Shipping - Links to Delivery Settings or Settings */}
                 <Link
                   to={tenant.business_type === 'grocery' ? "/dashboard/delivery-settings" : "/dashboard/settings"}
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.reviewShipping 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.reviewShipping
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.reviewShipping ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.reviewShipping 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.reviewShipping
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Review your shipping rates
                   </span>
                 </Link>
@@ -457,22 +447,20 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                 {/* Customize Domain - Links to Domains */}
                 <Link
                   to="/dashboard/domains"
-                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                    todos.customizeDomain 
-                      ? 'bg-success/10 hover:bg-success/15' 
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.customizeDomain
+                      ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
-                  } cursor-pointer`}
+                    } cursor-pointer`}
                 >
                   {todos.customizeDomain ? (
                     <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
                     <div className="w-5 h-5 rounded-full border-2 border-gray-300 shrink-0" />
                   )}
-                  <span className={`text-sm leading-tight ${
-                    todos.customizeDomain 
-                      ? 'text-success font-medium line-through' 
+                  <span className={`text-sm leading-tight ${todos.customizeDomain
+                      ? 'text-success font-medium line-through'
                       : 'text-gray-600'
-                  }`}>
+                    }`}>
                     Customize your domain
                   </span>
                 </Link>
