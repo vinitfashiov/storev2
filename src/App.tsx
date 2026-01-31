@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, forwardRef } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -71,10 +71,9 @@ function preloadCriticalChunks() {
 }
 
 // Ultra-minimal loading - shows instantly, feels fast
-// AppFallback wrapped with forwardRef to prevent warnings during strict mode/suspense transitions
-const AppFallback = forwardRef<HTMLDivElement>((props, ref) => {
+function AppFallback() {
   return (
-    <div ref={ref} className="min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="relative">
           <div className="w-10 h-10 border-2 border-primary/20 rounded-full" />
@@ -84,7 +83,7 @@ const AppFallback = forwardRef<HTMLDivElement>((props, ref) => {
       </div>
     </div>
   );
-});
+}
 
 // Preload on app mount
 function PreloadManager() {
@@ -94,23 +93,21 @@ function PreloadManager() {
   return null;
 }
 
-// Wrapper for authenticated routes wrapped with forwardRef
-const AuthenticatedRoutes = forwardRef<HTMLDivElement>((props, ref) => {
+// Wrapper for authenticated routes - no forwardRef needed here
+function AuthenticatedRoutes() {
   return (
-    <div ref={ref}>
-      <AuthProvider>
-        <Routes>
-          <Route path="/authentication" element={<Auth />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/dashboard/*" element={<Dashboard />} />
-          <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
-          <Route path="/page-builder-legacy" element={<PageBuilder />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AuthProvider>
-    </div>
+    <AuthProvider>
+      <Routes>
+        <Route path="/authentication" element={<Auth />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/dashboard/*" element={<Dashboard />} />
+        <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
+        <Route path="/page-builder-legacy" element={<PageBuilder />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AuthProvider>
   );
-});
+}
 
 // Main app content that conditionally renders based on custom domain
 function AppContent() {
