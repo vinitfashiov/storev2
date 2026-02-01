@@ -357,14 +357,12 @@ export default function MobileDashboard({ tenant, todos, todosLoading }: MobileD
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center border border-indigo-100">
                                             <span className="text-xs font-bold text-indigo-700">
-                                                {order.customer?.first_name?.[0] || 'G'}
+                                                {order.customer_name?.[0] || 'G'}
                                             </span>
                                         </div>
                                         <div>
                                             <p className="text-sm font-semibold text-foreground">
-                                                {order.customer?.first_name
-                                                    ? `${order.customer.first_name} ${order.customer.last_name || ''}`
-                                                    : `Order #${order.order_number?.slice(-4)}`}
+                                                {order.customer_name || `Order #${order.order_number?.slice(-4)}`}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground font-medium">
                                                 {formatDistanceToNow(new Date(order.created_at), { addSuffix: true })}

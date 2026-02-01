@@ -418,21 +418,18 @@ export function useRecentOrders(tenantId: string | undefined, limit = 5) {
         .select(`
           id,
           order_number,
-          total_amount,
+          total,
           status,
           created_at,
           payment_status,
-          customer:customer_id (
-            first_name,
-            last_name
-          )
+          customer_name
         `)
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!tenantId,
     staleTime: STALE_TIME.SHORT,

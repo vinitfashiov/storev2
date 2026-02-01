@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ interface AdminStoreSettingsProps {
   disabled?: boolean;
 }
 
-export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSettingsProps) {
+const AdminStoreSettings = forwardRef<HTMLDivElement, AdminStoreSettingsProps>(({ tenantId, disabled }, ref) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -485,4 +485,8 @@ export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSet
       </div>
     </div>
   );
-}
+});
+
+AdminStoreSettings.displayName = 'AdminStoreSettings';
+
+export default AdminStoreSettings;
