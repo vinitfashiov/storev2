@@ -22,6 +22,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep Link Intent Filters for Payment Callbacks -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Custom URL scheme for deep links -->
+                <data android:scheme="storekriti" android:host="payment" />
+            </intent-filter>
+
+            <!-- HTTPS Universal Links for web fallback -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="storekriti.lovable.app" android:pathPrefix="/payment-callback" />
+            </intent-filter>
+
         </activity>
 
         <provider

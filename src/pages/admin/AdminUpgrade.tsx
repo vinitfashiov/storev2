@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,13 @@ import {
   Star,
   ArrowLeft
 } from 'lucide-react';
+import { 
+  shouldUseExternalPayment, 
+  buildRazorpayCheckoutUrl, 
+  openExternalUrl,
+  getPaymentCallbackUrls,
+  isNativeApp
+} from '@/hooks/useNativePayment';
 
 declare global {
   interface Window {
@@ -51,9 +58,14 @@ const PRO_FEATURES = [
 
 const PLAN_PRICE = 1; // ₹1 (testing)
 
-// Preload Razorpay script immediately (module level for fastest load)
+// Preload Razorpay script immediately (module level for fastest load) - only for web
 const razorpayScriptPromise = new Promise<void>((resolve) => {
   if (typeof window !== 'undefined') {
+    // Skip loading SDK if we'll use external payment
+    if (shouldUseExternalPayment()) {
+      resolve();
+      return;
+    }
     if (window.Razorpay) {
       resolve();
       return;
@@ -68,9 +80,11 @@ const razorpayScriptPromise = new Promise<void>((resolve) => {
 
 export default function AdminUpgrade() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { tenant } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [scriptLoaded, setScriptLoaded] = useState(!!window.Razorpay);
+  const [scriptLoaded, setScriptLoaded] = useState(!!window.Razorpay || shouldUseExternalPayment());
+  const useExternalPayment = shouldUseExternalPayment();
   
   // Pre-created order cache
   const preparedOrderRef = useRef<PreparedOrder | null>(null);
@@ -101,14 +115,23 @@ export default function AdminUpgrade() {
   }, [tenant]);
 
   useEffect(() => {
-    // Mark script as loaded when ready
-    razorpayScriptPromise.then(() => setScriptLoaded(true));
+    // Mark script as loaded when ready (or immediately for external payment)
+    if (useExternalPayment) {
+      setScriptLoaded(true);
+    } else {
+      razorpayScriptPromise.then(() => setScriptLoaded(true));
+    }
     
     // Pre-create order immediately when page loads (for trial users)
     if (tenant && tenant.plan !== 'pro' && !orderCreationPromiseRef.current) {
       orderCreationPromiseRef.current = preCreateOrder();
     }
-  }, [tenant, preCreateOrder]);
+    
+    // Check if returning from cancelled payment
+    if (searchParams.get('cancelled') === 'true') {
+      toast.error('Payment was cancelled');
+    }
+  }, [tenant, preCreateOrder, useExternalPayment, searchParams]);
 
   const getDaysRemaining = () => {
     if (!tenant?.trial_ends_at) return 0;
@@ -124,9 +147,6 @@ export default function AdminUpgrade() {
     setLoading(true);
 
     try {
-      // Wait for script if not ready (should be instant since preloaded)
-      await razorpayScriptPromise;
-      
       // Use pre-created order or wait for it / create new one
       let orderData = preparedOrderRef.current;
       
@@ -156,7 +176,38 @@ export default function AdminUpgrade() {
       preparedOrderRef.current = null;
       orderCreationPromiseRef.current = null;
 
-      // Open Razorpay checkout immediately
+      // Check if we should use external payment (WebView/Native app)
+      if (useExternalPayment) {
+        const { callbackUrl, cancelUrl } = getPaymentCallbackUrls('upgrade', {});
+        
+        // Build callback URL with necessary params
+        const fullCallbackUrl = new URL(callbackUrl);
+        fullCallbackUrl.searchParams.set('type', 'upgrade');
+        fullCallbackUrl.searchParams.set('tenant_id', tenant.id);
+        fullCallbackUrl.searchParams.set('is_native', isNativeApp() ? 'true' : 'false');
+        
+        const checkoutUrl = buildRazorpayCheckoutUrl({
+          orderId: orderData.order_id,
+          keyId: orderData.key_id,
+          amount: orderData.amount,
+          currency: orderData.currency,
+          name: 'Sellify Pro',
+          description: 'Upgrade to Pro Plan',
+          callbackUrl: fullCallbackUrl.toString(),
+          cancelUrl,
+          prefill: { name: tenant.store_name }
+        });
+        
+        // Open in external browser
+        openExternalUrl(checkoutUrl);
+        
+        // Keep loading state - user will return via deep link
+        return;
+      }
+
+      // Standard web flow - use Razorpay SDK popup
+      await razorpayScriptPromise;
+      
       const options = {
         key: orderData.key_id,
         amount: orderData.amount,

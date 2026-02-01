@@ -18,6 +18,7 @@ const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const PageBuilder = lazy(() => import("./pages/admin/PageBuilder"));
 const GrapesJSPageBuilder = lazy(() => import("./pages/admin/GrapesJSPageBuilder"));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Lazy loaded StoreRoutes to avoid bundling store dependencies (like maps) in the main bundle
@@ -103,6 +104,7 @@ function AuthenticatedRoutes() {
         <Route path="/dashboard/*" element={<Dashboard />} />
         <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
         <Route path="/page-builder-legacy" element={<PageBuilder />} />
+        <Route path="/payment-callback" element={<PaymentCallback />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AuthProvider>

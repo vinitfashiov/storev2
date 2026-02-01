@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,13 @@ import {
   CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin,
   Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield
 } from 'lucide-react';
+import { 
+  shouldUseExternalPayment, 
+  buildRazorpayCheckoutUrl, 
+  openExternalUrl,
+  getPaymentCallbackUrls,
+  isNativeApp
+} from '@/hooks/useNativePayment';
 
 // Shared singleton for script loading across navigations
 let razorpayScriptPromise: Promise<void> | null = null;
@@ -83,6 +90,7 @@ declare global {
 export default function CheckoutPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { customer } = useStoreAuth();
   const { trackEvent } = useStoreAnalyticsEvent();
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -91,6 +99,7 @@ export default function CheckoutPage() {
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '' });
   const [searchQuery, setSearchQuery] = useState('');
+  const useExternalPayment = shouldUseExternalPayment();
   
   // Customer addresses state
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
@@ -336,15 +345,49 @@ export default function CheckoutPage() {
 
   const handleRazorpayPayment = async (paymentIntentId: string, orderNumber: string, amount: number) => {
     try {
-      // Ensure the SDK is available before initiating payment
-      await loadRazorpayScript();
-      if (!window.Razorpay) throw new Error('Payment SDK not available');
-
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: { store_slug: slug, payment_intent_id: paymentIntentId }
       });
       if (error || data?.error) throw new Error(data?.error || error?.message || 'Failed to create payment order');
       const { key_id, razorpay_order_id, currency } = data;
+
+      // Check if we should use external payment (WebView/Native app)
+      if (useExternalPayment) {
+        const { callbackUrl, cancelUrl } = getPaymentCallbackUrls('order', { store_slug: slug || '' });
+        
+        // Build callback URL with necessary params
+        const fullCallbackUrl = new URL(callbackUrl);
+        fullCallbackUrl.searchParams.set('type', 'order');
+        fullCallbackUrl.searchParams.set('store_slug', slug || '');
+        fullCallbackUrl.searchParams.set('payment_intent_id', paymentIntentId);
+        fullCallbackUrl.searchParams.set('is_native', isNativeApp() ? 'true' : 'false');
+        
+        const checkoutUrl = buildRazorpayCheckoutUrl({
+          orderId: razorpay_order_id,
+          keyId: key_id,
+          amount: Math.round(amount * 100),
+          currency: currency || 'INR',
+          name: tenant?.store_name || 'Store',
+          description: `Order ${orderNumber}`,
+          callbackUrl: fullCallbackUrl.toString(),
+          cancelUrl,
+          prefill: { 
+            name: form.name, 
+            email: form.email, 
+            contact: form.phone 
+          }
+        });
+        
+        // Open in external browser
+        openExternalUrl(checkoutUrl);
+        
+        // Keep loading state - user will return via deep link
+        return;
+      }
+
+      // Standard web flow - use Razorpay SDK popup
+      await loadRazorpayScript();
+      if (!window.Razorpay) throw new Error('Payment SDK not available');
 
       const options = {
         key: key_id,
@@ -387,6 +430,13 @@ export default function CheckoutPage() {
       setSubmitting(false);
     }
   };
+
+  // Check for cancelled payment on page load
+  useEffect(() => {
+    if (searchParams.get('cancelled') === 'true') {
+      toast.error('Payment was cancelled');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

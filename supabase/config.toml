@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.store-customer-otp]
 verify_jwt = false
+
+[functions.payment-redirect-callback]
+verify_jwt = false
