@@ -6,6 +6,7 @@ import { TrialPopup } from '@/components/admin/TrialPopup';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/ui/skeleton-loaders';
+import { useDynamicManifest } from '@/hooks/useDynamicManifest';
 
 // Lazy load all admin pages for faster initial dashboard load
 const AdminDashboard = lazy(() => import('./admin/AdminDashboard'));
@@ -121,6 +122,9 @@ export default function Dashboard() {
   const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants } = useAuth();
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const preloadedRef = useRef(false);
+
+  // Set admin PWA manifest for dashboard
+  useDynamicManifest({ type: 'admin' });
 
   // PRELOAD ALL ADMIN PAGES on first mount - eliminates sidebar navigation delay
   useEffect(() => {

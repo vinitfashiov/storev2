@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.store-customer-otp]
 verify_jwt = false
+
+[functions.pwa-manifest]
+verify_jwt = false

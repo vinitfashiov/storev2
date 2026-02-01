@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Save, Upload, Image, Globe, Mail, Phone, MapPin, Loader2, Trash2, Store, Sparkles } from 'lucide-react';
+import { StorefrontPWACard } from '@/components/pwa/StorefrontPWACard';
 
 interface StoreSettings {
   tenant_id: string;
@@ -33,6 +34,7 @@ export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSet
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [storeName, setStoreName] = useState<string>('');
+  const [storeSlug, setStoreSlug] = useState<string>('');
   const [settings, setSettings] = useState<StoreSettings>({
     tenant_id: tenantId,
     website_title: '',
@@ -54,12 +56,13 @@ export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSet
     // Fetch tenant info
     const { data: tenantData } = await supabase
       .from('tenants')
-      .select('store_name')
+      .select('store_name, store_slug')
       .eq('id', tenantId)
       .single();
 
     if (tenantData) {
       setStoreName(tenantData.store_name);
+      setStoreSlug(tenantData.store_slug);
     }
 
     // Fetch settings
@@ -474,6 +477,11 @@ export default function AdminStoreSettings({ tenantId, disabled }: AdminStoreSet
             </div>
           </CardContent>
         </Card>
+
+        {/* Storefront PWA Card */}
+        {storeSlug && (
+          <StorefrontPWACard storeSlug={storeSlug} storeName={storeName} />
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, memo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,8 @@ import {
 import { toast } from 'sonner';
 import { Store, Search, Heart, User, ShoppingCart, Package, ArrowRight } from 'lucide-react';
 import SEOHead from '@/components/shared/SEOHead';
+import { useDynamicManifest, useApplePWAConfig } from '@/hooks/useDynamicManifest';
+import { StorefrontInstallBanner } from '@/components/pwa/StorefrontInstallBanner';
 
 // Ultra-minimal loading - just a subtle indicator, content shell shows immediately
 const LoadingSkeleton = memo(() => (
@@ -296,6 +298,9 @@ function GroceryStoreContent({
 
       {/* Mobile Bottom Navigation */}
       <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+
+      {/* PWA Install Banner - Mobile Only */}
+      <StorefrontInstallBanner storeName={tenant.store_name} />
     </div>
   );
 }
@@ -338,6 +343,19 @@ export default function StoreHome() {
   const newProducts = newProductsData?.products || [];
 
   const { itemCount, addToCart } = useCart(slug || '', tenant?.id || null);
+
+  // Set dynamic PWA manifest for this storefront
+  useDynamicManifest({ 
+    type: 'storefront', 
+    slug: slug || undefined,
+    tenantId: tenant?.id 
+  });
+  
+  // Update Apple PWA meta tags with store name
+  useApplePWAConfig(
+    storeSettings?.website_title || tenant?.store_name || 'Store',
+    tenant?.business_type === 'grocery' ? '#059669' : '#6366f1'
+  );
 
   // Check trial expiry
   const isExpired = tenant && tenant.plan === 'trial' && new Date(tenant.trial_ends_at) < new Date();
@@ -487,6 +505,9 @@ export default function StoreHome() {
           email={storeSettings?.store_email}
         />
       )}
+
+      {/* PWA Install Banner - Mobile Only */}
+      <StorefrontInstallBanner storeName={tenant.store_name} />
     </div>
   );
 }
