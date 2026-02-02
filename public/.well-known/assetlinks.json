@@ -1,14 +1,12 @@
 [
-    {
-        "relation": [
-            "delegate_permission/common.handle_all_urls"
-        ],
-        "target": {
-            "namespace": "android_app",
-            "package_name": "com.storekriti.twa",
-            "sha256_cert_fingerprints": [
-                "0C:5F:F3:08:3A:0B:30:BD:A4:CC:4A:E8:70:92:58:F8:7A:1C:D1:37:0D:C4:F5:15:2B:26:3D:90:54:72:08:86"
-            ]
-        }
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.app.storekriti",
+      "sha256_cert_fingerprints": [
+        "A1:0B:59:2B:33:00:4E:DC:B3:A1:A5:E7:92:CF:B5:21:91:68:92:B7:AA:B1:5B:18:06:FE:30:8F:12:0E:31:31"
+      ]
     }
+  }
 ]
