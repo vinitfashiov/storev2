@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
+      // We manage SW registration manually in src/main.tsx for deterministic updates.
+      // Having both auto-injected registration + manual registration can cause “one publish behind”.
+      injectRegister: null,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'robots.txt', 'og-image.png'],
       manifest: {
