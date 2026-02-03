@@ -24,15 +24,15 @@ Deno.serve(async (req) => {
     const slug = url.searchParams.get('slug') // store slug for storefront
     const tenantId = url.searchParams.get('tenant_id') // alternative to slug
 
-    // Admin Dashboard PWA - Updated status bar colors
+    // Admin Dashboard PWA - Light mode status bar
     if (type === 'admin') {
       console.log(`[${VERSION}] Serving admin manifest`)
       const adminManifest = {
         name: 'Storekriti Admin',
         short_name: 'SK Admin',
         description: 'Manage your Storekriti store - orders, products, analytics and more',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
         scope: '/dashboard',
