@@ -6,6 +6,20 @@
 @tailwind utilities;
 
 /* ============================================
+   PWA/TWA - DISABLE PULL TO REFRESH
+   ============================================ */
+html, body {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent pull-to-refresh on the entire app */
+body {
+  overflow-y: auto;
+  overscroll-behavior: none;
+}
+
+/* ============================================
    PERFORMANCE OPTIMIZATIONS
    ============================================ */
 
