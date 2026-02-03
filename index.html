@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
     <title>Storekriti - India&#39;s First D2C Ecommerce Business Enabler</title>
     <meta
       name="description"
@@ -11,13 +11,13 @@
     <meta name="author" content="Storekriti" />
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#6366f1" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Storekriti" />
     <meta name="application-name" content="Storekriti" />
-    <meta name="msapplication-TileColor" content="#6366f1" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-tap-highlight" content="no" />
     <meta name="format-detection" content="telephone=no" />
     
@@ -53,29 +53,8 @@
     /></noscript>
 
     <style>
-      html, body { height: 100%; margin: 0; }
-      body { background: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
-      /* Critical CSS for instant FCP */
-      #root:empty::before {
-        content: '';
-        display: block;
-        height: 100vh;
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-      }
-      #root:empty::after {
-        content: '';
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 40px;
-        height: 40px;
-        border: 3px solid #e2e8f0;
-        border-top-color: #6366f1;
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
-      }
-      @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+      html, body { height: 100%; margin: 0; background: #ffffff; }
+      body { font-family: system-ui, -apple-system, sans-serif; }
     </style>
     <meta property="og:title" content="Storekriti - India&#39;s First D2C Ecommerce Business Enabler" />
     <meta name="twitter:title" content="Storekriti - India&#39;s First D2C Ecommerce Business Enabler" />
@@ -104,7 +83,22 @@
     <meta property="og:type" content="website" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        .initial-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: #ffffff; position: fixed; top: 0; left: 0; z-index: 9999; }
+        .loader-container { position: relative; width: 48px; height: 48px; }
+        /* Using primary color hsl(220, 70%, 50%) */
+        .loader-ring { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; border: 4px solid hsl(220, 70%, 50%, 0.2); }
+        .loader-spinner { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; border: 4px solid hsl(220, 70%, 50%); border-top-color: transparent; animation: spin 0.8s ease-in-out infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      </style>
+      <div class="initial-loader">
+        <div class="loader-container">
+          <div class="loader-ring"></div>
+          <div class="loader-spinner"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

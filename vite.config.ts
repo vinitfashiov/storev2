@@ -20,10 +20,10 @@ export default defineConfig(({ mode }) => ({
         name: 'Storekriti - D2C Ecommerce Platform',
         short_name: 'Storekriti',
         description: 'Launch your online store in minutes. Multi-tenant platform for e-commerce and grocery stores.',
-        theme_color: '#6366f1',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        orientation: 'portrait-primary',
+        orientation: 'portrait',
         scope: '/',
         start_url: '/',
         icons: [

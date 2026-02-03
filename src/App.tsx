@@ -200,7 +200,9 @@ const App = () => (
           <PreloadManager />
           <CustomDomainProvider>
             <Suspense fallback={<AppFallback />}>
-              <AppContent />
+              <ErrorBoundary fallback={<div className="p-4 text-center">Failed to load content. <button onClick={() => window.location.reload()} className="underline">Reload</button></div>}>
+                <AppContent />
+              </ErrorBoundary>
             </Suspense>
           </CustomDomainProvider>
         </BrowserRouter>

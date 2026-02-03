@@ -27,6 +27,7 @@
 
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -54,13 +55,20 @@
 }
 
 @keyframes fastFade {
-  from { opacity: 0.8; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.8;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 /* Optimized spinner */
 @keyframes fast-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .animate-fast-spin {
@@ -191,6 +199,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Wix Madefor Text', sans-serif;
+    overscroll-behavior-y: none;
+    /* Prevent zooming on mobile */
+    touch-action: pan-x pan-y;
   }
 
   h1,
