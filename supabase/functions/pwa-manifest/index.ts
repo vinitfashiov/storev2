@@ -1,12 +1,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Version for deployment verification
+const VERSION = "v1.0.1"
+const DEPLOYED_AT = new Date().toISOString()
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Content-Type': 'application/manifest+json',
+  'Cache-Control': 'no-cache, no-store, must-revalidate',
 }
 
 Deno.serve(async (req) => {
+  console.log(`[${VERSION}] PWA Manifest request received at ${new Date().toISOString()}`)
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -17,13 +24,14 @@ Deno.serve(async (req) => {
     const slug = url.searchParams.get('slug') // store slug for storefront
     const tenantId = url.searchParams.get('tenant_id') // alternative to slug
 
-    // Admin Dashboard PWA
+    // Admin Dashboard PWA - Light mode status bar
     if (type === 'admin') {
+      console.log(`[${VERSION}] Serving admin manifest`)
       const adminManifest = {
         name: 'Storekriti Admin',
         short_name: 'SK Admin',
         description: 'Manage your Storekriti store - orders, products, analytics and more',
-        theme_color: '#6366f1',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
@@ -73,7 +81,8 @@ Deno.serve(async (req) => {
         ]
       }
 
-      return new Response(JSON.stringify(adminManifest, null, 2), {
+      console.log(`[${VERSION}] Admin manifest served successfully`)
+      return new Response(JSON.stringify({ ...adminManifest, _version: VERSION }, null, 2), {
         headers: corsHeaders,
       })
     }
