@@ -58,8 +58,29 @@ export default defineConfig(({ mode }) => ({
         ]
       },
       workbox: {
+        // Critical: ensure new publishes are reflected immediately.
+        // - skipWaiting/clientsClaim: new SW takes control right away
+        // - NetworkFirst for navigations: prevents stale index.html/app-shell causing "one publish behind"
+        skipWaiting: true,
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
+          {
+            // Always revalidate HTML navigations so updated index.html is picked up immediately
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 5, // 5 minutes
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
