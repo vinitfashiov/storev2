@@ -13,7 +13,7 @@
 
 | Page | Cold Load | Warm Load | Target | Status |
 |------|-----------|-----------|--------|--------|
-| **Landing Page** (`/`) | 150-300ms | 50-100ms | <500ms | ✅ EXCELLENT |
+| **Landing Page** (`/`) | 150-300ms | 50-100 ms | <500ms | ✅ EXCELLENT |
 | **Auth Page** (`/authentication`) | 200-400ms | 100-200ms | <500ms | ✅ GOOD |
 | **Dashboard** (`/dashboard`) | 500-800ms | 200-400ms | <1s | ✅ GOOD |
 | **Store Home** (`/store/:slug`) | 400-600ms | 150-300ms | <500ms | ✅ GOOD |
