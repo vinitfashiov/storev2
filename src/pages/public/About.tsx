@@ -20,7 +20,7 @@ export default function About() {
             <p>
               We believe that technology should be an equalizer, not a barrier. That's why we built a platform that
               combines enterprise-grade power with consumer-grade simplicity. Whether you're a home baker, a fashion
-              designer, or a large retail brand, Storekriti gives you platform the tools to succeed online.
+              designer page builder, or a large retail brand, Storekriti gives you platform the tools to succeed online.
             </p>
           </div>
         </div>
