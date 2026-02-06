@@ -1,635 +1,908 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, 
-  Play, 
-  ChevronDown, 
-  ChevronUp,
-  Star,
-  Sparkles,
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PreloadLink } from "@/components/PreloadLink";
+import SEOHead from "@/components/shared/SEOHead";
+import {
+  Store,
+  ArrowRight,
+  Shield,
+  Zap,
+  Globe,
+  CreditCard,
   Check,
-  Menu,
-  X,
-  Mail
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import SEOHead from '@/components/shared/SEOHead';
+  Users,
+  BarChart3,
+  Sparkles,
+  Search,
+  Boxes,
+  Workflow,
+  Plug,
+  Lock,
+  ChevronRight,
+  Quote,
+} from "lucide-react";
 
-// Brand logos for marquee
-const brandLogos = [
-  'Shopify', 'Razorpay', 'Shiprocket', 'Meta', 'Google', 'PayTM', 'PhonePe', 'Stripe'
-];
+const LOGOS = ["ANTHROPIC", "coinbase", "Microsoft", "perplexity", "HubSpot", "x", "PayPal", "Lovable"];
 
-// Stats data
-const stats = [
-  { value: '22', suffix: '%', title: 'Enhanced Conversions', description: 'StoreKriti boosts conversions and enhances the quality of each sale.' },
-  { value: '40', suffix: '%', title: 'Reduced RTO Rates', description: 'Using our platform, brands have improved Return-to-Origin rates significantly.' },
-  { value: '48', suffix: '%', title: 'Improved Prepaid Share', description: 'Our checkout increases prepaid orders by optimizing trust and speed.' },
-];
-
-// Features data
-const features = [
+const FEATURE_GRID = [
   {
-    title: 'OTP Authentication & Pre-Filled Addresses',
-    description: 'Elevate your checkout experience with OTP authentication for security and instant address fill to speed up transactions. Combat RTO issues, and make every sale seamless.',
-    stat: '30% of e-commerce deliveries face Return To Origin (RTO) challenges.',
-    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
-    reverse: false,
+    icon: Zap,
+    title: "Fast setup",
+    desc: "Launch a tenant store in minutes with templates + guided onboarding.",
   },
   {
-    title: 'Dynamic Couponing & AI Upselling',
-    description: 'Maximize AOV with dynamic couponing and smart upselling. Offer personalized promotions and recommendations to enhance customer satisfaction.',
-    stat: '92% of online shoppers search for a coupon before completing purchase.',
-    image: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=600&h=400&fit=crop',
-    reverse: true,
+    icon: Globe,
+    title: "Multi-tenant architecture",
+    desc: "Isolated stores, data separation, and safe scaling for thousands of tenants.",
   },
   {
-    title: 'Prepaid Incentives & COD Optimization',
-    description: 'Boost prepaid purchases and manage COD efficiently with discounts and surcharges, optimizing your revenue and operational flow.',
-    stat: 'E-commerce brands report COD share over 65%.',
-    image: 'https://images.unsplash.com/photo-1556742111-a301076d9d18?w=600&h=400&fit=crop',
-    reverse: false,
-  },
-];
-
-// Testimonials
-const testimonials = [
-  {
-    quote: "StoreKriti has greatly improved our operations by reducing COD orders with Partial COD and boosting prepaid ones. They've enabled efficient scaling, and the team's support has made a strong business impact.",
-    author: 'Rahul Sharma',
-    role: 'Co-Founder & MD',
-    company: 'Fashion Brand',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=face',
-    large: true,
+    icon: Shield,
+    title: "Security by design",
+    desc: "RBAC, audit logs, and best-practice defaults to protect customer data.",
   },
   {
-    quote: "StoreKriti has transformed our checkout process with a smooth, customizable experience. Their support is exceptional.",
-    author: 'Priya Patel',
-    role: 'Founder & CEO',
-    company: 'Home Decor Store',
-    image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=face',
+    icon: CreditCard,
+    title: "Payments & billing",
+    desc: "Razorpay-ready checkout + subscription billing patterns for SaaS monetization.",
   },
   {
-    quote: "StoreKriti promised a customized checkout and higher prepaid share—and delivered within four months. Support and expertise were key.",
-    author: 'Amit Kumar',
-    role: 'Founder',
-    company: 'Electronics Store',
-    image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face',
+    icon: Users,
+    title: "Customer management",
+    desc: "Orders, customers, retention, and operational workflows in one place.",
+  },
+  {
+    icon: BarChart3,
+    title: "Analytics",
+    desc: "Store-level & platform-level insights to optimize growth and revenue.",
   },
 ];
 
-// Reviews
-const reviews = [
-  { text: "The checkout is fast, clean, and conversion-friendly. COD optimizations saved us a ton of RTO cost.", role: 'Operations Lead', company: 'D2C Brand' },
-  { text: "OTP + Address autofill made checkout frictionless. Prepaid share jumped noticeably in weeks.", role: 'Growth Manager', company: 'Online Store' },
-  { text: "Support is fast and practical. Integrations and tracking helped our team move quickly.", role: 'Founder', company: 'D2C Commerce' },
+const SOLUTIONS = [
+  {
+    icon: Boxes,
+    title: "Agency / Studio",
+    desc: "Create and manage multiple client stores from a single dashboard.",
+    bullets: ["White-label branding", "Tenant templates", "Central billing"],
+  },
+  {
+    icon: Store,
+    title: "SaaS founders",
+    desc: "Ship a store-builder product with tiers, add-ons, and analytics on day 1.",
+    bullets: ["Pricing tiers", "Add-ons", "Usage analytics"],
+  },
+  {
+    icon: Workflow,
+    title: "Vertical marketplaces",
+    desc: "Onboard sellers faster with isolated catalogs, themes, and payment setup.",
+    bullets: ["Seller onboarding", "Store isolation", "Payments per tenant"],
+  },
 ];
 
-// FAQ data
-const faqs = [
-  { q: 'What does StoreKriti cost?', a: 'Pricing depends on volume and features. We offer flexible plans—schedule a demo for an exact quote.' },
-  { q: 'Is StoreKriti a payment gateway?', a: 'No. StoreKriti is a complete e-commerce platform that works with your payment gateway(s). It improves conversion, prepaid share, and reduces RTO with smarter flows.' },
-  { q: 'Do I need technical skills to use StoreKriti?', a: 'Not at all! StoreKriti is designed for non-technical users. Our intuitive interface lets you build and manage your store without any coding.' },
-];
-
-// Integration badges
-const integrations = [
-  'Shopify', 'Razorpay', 'Shiprocket', 'Meta', 'Google', 'Webhooks', 'SMS/OTP', 'UPI', 'COD Rules', 'Coupons', 'Analytics', 'CRM'
+const FAQ = [
+  {
+    q: "Is Storekriti a website builder or a full SaaS platform?",
+    a: "It’s a multi-tenant SaaS platform: tenant stores + admin console + payments + analytics, built to run many stores at scale.",
+  },
+  {
+    q: "Can each tenant map a custom domain?",
+    a: "Yes. Tenants can map custom domains, while you can keep a default platform domain for instant onboarding.",
+  },
+  {
+    q: "How do you handle tenant isolation?",
+    a: "Stores are isolated by tenant boundaries (data + configuration), designed for safe scaling and controlled access.",
+  },
+  {
+    q: "Does it support Razorpay?",
+    a: "Yes—Razorpay-friendly flows (checkout + webhook patterns) are supported for ecommerce and subscriptions.",
+  },
 ];
 
 export default function Index() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const schema = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Storekriti",
+    "url": "https://www.storekriti.com",
+    "logo": "https://www.storekriti.com/logo.png",
+    "sameAs": [
+      "https://www.facebook.com/storekriti",
+      "https://www.instagram.com/storekriti",
+      "https://www.linkedin.com/company/storekriti"
+    ]
+  });
 
   return (
-    <>
-      <SEOHead 
-        title="StoreKriti — Checkout That Converts"
-        description="Skyrocket your sales with the innovative checkout suite that provides a faster, smoother, and wiser checkout experience."
+    <div className="min-h-screen bg-background text-foreground">
+      <SEOHead
+        title="Storekriti – India’s D2C Ecommerce Store Builder"
+        description="Create your online store in minutes with Storekriti. Launch, manage and grow your ecommerce or grocery business with zero coding."
+        canonicalUrl="https://storekriti.com"
+        schema={schema}
       />
-      
-      <style>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .animate-marquee {
-          animation: marquee 25s linear infinite;
-        }
-        .animate-marquee:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
 
-      <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', 'Manrope', ui-sans-serif, system-ui, sans-serif" }}>
-        {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              {/* Logo */}
-              <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">S</span>
-                </div>
-                <span className="text-xl font-bold text-gray-900">StoreKriti</span>
-              </Link>
 
-              {/* Desktop Nav */}
-              <div className="hidden md:flex items-center gap-8">
-                <Link to="/" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">Home</Link>
-                <Link to="/features" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">Features</Link>
-                <Link to="/pricing" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">Pricing</Link>
-                <Link to="/about" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">About Us</Link>
-                <Link to="/contact" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">Contact Us</Link>
-              </div>
+      {/* =========================
+          HERO (match screenshot)
+          ========================= */}
+      <section className="relative overflow-hidden">
+        {/* Mintlify-ish sky background (CSS only, super fast) */}
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,#0b5b6a_0%,#1b7b83_35%,#63b5a4_70%,#f7faf9_100%)]" />
 
-              {/* CTA */}
-              <div className="hidden md:flex items-center gap-4">
-                <Link to="/auth">
-                  <Button className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-6 text-sm font-medium shadow-lg shadow-violet-200/50">
-                    Schedule a demo
-                  </Button>
-                </Link>
-              </div>
+        {/* Soft atmosphere */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_40%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_30%,rgba(255,255,255,0.10),transparent_45%)]" />
 
-              {/* Mobile menu button */}
-              <button 
-                className="md:hidden p-2"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
+        {/* Lightweight “clouds” using inline SVG */}
+        <svg
+          className="absolute left-0 top-16 w-[900px] max-w-none opacity-90"
+          viewBox="0 0 900 260"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M130 190c-62 0-112-40-112-90 0-44 40-82 94-88 22-38 70-64 126-64 72 0 132 42 142 98 8-2 17-3 26-3 58 0 106 36 106 80 0 45-48 81-106 81H130Z"
+            fill="rgba(255,232,140,0.95)"
+          />
+          <path
+            d="M520 210c-64 0-116-38-116-86 0-41 37-76 88-84 20-36 64-60 116-60 66 0 122 38 132 90 8-2 17-3 26-3 54 0 98 34 98 76 0 42-44 77-98 77H520Z"
+            fill="rgba(255,232,140,0.70)"
+          />
+        </svg>
+
+        <div className="relative container mx-auto px-4">
+          {/* Top spacing matches screenshot */}
+          <div className="pt-14 pb-10 md:pt-16 md:pb-12 text-center">
+            <div className="flex items-center justify-center">
+              <Badge className="rounded-full bg-white/10 text-white border-white/15">
+                <Sparkles className="w-3.5 h-3.5 mr-1" />
+                AI search, docs & commerce operations
+              </Badge>
             </div>
+
+            {/* ✅ Keep SEO strong: h1 stays, same semantics */}
+            <h1 className="mt-5 text-3xl sm:text-4xl md:text-6xl font-display font-bold tracking-tight text-white leading-[1.07]">
+              The intelligent
+              <br />
+              ecommerce builder platform
+            </h1>
+
+            <p className="mt-4 text-sm sm:text-base md:text-lg text-white/80 max-w-2xl mx-auto">
+              Build and manage multi-tenant ecommerce stores with speed, security, and an admin experience your
+              customers will love.
+            </p>
+
+            {/* CTA row like screenshot (email + button) */}
+            <div className="mt-6 flex flex-col sm:flex-row items-stretch justify-center gap-2 max-w-md mx-auto">
+              <div className="flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-4 h-11">
+                <Search className="w-4 h-4 text-white/75" />
+                <input
+                  className="w-full bg-transparent outline-none text-white placeholder:text-white/60 text-sm"
+                  placeholder="Email address"
+                  inputMode="email"
+                />
+              </div>
+
+              <Button className="h-11 rounded-full bg-white text-[#0b5b6a] hover:bg-white/90" asChild>
+                <PreloadLink to="/authentication">
+                  Start free <ArrowRight className="w-4 h-4 ml-2" />
+                </PreloadLink>
+              </Button>
+            </div>
+
+            <div className="mt-3 text-[12px] text-white/70">7-day free trial • No credit card required</div>
           </div>
 
-          {/* Mobile menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden bg-white border-t border-gray-100 py-4 px-4">
-              <div className="flex flex-col gap-4">
-                <Link to="/" className="text-gray-600 hover:text-gray-900 font-medium">Home</Link>
-                <Link to="/features" className="text-gray-600 hover:text-gray-900 font-medium">Features</Link>
-                <Link to="/pricing" className="text-gray-600 hover:text-gray-900 font-medium">Pricing</Link>
-                <Link to="/about" className="text-gray-600 hover:text-gray-900 font-medium">About Us</Link>
-                <Link to="/contact" className="text-gray-600 hover:text-gray-900 font-medium">Contact Us</Link>
-                <Link to="/auth">
-                  <Button className="bg-violet-600 hover:bg-violet-700 text-white rounded-full w-full">
-                    Schedule a demo
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        {/* Hero Section - FlexyPe Style */}
-        <section className="pt-20 pb-4 md:pt-32 md:pb-16 overflow-hidden relative" style={{ background: 'linear-gradient(180deg, #e8f4fc 0%, #e5f7f3 50%, #f0faf5 100%)' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <div className="text-center max-w-4xl mx-auto">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-white/90 text-gray-700 rounded-full px-4 py-2 md:px-5 md:py-2.5 text-xs md:text-sm font-medium mb-6 md:mb-8 shadow-sm border border-gray-100">
-                <span>🚀</span>
-                <span>Presenting StoreKriti</span>
-              </div>
-
-              {/* Headline - Mobile optimized line breaks */}
-              <h1 className="text-[32px] md:text-5xl lg:text-[64px] font-extrabold text-[#1a2b4a] leading-[1.15] md:leading-[1.1] mb-5 md:mb-6 tracking-tight px-2 md:px-0" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                <span className="inline md:inline">Simple </span>
-                <span className="relative inline-flex items-baseline">
-                  <span className="bg-gradient-to-r from-[#0066cc] via-[#0088dd] to-[#00aaee] bg-clip-text text-transparent">
-                    1 click
-                  </span>
-                  <svg className="w-3.5 h-3.5 md:w-5 md:h-5 text-[#0077cc] absolute -right-4 md:-right-5 -top-0.5 md:-top-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
-                  </svg>
-                </span>
-                <br className="md:hidden" />
-                <span className="hidden md:inline"><br /></span>
-                <span className="block md:inline">Checkout That</span>
-                <br className="md:hidden" />
-                <span className="block md:inline"> Converts</span>
-              </h1>
-
-              {/* Subheadline */}
-              <p className="text-sm md:text-lg text-gray-500 mb-8 md:mb-10 max-w-sm md:max-w-xl mx-auto leading-relaxed font-normal px-4 md:px-0">
-                Skyrocket your sales with the innovative checkout suite that provides a faster, smoother, and wiser checkout experience.
-              </p>
-
-              {/* CTA Buttons - Side by side on mobile */}
-              <div className="flex flex-row items-center justify-center gap-3 md:gap-4 mb-10 md:mb-16 px-4 md:px-0">
-                <Link to="/auth">
-                  <Button size="default" className="bg-[#1a2b4a] hover:bg-[#0f1d33] text-white rounded-full px-5 md:px-8 h-10 md:h-12 text-sm md:text-base font-semibold shadow-lg transition-all hover:-translate-y-0.5">
-                    Talk to us
-                  </Button>
-                </Link>
-                <Button size="default" variant="outline" className="rounded-full px-5 md:px-8 h-10 md:h-12 text-sm md:text-base font-semibold border-gray-300 bg-white hover:bg-gray-50 text-gray-700">
-                  How it works
-                </Button>
-              </div>
-
-              {/* Dashboard Preview - Full width on mobile */}
-              <div className="relative max-w-5xl mx-auto -mx-4 md:mx-auto px-0 md:px-0">
-                <div className="bg-white rounded-lg md:rounded-xl shadow-2xl shadow-gray-300/40 border border-gray-200 overflow-hidden mx-2 md:mx-0">
-                  <img 
-                    src="/dashboard.png"
-                    alt="Dashboard Preview"
-                    className="w-full h-auto"
-                    onError={(e) => {
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=700&fit=crop";
-                    }}
-                  />
-                  {/* Play button overlay - Centered on mobile, bottom-right on desktop */}
-                  <div className="absolute inset-0 flex items-center justify-center md:items-end md:justify-end md:pb-12 md:pr-12">
-                    <button className="flex items-center gap-2 md:gap-3 bg-white/95 backdrop-blur-sm rounded-full pl-3 md:pl-4 pr-5 md:pr-6 py-2.5 md:py-3 shadow-xl hover:scale-105 transition-transform group border border-gray-100">
-                      <div className="w-8 h-8 md:w-10 md:h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Play className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-700 ml-0.5" fill="currentColor" />
-                      </div>
-                      <span className="font-semibold text-gray-700 text-sm md:text-base">Play</span>
-                    </button>
+          {/* Browser mock (fast, no image) */}
+          <div className="pb-10 md:pb-14">
+            <div className="mx-auto max-w-5xl rounded-2xl border border-black/10 bg-white/95 shadow-[0_20px_50px_rgba(0,0,0,0.18)] overflow-hidden">
+              {/* top chrome */}
+              <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   </div>
+                  <div className="ml-2 text-xs text-muted-foreground">app.storekriti.com</div>
+                </div>
+                <div className="text-xs text-muted-foreground hidden sm:block">
+                  Dashboard • Stores • Billing • Analytics
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* Brand Marquee */}
-        <section className="py-16 bg-slate-50 border-y border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-10">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Partnered with the Best</span>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mt-3">Trusted By Industry Leading Brands</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                StoreKriti powers the checkout for industry leaders, offering seamless checkout and unmatched reliability.
-              </p>
-            </div>
-
-            <div className="overflow-hidden">
-              <div className="animate-marquee flex gap-16 whitespace-nowrap">
-                {[...brandLogos, ...brandLogos].map((brand, i) => (
-                  <div key={i} className="flex-shrink-0 h-12 flex items-center justify-center px-6">
-                    <span className="text-xl font-bold text-gray-300 hover:text-gray-400 transition-colors">{brand}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-14">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Success Snapshots</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">How StoreKriti has revolutionised D2C checkouts</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                Streamlined checkouts, elevated conversions. Transforming clicks into customers, effortlessly.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {stats.map((stat, i) => (
-                <div key={i} className="bg-gradient-to-br from-slate-50 to-white rounded-2xl p-8 border border-gray-100 text-center hover:shadow-xl hover:shadow-gray-100/50 transition-all hover:-translate-y-1">
-                  <div className="text-5xl md:text-6xl font-extrabold text-violet-600 mb-2">
-                    {stat.value}<span className="text-3xl">{stat.suffix}</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{stat.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{stat.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-14">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Feature Highlights</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">Advanced Features for Enhanced Checkout Performance</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                Unlock lightning-fast sales with one-tap authentication and instant address fill, crafted for peak performance.
-              </p>
-            </div>
-
-            <div className="space-y-24">
-              {features.map((feature, i) => (
-                <div 
-                  key={i} 
-                  className={`flex flex-col ${feature.reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-12 md:gap-16`}
-                >
-                  {/* Image */}
-                  <div className="flex-1 w-full">
-                    <div className="rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 border border-gray-100">
-                      <img 
-                        src={feature.image} 
-                        alt={feature.title}
-                        className="w-full h-auto"
-                      />
+              {/* inner content */}
+              <div className="grid grid-cols-12">
+                {/* sidebar */}
+                <div className="col-span-4 sm:col-span-3 border-r bg-emerald-50/40 p-3 sm:p-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                      <Store className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div className="leading-tight">
+                      <div className="text-sm font-semibold">Storekriti</div>
+                      <div className="text-[11px] text-muted-foreground">Workspace</div>
                     </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                    <p className="text-gray-500 mb-6 leading-relaxed">{feature.description}</p>
-                    
-                    <div className="flex items-start gap-3 bg-violet-50 rounded-xl p-4 mb-6 border border-violet-100">
-                      <div className="w-6 h-6 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="w-4 h-4 text-violet-600" />
+                  <div className="mt-4 space-y-2 text-sm">
+                    {[
+                      { i: Boxes, t: "Stores" },
+                      { i: Users, t: "Customers" },
+                      { i: CreditCard, t: "Payments" },
+                      { i: BarChart3, t: "Analytics" },
+                      { i: Plug, t: "Integrations" },
+                      { i: Workflow, t: "Automations" },
+                    ].map((x) => (
+                      <div key={x.t} className="flex items-center gap-2 rounded-xl px-3 py-2 border bg-white">
+                        <x.i className="w-4 h-4 text-emerald-700/80" />
+                        <span className="text-foreground/80">{x.t}</span>
                       </div>
-                      <p className="text-gray-600 text-sm">{feature.stat}</p>
-                    </div>
-
-                    <Button variant="link" className="text-violet-600 hover:text-violet-700 p-0 font-semibold text-sm">
-                      Learn More <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center mt-16">
-              <Link to="/auth">
-                <Button size="lg" className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 h-12 font-semibold shadow-xl shadow-violet-300/40">
-                  Skyrocket Your Checkout
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
+                {/* main */}
+                <div className="col-span-8 sm:col-span-9 p-3 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Stores</div>
+                      <div className="text-lg font-semibold tracking-tight">Quickstart</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Create a tenant store and go live with a theme + catalog + payments.
+                      </div>
+                    </div>
+                    <Badge className="rounded-full bg-emerald-600 text-white">New</Badge>
+                  </div>
 
-        {/* Integrations Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-14">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Integration</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">Seamless Sync with Your Favorite Tools</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                Maximize efficiency with StoreKriti's seamless integrations. Connect your favorite tools, streamline your workflow.
-              </p>
-            </div>
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[
+                      { t: "Create store", d: "Tenant setup, branding & domain" },
+                      { t: "Add products", d: "Catalog import & collections" },
+                      { t: "Configure payments", d: "Razorpay + webhooks" },
+                      { t: "Go live", d: "SEO, speed, and launch checklist" },
+                    ].map((c) => (
+                      <div key={c.t} className="rounded-xl border bg-emerald-50/30 p-4">
+                        <div className="text-sm font-medium">{c.t}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{c.d}</div>
+                        <div className="mt-3 h-2 rounded-full bg-emerald-600/15 overflow-hidden">
+                          <div className="h-full w-2/5 bg-emerald-600/55 rounded-full" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
 
-            <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-              {integrations.map((integration, i) => (
-                <span 
-                  key={i}
-                  className="bg-slate-100 text-gray-600 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-violet-100 hover:text-violet-700 transition-colors cursor-pointer"
-                >
-                  {integration}
-                </span>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Testimonials Section */}
-        <section className="py-20 bg-slate-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-14">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Voices of Trust</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">Client Success Stories</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                Real feedback from our partners — see how StoreKriti has transformed their businesses.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-8 mb-10">
-              {/* Large testimonial */}
-              <div className="bg-white rounded-2xl p-8 shadow-xl shadow-gray-100/50 border border-gray-100 md:row-span-2 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-4 mb-6">
-                    <img 
-                      src={testimonials[0].image}
-                      alt={testimonials[0].author}
-                      className="w-16 h-16 rounded-full object-cover ring-4 ring-violet-50"
-                    />
-                    <div className="flex gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-5 h-5 text-amber-400" fill="currentColor" />
+                  {/* subtle skeleton row */}
+                  <div className="mt-4 rounded-xl border bg-white p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Live metrics</div>
+                      <div className="text-xs text-muted-foreground">last 24h</div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {["Orders", "Revenue", "Active stores"].map((k) => (
+                        <div key={k} className="rounded-lg border bg-muted/20 p-3">
+                          <div className="text-[11px] text-muted-foreground">{k}</div>
+                          <div className="mt-2 h-3 w-16 rounded bg-muted/40" />
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <blockquote className="text-gray-600 text-lg leading-relaxed mb-6">
-                    "{testimonials[0].quote}"
-                  </blockquote>
                 </div>
-                <div>
-                  <div className="font-bold text-gray-900">{testimonials[0].author}</div>
-                  <div className="text-gray-400 text-sm">{testimonials[0].role} of {testimonials[0].company}</div>
+              </div>
+            </div>
+
+            {/* Logos row */}
+            <div className="mt-10 md:mt-12 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-xs text-muted-foreground">
+              {LOGOS.map((l) => (
+                <div key={l} className="font-medium tracking-wide opacity-80">
+                  {l}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================
+          FEATURES (like screenshot)
+          ========================= */}
+      <section
+        id="features"
+        className="py-14 sm:py-16 md:py-20 px-4"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "900px",
+        }}
+      >
+        <div className="container mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="text-[11px] tracking-widest text-muted-foreground">BUILT FOR THE COMMERCE AGE</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight">
+              Built for modern SaaS commerce builders
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground">
+              Everything you need to launch tenant stores, manage operations, and scale safely—without sacrificing
+              performance.
+            </p>
+          </div>
+
+          {/* Two large feature blocks (mimic screenshot) */}
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border bg-background">
+              <CardHeader>
+                <div className="text-[11px] tracking-widest text-muted-foreground">BUILT TO SCALE</div>
+                <CardTitle className="font-display">For both people and systems</CardTitle>
+                <CardDescription>
+                  Your clients get a clean admin. Your platform gets safe tenant boundaries, observability, and
+                  predictable ops.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* mini illustration */}
+                <div className="rounded-2xl border bg-muted/15 p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-600/15 flex items-center justify-center">
+                        <Zap className="w-4 h-4 text-emerald-700" />
+                      </div>
+                      <div className="text-sm font-medium">Speed score</div>
+                    </div>
+                    <Badge className="rounded-full bg-emerald-600 text-white">Excellent</Badge>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {["Edge-cached landing pages", "Instant tenant routing", "Lean UI, minimal JS"].map((x) => (
+                      <div key={x} className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-emerald-700" />
+                        <div className="text-sm text-muted-foreground">{x}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 h-2 rounded-full bg-emerald-600/15 overflow-hidden">
+                    <div className="h-full w-[78%] bg-emerald-600/55 rounded-full" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border bg-background">
+              <CardHeader>
+                <div className="text-[11px] tracking-widest text-muted-foreground">SELF-SERVING</div>
+                <CardTitle className="font-display">Self-updating operations</CardTitle>
+                <CardDescription>
+                  Templates, workflows, and guardrails so tenants can ship faster while your team stays in control.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* mini illustration */}
+                <div className="rounded-2xl border bg-muted/15 p-5">
+                  <div className="flex items-center gap-3">
+                    {[1, 2, 3].map((n) => (
+                      <div
+                        key={n}
+                        className="w-10 h-10 rounded-full bg-emerald-600/15 flex items-center justify-center"
+                      >
+                        <Check className="w-5 h-5 text-emerald-700" />
+                      </div>
+                    ))}
+                    <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+                      <Lock className="w-4 h-4" />
+                      Audit-ready
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {[
+                      { t: "RBAC", d: "Roles & access control" },
+                      { t: "Templates", d: "Store presets & themes" },
+                      { t: "Billing", d: "Plans & add-ons" },
+                      { t: "Logs", d: "Actions & events" },
+                    ].map((m) => (
+                      <div key={m.t} className="rounded-xl border bg-background p-4">
+                        <div className="text-sm font-medium">{m.t}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{m.d}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Feature grid */}
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {FEATURE_GRID.map((f) => (
+              <Card key={f.title} className="border bg-background/80 backdrop-blur">
+                <CardContent className="pt-6">
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600/15 flex items-center justify-center">
+                    <f.icon className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <div className="mt-4 text-base font-semibold">{f.title}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{f.desc}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================
+          ENTERPRISE STRIP (like screenshot)
+          ========================= */}
+      <section
+        id="security"
+        className="py-14 sm:py-16 md:py-20 px-4 bg-muted/25"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "820px",
+        }}
+      >
+        <div className="container mx-auto">
+          <div className="max-w-2xl">
+            <div className="text-[11px] tracking-widest text-muted-foreground">ENTERPRISE-READY</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight">
+              Bring multi-tenant commerce to enterprise
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground">
+              Professional services, compliance options, and platform controls built for teams that ship serious
+              products.
+            </p>
+          </div>
+
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border bg-background/80">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">Build with partnership</CardTitle>
+                <CardDescription>
+                  We help you plan tenant architecture, billing, and onboarding flows that scale.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>Architecture review & rollout plan</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>Migration assistance & best practices</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>Dedicated success channel</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border bg-background/80">
+              <CardHeader>
+                <CardTitle className="text-lg font-display">Compliance & access control</CardTitle>
+                <CardDescription>Keep teams safe with controlled access and auditable operations.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground space-y-2">
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>RBAC with scoped permissions</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>Audit logs + export-ready events</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                  <span>Security-first defaults</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Big gradient card with “arch” illustration vibe */}
+          <div className="mt-8 rounded-2xl overflow-hidden border bg-[linear-gradient(180deg,#0b5b6a_0%,#1b7b83_40%,#123a43_100%)]">
+            <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div className="text-white">
+                <div className="text-[11px] tracking-widest text-white/70">CASE STUDY</div>
+                <h3 className="mt-3 text-2xl md:text-3xl font-display font-bold tracking-tight">
+                  See how teams accelerate development with Storekriti
+                </h3>
+                <p className="mt-3 text-sm md:text-base text-white/80">
+                  Launch stores faster, keep tenants isolated, and track growth across your platform with clean
+                  analytics.
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-6">
+                  <div>
+                    <div className="text-2xl font-display font-bold">2M+</div>
+                    <div className="text-xs text-white/70">monthly page views</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-display font-bold">3+</div>
+                    <div className="text-xs text-white/70">tenant tiers supported</div>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <Button className="rounded-full bg-white text-[#0b5b6a] hover:bg-white/90" asChild>
+                    <PreloadLink to="/authentication">
+                      Explore enterprise <ArrowRight className="w-4 h-4 ml-2" />
+                    </PreloadLink>
+                  </Button>
                 </div>
               </div>
 
-              {/* Smaller testimonials */}
-              {testimonials.slice(1).map((testimonial, i) => (
-                <div key={i} className="bg-white rounded-2xl p-6 shadow-xl shadow-gray-100/50 border border-gray-100">
-                  <blockquote className="text-gray-600 mb-5 leading-relaxed">
-                    "{testimonial.quote}"
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={testimonial.image}
-                      alt={testimonial.author}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="font-semibold text-gray-900 text-sm">{testimonial.author}</div>
-                      <div className="text-gray-400 text-xs">{testimonial.role} of {testimonial.company}</div>
+              {/* Arch illustration (CSS only, no images) */}
+              <div className="relative">
+                <div className="absolute -inset-6 rounded-3xl bg-white/5 blur-2xl" />
+                <div className="relative mx-auto w-full max-w-md aspect-[16/10] rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.02))] border border-white/10 overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_35%,rgba(255,220,120,0.35),transparent_55%)]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.25),transparent_60%)]" />
+
+                  {/* arch */}
+                  <div className="absolute right-6 bottom-4 w-40 h-40">
+                    <div className="absolute inset-0 rounded-[999px] bg-[conic-gradient(from_180deg,rgba(255,195,80,1),rgba(255,230,150,1),rgba(255,195,80,1))]" />
+                    <div className="absolute inset-[10px] rounded-[999px] bg-[#0f4d57]" />
+                    <div className="absolute inset-[24px] rounded-[999px] bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.00))]" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-0 w-24 h-24 bg-[#0f4d57]" />
+                  </div>
+
+                  {/* ground */}
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-[linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,0.35))]" />
+
+                  {/* subtle stats badges */}
+                  <div className="absolute left-4 bottom-4 space-y-2">
+                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-white">
+                      <div className="text-xs text-white/70">Tenants</div>
+                      <div className="text-lg font-display font-bold">128</div>
+                    </div>
+                    <div className="rounded-xl bg-white/10 border border-white/10 px-3 py-2 text-white">
+                      <div className="text-xs text-white/70">Speed</div>
+                      <div className="text-lg font-display font-bold">Fast</div>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            <div className="text-center">
-              <Link to="/auth">
-                <Button variant="outline" className="rounded-full px-8 border-gray-300 hover:bg-gray-50 font-medium">
-                  Simplify Checkout
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Reviews Section */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-14">
-              <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Voices of Experience</span>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3">What Our Clients Say</h2>
-              <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm">
-                Hear directly from our customers about their experience partnering with StoreKriti.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {reviews.map((review, i) => (
-                <div key={i} className="bg-slate-50 rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow">
-                  <div className="flex gap-0.5 mb-4">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} className="w-4 h-4 text-amber-400" fill="currentColor" />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-5 text-sm leading-relaxed">"{review.text}"</p>
-                  <div>
-                    <div className="font-semibold text-gray-900 text-sm">{review.role}</div>
-                    <div className="text-gray-400 text-xs">{review.company}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-10">
-              <Link to="/auth">
-                <Button className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-8 font-medium">
-                  Boost Revenue
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* FAQ Section */}
-        <section className="py-20 bg-slate-50">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-2 gap-12 items-start">
-              <div>
-                <span className="text-violet-600 font-semibold text-xs uppercase tracking-widest">Support</span>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-3 mb-4">FAQ: Your Questions, Answered</h2>
-                <p className="text-gray-500 mb-6 text-sm">
-                  Find quick answers to common queries and get clarity on how StoreKriti can work for you.
-                </p>
-                <Link to="/contact">
-                  <Button className="bg-violet-600 hover:bg-violet-700 text-white rounded-full px-6 font-medium">
-                    Get Answers
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="space-y-4">
-                {faqs.map((faq, i) => (
-                  <div 
-                    key={i}
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
-                  >
-                    <button
-                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                      className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
-                    >
-                      <span className="font-semibold text-gray-900 text-sm pr-4">{faq.q}</span>
-                      {openFaq === i ? (
-                        <ChevronUp className="w-5 h-5 text-violet-500 flex-shrink-0" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                      )}
-                    </button>
-                    {openFaq === i && (
-                      <div className="px-5 pb-5 text-gray-500 text-sm leading-relaxed">
-                        {faq.a}
-                      </div>
-                    )}
-                  </div>
-                ))}
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* CTA Section */}
-        <section className="py-24 bg-gradient-to-br from-violet-600 via-purple-600 to-violet-700 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
-            <div className="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
+            {/* footer logos */}
+            <div className="border-t border-white/10 px-6 md:px-8 py-4 flex flex-wrap gap-x-10 gap-y-3 items-center justify-center text-white/70 text-xs">
+              {["ANTHROPIC", "coinbase", "HubSpot", "zapier", "AT&T"].map((x) => (
+                <span key={x} className="tracking-wide">
+                  {x}
+                </span>
+              ))}
+            </div>
           </div>
-          
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-6 tracking-tight">
-              Redefine the Checkout
+        </div>
+      </section>
+
+      {/* =========================
+          SOLUTIONS + TESTIMONIALS
+          ========================= */}
+      <section
+        id="solutions"
+        className="py-14 sm:py-16 md:py-20 px-4"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "950px",
+        }}
+      >
+        <div className="container mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="text-[11px] tracking-widest text-muted-foreground">CUSTOMERS</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight">
+              Unlock commerce for any industry
             </h2>
-            <p className="text-violet-100 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-              Tap into the power of StoreKriti and let's transform your customer's journey together. It's time to lead the charge in D2C commerce.
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground">
+              From agencies to vertical marketplaces, teams use Storekriti to launch fast and scale safely.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/auth">
-                <Button size="lg" className="bg-white text-violet-600 hover:bg-gray-100 rounded-full px-8 h-12 font-semibold shadow-xl">
-                  Get Started
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {SOLUTIONS.map((s) => (
+              <Card key={s.title} className="border bg-background">
+                <CardHeader>
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600/15 flex items-center justify-center">
+                    <s.icon className="w-5 h-5 text-emerald-700" />
+                  </div>
+                  <CardTitle className="mt-3 font-display">{s.title}</CardTitle>
+                  <CardDescription>{s.desc}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm text-muted-foreground">
+                  {s.bullets.map((b) => (
+                    <div key={b} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-700 mt-0.5" />
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Story cards (like screenshot) */}
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                brand: "Perplexity",
+                title: "How teams scale operations with multi-tenant workflows",
+              },
+              {
+                brand: "X",
+                title: "How a builder platform cut launch time by 60%",
+              },
+              { brand: "Kalshi", title: "How marketplaces onboard sellers faster" },
+            ].map((c) => (
+              <Card key={c.brand} className="border overflow-hidden bg-background">
+                <div className="h-40 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.35),transparent_55%),radial-gradient(circle_at_70%_70%,rgba(0,0,0,0.14),transparent_60%)]" />
+                <CardContent className="pt-5">
+                  <div className="text-sm font-semibold">{c.brand}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{c.title}</div>
+                  <div className="mt-4 inline-flex items-center text-sm text-emerald-700">
+                    Read story <ChevronRight className="w-4 h-4 ml-1" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================
+          PRICING (keep id + structure)
+          ========================= */}
+      <section
+        id="pricing"
+        className="py-14 sm:py-16 md:py-20 px-4 bg-muted/25"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "900px",
+        }}
+      >
+        <div className="container mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="text-[11px] tracking-widest text-muted-foreground">PRICING</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight">
+              Pricing on your terms
+            </h2>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground">
+              Start free, upgrade when you’re ready. No hidden fees.
+            </p>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <Card className="border bg-background">
+              <CardHeader>
+                <CardTitle className="text-xl font-display font-bold">Free Trial</CardTitle>
+                <CardDescription>Perfect for getting started</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-bold tracking-tight">₹0</span>
+                  <span className="text-muted-foreground"> / 7 days</span>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {["Full store functionality", "Up to 10 products", "Basic analytics", "Email support"].map(
+                    (feature) => (
+                      <li key={feature} className="flex items-center gap-2">
+                        <Check className="w-5 h-5 text-emerald-600" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </li>
+                    ),
+                  )}
+                </ul>
+
+                <Button variant="outline" className="w-full rounded-full" asChild>
+                  <PreloadLink to="/authentication">Start Free Trial</PreloadLink>
                 </Button>
-              </Link>
-              <Link to="/features">
-                <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10 rounded-full px-8 h-12 font-semibold backdrop-blur-sm">
-                  Explore Features
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-600/30 bg-background shadow-[0_12px_30px_rgba(16,185,129,0.18)]">
+              <div className="pt-6 flex justify-center">
+                <Badge className="rounded-full bg-emerald-600 text-white">Most Popular</Badge>
+              </div>
+
+              <CardHeader>
+                <CardTitle className="text-xl font-display font-bold">Pro Plan</CardTitle>
+                <CardDescription>For growing businesses</CardDescription>
+              </CardHeader>
+
+              <CardContent className="pt-0">
+                <div className="mb-6">
+                  <span className="text-4xl font-display font-bold tracking-tight">₹1</span>
+                  <span className="text-muted-foreground"> / month</span>
+                </div>
+
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "Unlimited products",
+                    "Advanced analytics",
+                    "Priority support",
+                    "Custom domain",
+                    "Remove branding",
+                    "API access",
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-center gap-2">
+                      <Check className="w-5 h-5 text-emerald-600" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button className="w-full rounded-full bg-emerald-600 hover:bg-emerald-600/90" asChild>
+                  <PreloadLink to="/authentication">
+                    Get Started <ArrowRight className="w-4 h-4 ml-2" />
+                  </PreloadLink>
                 </Button>
-              </Link>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* CTA row like screenshot bottom */}
+          <div className="mt-12 text-center">
+            <h3 className="text-2xl sm:text-3xl font-display font-bold tracking-tight">
+              Make commerce your winning advantage
+            </h3>
+            <p className="mt-3 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
+              Join teams building modern multi-tenant ecommerce experiences with Storekriti.
+            </p>
+
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2">
+              <Button className="rounded-full bg-emerald-600 hover:bg-emerald-600/90" asChild>
+                <PreloadLink to="/authentication">
+                  Get started for free <ArrowRight className="w-4 h-4 ml-2" />
+                </PreloadLink>
+              </Button>
+              <Button variant="outline" className="rounded-full" asChild>
+                <PreloadLink to="/authentication">Get a demo</PreloadLink>
+              </Button>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Footer */}
-        <footer className="bg-gray-900 text-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid md:grid-cols-4 gap-10">
-              {/* Brand */}
-              <div className="md:col-span-1">
-                <Link to="/" className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">S</span>
-                  </div>
-                  <span className="text-xl font-bold">StoreKriti</span>
-                </Link>
-                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                  Streamlining your checkout experience with cutting-edge, one-click solution that converts.
-                </p>
-                <div className="flex gap-3">
-                  <a href="#" className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557a9.83 9.83 0 0 1-2.828.775 4.932 4.932 0 0 0 2.165-2.724 9.864 9.864 0 0 1-3.127 1.195 4.916 4.916 0 0 0-8.384 4.482A13.944 13.944 0 0 1 1.671 3.149a4.916 4.916 0 0 0 1.523 6.574 4.897 4.897 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.935 4.935 0 0 1-2.224.084 4.918 4.918 0 0 0 4.6 3.419A9.867 9.867 0 0 1 0 19.54a13.94 13.94 0 0 0 7.548 2.212c9.142 0 14.307-7.721 13.995-14.646A10.025 10.025 0 0 0 24 4.557z"/></svg>
+      {/* =========================
+          FAQ
+          ========================= */}
+      <section
+        id="faq"
+        className="py-14 sm:py-16 md:py-20 px-4"
+        style={{
+          contentVisibility: "auto",
+          containIntrinsicSize: "700px",
+        }}
+      >
+        <div className="container mx-auto">
+          <div className="text-center max-w-2xl mx-auto">
+            <div className="text-[11px] tracking-widest text-muted-foreground">FAQ</div>
+            <h2 className="mt-3 text-2xl sm:text-3xl md:text-4xl font-display font-bold tracking-tight">
+              Questions, answered
+            </h2>
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {FAQ.map((f) => (
+              <Card key={f.q} className="border bg-background">
+                <CardHeader>
+                  <CardTitle className="text-base font-display font-semibold">{f.q}</CardTitle>
+                  <CardDescription className="text-sm">{f.a}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+
+          {/* Small testimonial row */}
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                name: "Agency owner",
+                q: "We launched 10+ client stores without chaos.",
+              },
+              {
+                name: "SaaS founder",
+                q: "Billing + tenants worked from day one.",
+              },
+              {
+                name: "Marketplace lead",
+                q: "Seller onboarding became predictable and fast.",
+              },
+            ].map((t) => (
+              <Card key={t.name} className="border bg-background">
+                <CardContent className="pt-6">
+                  <Quote className="w-5 h-5 text-muted-foreground" />
+                  <div className="mt-3 text-sm text-muted-foreground">{t.q}</div>
+                  <div className="mt-4 text-sm font-medium">{t.name}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================
+          Footer (like screenshot style)
+          ========================= */}
+      <footer className="border-t border-border/60 py-12 px-4 bg-muted/10">
+        <div className="container mx-auto">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-600/15 flex items-center justify-center">
+                <Store className="w-4 h-4 text-emerald-700" />
+              </div>
+              <div className="leading-none">
+                <div className="font-display font-semibold tracking-tight">Storekriti</div>
+                <div className="text-[11px] text-muted-foreground">Built for modern commerce</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground tracking-widest">PRODUCT</div>
+                <div className="mt-3 space-y-2 text-muted-foreground">
+                  <a href="#features" className="block hover:text-foreground">
+                    Features
                   </a>
-                  <a href="#" className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  <a href="#pricing" className="block hover:text-foreground">
+                    Pricing
                   </a>
-                  <a href="#" className="w-9 h-9 bg-gray-800 rounded-full flex items-center justify-center hover:bg-violet-600 transition-colors">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>
+                  <a href="#security" className="block hover:text-foreground">
+                    Security
                   </a>
                 </div>
               </div>
-
-              {/* Menu */}
               <div>
-                <h4 className="font-semibold mb-4 text-sm">Menu</h4>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
-                  <li><Link to="/help" className="hover:text-white transition-colors">FAQs</Link></li>
-                  <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
-                </ul>
+                <div className="text-xs text-muted-foreground tracking-widest">COMPANY</div>
+                <div className="mt-3 space-y-2 text-muted-foreground">
+                  <a href="#solutions" className="block hover:text-foreground">
+                    Customers
+                  </a>
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Contact
+                  </Link>
+                  <a href="#faq" className="block hover:text-foreground">
+                    FAQ
+                  </a>
+                </div>
               </div>
-
-              {/* Company */}
               <div>
-                <h4 className="font-semibold mb-4 text-sm">Company</h4>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <li><Link to="/about" className="hover:text-white transition-colors">About us</Link></li>
-                  <li><Link to="/contact" className="hover:text-white transition-colors">Contact us</Link></li>
-                  <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                  <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
-                </ul>
+                <div className="text-xs text-muted-foreground tracking-widest">RESOURCES</div>
+                <div className="mt-3 space-y-2 text-muted-foreground">
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Docs
+                  </Link>
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Guides
+                  </Link>
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Support
+                  </Link>
+                </div>
               </div>
-
-              {/* Contact */}
               <div>
-                <h4 className="font-semibold mb-4 text-sm">Contact</h4>
-                <ul className="space-y-3 text-gray-400 text-sm">
-                  <li className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-violet-400" />
-                    hello@storekriti.com
-                  </li>
-                </ul>
+                <div className="text-xs text-muted-foreground tracking-widest">LEGAL</div>
+                <div className="mt-3 space-y-2 text-muted-foreground">
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Privacy
+                  </Link>
+                  <Link to="/authentication" className="block hover:text-foreground">
+                    Terms
+                  </Link>
+                </div>
               </div>
-            </div>
-
-            <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 text-sm">
-              Copyright © 2025 StoreKriti | All Rights Reserved
             </div>
           </div>
-        </footer>
-      </div>
-    </>
+
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div>© 2026 Storekriti. Owned and Operated by: Shailendra Singh.</div>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1">
+                <Shield className="w-3.5 h-3.5" /> Secure by design
+              </span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
