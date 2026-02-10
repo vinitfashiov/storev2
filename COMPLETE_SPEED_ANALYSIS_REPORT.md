@@ -3,7 +3,7 @@
 **Generated:** January 30, 2026  
 **System:** Storekriti - Multi-Tenant E-commerce Platform  
 **Hosting:** Lovable.dev Platform  
-**Database:** Supabase (PostgreSQL)
+**Database:** Supabase (Postgre SQL)
 
 ---
 
