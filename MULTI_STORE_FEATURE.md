@@ -1,4 +1,4 @@
-# Multi-Store Feature Documentation
+# Multi-Store Feat ure Documentation
 
 ## 🎯 Overview
 
