@@ -105,7 +105,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         return { error: new Error('Phone number already registered. Please login instead.') };
       }
 
-      const email = phoneToEmail(cleanedPhone, tid);
+      const email = customerEmail || phoneToEmail(cleanedPhone, tid);
       const redirectUrl = `${window.location.origin}/`;
       
       // Try to sign up
@@ -135,7 +135,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
             user_id: signInData.user.id,
             name,
             phone: cleanedPhone,
-            email: customerEmail || null
+            email: email // Use the email we signed up with
           });
 
           if (customerError) {
@@ -157,7 +157,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
           user_id: data.user.id,
           name,
           phone: cleanedPhone,
-          email: customerEmail || null
+          email: email // Use the email we signed up with
         });
 
         if (customerError) {
@@ -194,7 +194,9 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         return { error: new Error('No account found with this phone number. Please sign up first.') };
       }
 
-      const email = phoneToEmail(cleanedPhone, tid);
+      const email = (existingCustomer.email && existingCustomer.email.includes('@')) 
+        ? existingCustomer.email 
+        : phoneToEmail(cleanedPhone, tid);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

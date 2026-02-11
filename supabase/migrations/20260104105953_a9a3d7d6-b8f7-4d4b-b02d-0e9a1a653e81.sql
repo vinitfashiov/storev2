@@ -1,12 +1,12 @@
 -- Create user_tenants junction table for multi-store support
-CREATE TABLE public.user_tenants (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  is_primary BOOLEAN NOT NULL DEFAULT false,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-  UNIQUE(user_id, tenant_id)
-);
+-- CREATE TABLE public.user_tenants (
+--   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+--   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+--   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+--   is_primary BOOLEAN NOT NULL DEFAULT false,
+--   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+--   UNIQUE(user_id, tenant_id)
+-- );
 
 -- Add deleted_at column to tenants for soft delete
 ALTER TABLE public.tenants ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL;
@@ -32,6 +32,7 @@ ON public.user_tenants FOR DELETE
 USING (user_id = auth.uid());
 
 -- Function to get all tenants for a user
+DROP FUNCTION IF EXISTS public.get_user_tenants();
 CREATE OR REPLACE FUNCTION public.get_user_tenants()
 RETURNS TABLE (
   id UUID,
@@ -69,6 +70,7 @@ END;
 $$;
 
 -- Function to get primary tenant ID
+DROP FUNCTION IF EXISTS public.get_user_primary_tenant_id();
 CREATE OR REPLACE FUNCTION public.get_user_primary_tenant_id()
 RETURNS UUID
 LANGUAGE plpgsql
@@ -101,6 +103,7 @@ END;
 $$;
 
 -- Function to set primary tenant
+DROP FUNCTION IF EXISTS public.set_primary_tenant(UUID);
 CREATE OR REPLACE FUNCTION public.set_primary_tenant(target_tenant_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -116,6 +119,8 @@ END;
 $$;
 
 -- Function to soft delete a tenant
+DROP FUNCTION IF EXISTS public.delete_tenant(UUID);
+DROP FUNCTION IF EXISTS public.delete_tenant(UUID, TEXT);
 CREATE OR REPLACE FUNCTION public.delete_tenant(target_tenant_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql

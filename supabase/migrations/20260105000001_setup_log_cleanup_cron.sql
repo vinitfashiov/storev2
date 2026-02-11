@@ -21,7 +21,7 @@ END $$;
 
 -- Schedule cleanup job to run daily at 3 AM
 -- This will delete logs older than 30 days and metrics older than 7 days
-DO $$
+DO $block$
 BEGIN
   -- Check if job already exists
   IF EXISTS (
@@ -42,7 +42,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   -- If cron scheduling fails, log warning but don't fail migration
   RAISE WARNING 'Failed to schedule cron job: %. You can schedule it manually using: SELECT cron.schedule(''cleanup-old-logs'', ''0 3 * * *'', $$SELECT cleanup_old_logs()$$);', SQLERRM;
-END $$;
+END $block$;
 
 -- Add comment to function
 COMMENT ON FUNCTION cleanup_old_logs() IS 'Cleanup function scheduled to run daily at 3 AM UTC via pg_cron. Deletes logs older than 30 days and metrics older than 7 days.';

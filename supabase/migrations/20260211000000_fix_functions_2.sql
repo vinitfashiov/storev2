@@ -1,0 +1,5 @@
+-- Moved from 20260104114739 to fix "cannot insert multiple commands" error
+-- Functions have been moved to:
+-- 20260211000001_check_stock_availability.sql
+-- 20260211000002_reduce_stock_atomic.sql
+-- 20260211000003_get_dashboard_stats.sql

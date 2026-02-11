@@ -65,7 +65,7 @@ CREATE POLICY "Users can view their tenant's theme layouts"
   ON theme_layouts FOR SELECT
   USING (
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
@@ -74,7 +74,7 @@ CREATE POLICY "Users can create theme layouts for their tenant"
   ON theme_layouts FOR INSERT
   WITH CHECK (
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
@@ -83,7 +83,7 @@ CREATE POLICY "Users can update their tenant's theme layouts"
   ON theme_layouts FOR UPDATE
   USING (
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
@@ -92,7 +92,7 @@ CREATE POLICY "Users can delete their tenant's theme layouts"
   ON theme_layouts FOR DELETE
   USING (
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
@@ -105,7 +105,7 @@ CREATE POLICY "Users can view their tenant's theme layout history"
     layout_id IN (
       SELECT id FROM theme_layouts 
       WHERE tenant_id IN (
-        SELECT id FROM tenants WHERE owner_id = auth.uid()
+        SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
       )
     )
   );
@@ -118,7 +118,7 @@ CREATE POLICY "Users can view public templates or their own"
   USING (
     is_public = true OR
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
@@ -126,7 +126,7 @@ CREATE POLICY "Users can create templates for their tenant"
   ON section_templates FOR INSERT
   WITH CHECK (
     tenant_id IN (
-      SELECT id FROM tenants WHERE owner_id = auth.uid()
+      SELECT tenant_id FROM user_tenants WHERE user_id = auth.uid()
     )
   );
 
