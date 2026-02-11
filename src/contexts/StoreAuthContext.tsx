@@ -37,7 +37,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       .eq('user_id', userId)
       .eq('tenant_id', tid)
       .maybeSingle();
-    
+
     if (data) {
       setCustomer(data as Customer);
     } else {
@@ -55,7 +55,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user && tenantId) {
         setTimeout(() => {
           fetchCustomer(session.user.id, tenantId);
@@ -68,7 +68,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user && tenantId) {
         fetchCustomer(session.user.id, tenantId).finally(() => setLoading(false));
       } else {
@@ -83,12 +83,12 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   const cleanPhone = (phone: string) => phone.replace(/\D/g, '').slice(-10);
 
   // Generate email from phone for Supabase auth (phone as identifier)
-  const phoneToEmail = (phone: string, tid: string) => `${cleanPhone(phone)}@store.${tid}.local`;
+  const phoneToEmail = (phone: string, tid: string) => `${cleanPhone(phone)}@store.${tid}.com`;
 
   const signUp = async (phone: string, password: string, name: string, tid: string, customerEmail?: string) => {
     try {
       const cleanedPhone = cleanPhone(phone);
-      
+
       if (cleanedPhone.length !== 10) {
         return { error: new Error('Please enter a valid 10-digit phone number') };
       }
@@ -107,16 +107,25 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
 
       const email = customerEmail || phoneToEmail(cleanedPhone, tid);
       const redirectUrl = `${window.location.origin}/`;
-      
+
       // Try to sign up
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
-          data: { name, phone: cleanedPhone }
+          data: {
+            name,
+            phone: cleanedPhone,
+            tenant_id: tid  // Pass tenant_id for the trigger
+          }
         }
       });
+
+      // Handle Rate Limits
+      if (error?.status === 429 || error?.message?.includes('rate limit')) {
+        return { error: new Error('Too many signup attempts. Please check your email for a confirmation link or try again later.') };
+      }
 
       // If user already exists, try to sign in
       if (error?.message?.includes('User already registered')) {
@@ -125,8 +134,13 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
           password
         });
 
+        // specific check for unconfirmed email
+        if (signInError?.message?.includes('Email not confirmed')) {
+          return { error: new Error('Account exists but email is not confirmed. Please check your inbox for the verification link.') };
+        }
+
         if (signInError) {
-          return { error: new Error('Account exists with different password') };
+          return { error: new Error('Account exists with different password or login failed.') };
         }
 
         if (signInData.user) {
@@ -152,24 +166,18 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       if (error) return { error };
 
       if (data.user) {
-        const { error: customerError } = await supabase.from('customers').insert({
-          tenant_id: tid,
-          user_id: data.user.id,
-          name,
-          phone: cleanedPhone,
-          email: email // Use the email we signed up with
-        });
-
-        if (customerError) {
-          console.error('Failed to create customer:', customerError);
-          return { error: new Error('Failed to create account') };
+        // Customer record is created by DB Trigger using metadata.
+        // If session exists (auto-signin), fetch customer.
+        if (data.session) {
+          await fetchCustomer(data.user.id, tid);
         }
-
-        await fetchCustomer(data.user.id, tid);
       }
 
       return { error: null };
     } catch (err: any) {
+      if (err?.status === 429) {
+        return { error: new Error('Too many attempts. Please try again later.') };
+      }
       return { error: err };
     }
   };
@@ -177,7 +185,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   const signIn = async (phone: string, password: string, tid: string) => {
     try {
       const cleanedPhone = cleanPhone(phone);
-      
+
       if (cleanedPhone.length !== 10) {
         return { error: new Error('Please enter a valid 10-digit phone number') };
       }
@@ -194,8 +202,8 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         return { error: new Error('No account found with this phone number. Please sign up first.') };
       }
 
-      const email = (existingCustomer.email && existingCustomer.email.includes('@')) 
-        ? existingCustomer.email 
+      const email = (existingCustomer.email && existingCustomer.email.includes('@'))
+        ? existingCustomer.email
         : phoneToEmail(cleanedPhone, tid);
 
       const { data, error } = await supabase.auth.signInWithPassword({
