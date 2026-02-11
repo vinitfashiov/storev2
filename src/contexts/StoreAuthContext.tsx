@@ -109,18 +109,34 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       const redirectUrl = `${window.location.origin}/`;
 
       // Try to sign up
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            name,
-            phone: cleanedPhone,
-            tenant_id: tid  // Pass tenant_id for the trigger
-          }
+      // Use Backend Edge Function to bypass rate limits
+      // This function creates the user (via Admin API) and returns a session
+      const { data: funcData, error: funcError } = await supabase.functions.invoke('store-signup', {
+        body: {
+          email,
+          password,
+          name,
+          phone: cleanedPhone,
+          tenant_id: tid
         }
       });
+
+      // Normalize data structure to match what the rest of the function expects
+      let data = {
+        user: funcData?.user || null,
+        session: funcData?.session || null
+      };
+
+      let error = funcError;
+
+      // If we got a session, set it on the client
+      if (data.session) {
+        const { error: sessError } = await supabase.auth.setSession(data.session);
+        if (sessError) {
+          console.error('Failed to set session:', sessError);
+          error = sessError;
+        }
+      }
 
       // Handle Rate Limits
       if (error?.status === 429 || error?.message?.includes('rate limit')) {
