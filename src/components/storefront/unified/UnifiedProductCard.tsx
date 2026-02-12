@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Minus, Package } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -42,11 +43,18 @@ export function UnifiedProductCard({
     return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
 
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   const effectiveStock = product.variant_stock ?? product.stock_qty;
   const isOutOfStock = effectiveStock <= 0;
   const effectivePrice = product.variant_price ?? product.price;
-  
-  const discount = product.compare_at_price 
+
+  const discount = product.compare_at_price
     ? Math.round(((product.compare_at_price - effectivePrice) / product.compare_at_price) * 100)
     : 0;
 
@@ -76,7 +84,7 @@ export function UnifiedProductCard({
 
   return (
     <Link
-      to={`/store/${storeSlug}/product/${product.slug}`}
+      to={getLink(`/product/${product.slug}`)}
       className={cn(
         "block bg-white rounded-2xl overflow-hidden border border-neutral-100 hover:shadow-lg transition-shadow",
         variant === 'compact' ? 'p-3' : 'p-4'
@@ -85,8 +93,8 @@ export function UnifiedProductCard({
       {/* Image */}
       <div className="relative bg-neutral-50 rounded-xl mb-3 overflow-hidden aspect-square">
         {product.images && product.images[0] ? (
-          <img 
-            src={getImageUrl(product.images[0])} 
+          <img
+            src={getImageUrl(product.images[0])}
             alt={product.name}
             className="w-full h-full object-contain p-2"
             loading="lazy"

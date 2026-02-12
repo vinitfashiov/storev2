@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRef } from 'react';
 import { UnifiedProductCard } from './UnifiedProductCard';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -24,10 +25,10 @@ interface UnifiedProductSectionProps {
   variant?: 'scroll' | 'grid';
 }
 
-export function UnifiedProductSection({ 
-  title, 
-  products, 
-  storeSlug, 
+export function UnifiedProductSection({
+  title,
+  products,
+  storeSlug,
   onAddToCart,
   addingProductId,
   showViewAll = true,
@@ -35,6 +36,12 @@ export function UnifiedProductSection({
   variant = 'scroll'
 }: UnifiedProductSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   if (products.length === 0) return null;
 
@@ -57,8 +64,8 @@ export function UnifiedProductSection({
       <div className="flex items-center justify-between px-4 lg:px-6 mb-4">
         <h2 className="text-lg lg:text-xl font-bold text-neutral-900">{title}</h2>
         {showViewAll && (
-          <Link 
-            to={`/store/${storeSlug}/products`}
+          <Link
+            to={getLink('/products')}
             className={`flex items-center gap-1 ${accentText} text-sm font-semibold hover:underline`}
           >
             See all
@@ -98,7 +105,7 @@ export function UnifiedProductSection({
             </button>
 
             {/* Products Scroll */}
-            <div 
+            <div
               ref={scrollRef}
               className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
             >

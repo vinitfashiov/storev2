@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Grid3X3, ShoppingCart, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface UnifiedBottomNavProps {
   storeSlug: string;
@@ -11,32 +12,38 @@ interface UnifiedBottomNavProps {
 export function UnifiedBottomNav({ storeSlug, cartCount, accentColor = 'green' }: UnifiedBottomNavProps) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   const navItems = [
-    { 
-      icon: Home, 
-      label: 'Home', 
-      path: `/store/${storeSlug}`,
-      exact: true 
+    {
+      icon: Home,
+      label: 'Home',
+      path: getLink('/'),
+      exact: true
     },
-    { 
-      icon: Grid3X3, 
-      label: 'Categories', 
-      path: `/store/${storeSlug}/categories`,
-      exact: false 
+    {
+      icon: Grid3X3,
+      label: 'Categories',
+      path: getLink('/categories'),
+      exact: false
     },
-    { 
-      icon: ShoppingCart, 
-      label: 'Cart', 
-      path: `/store/${storeSlug}/cart`,
+    {
+      icon: ShoppingCart,
+      label: 'Cart',
+      path: getLink('/cart'),
       exact: true,
       badge: cartCount
     },
-    { 
-      icon: User, 
-      label: 'Account', 
-      path: `/store/${storeSlug}/account`,
-      exact: false 
+    {
+      icon: User,
+      label: 'Account',
+      path: getLink('/account'),
+      exact: false
     },
   ];
 
@@ -57,7 +64,7 @@ export function UnifiedBottomNav({ storeSlug, cartCount, accentColor = 'green' }
         {navItems.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
-          
+
           return (
             <Link
               key={item.path}

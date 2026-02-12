@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Category {
   id: string;
@@ -46,9 +47,16 @@ export function UnifiedHeader({
     return supabase.storage.from('store-assets').getPublicUrl(path).data.publicUrl;
   };
 
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      navigate(`/store/${storeSlug}/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`${getLink('/products')}?q=${encodeURIComponent(searchQuery.trim())}`);
     }
     onSearchSubmit?.();
   };
@@ -64,7 +72,7 @@ export function UnifiedHeader({
         <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center gap-6">
             {/* Logo */}
-            <Link to={`/store/${storeSlug}`} className="flex items-center gap-2 shrink-0">
+            <Link to={getLink('/')} className="flex items-center gap-2 shrink-0">
               {logoPath ? (
                 <img src={getLogoUrl(logoPath)} alt={storeName} className="h-10 w-auto object-contain" />
               ) : (
@@ -90,7 +98,7 @@ export function UnifiedHeader({
 
             {/* Right Actions */}
             <div className="flex items-center gap-2 shrink-0">
-              <Link to={`/store/${storeSlug}/wishlist`}>
+              <Link to={getLink('/wishlist')}>
                 <Button variant="ghost" size="icon" className="relative">
                   <Heart className="w-5 h-5" />
                   {wishlistCount > 0 && (
@@ -100,12 +108,12 @@ export function UnifiedHeader({
                   )}
                 </Button>
               </Link>
-              <Link to={`/store/${storeSlug}/account`}>
+              <Link to={getLink('/account')}>
                 <Button variant="ghost" size="icon">
                   <User className="w-5 h-5" />
                 </Button>
               </Link>
-              <Link to={`/store/${storeSlug}/cart`}>
+              <Link to={getLink('/cart')}>
                 <Button className={`${accentBg} text-white font-medium h-11 px-5 rounded-xl`}>
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Cart
@@ -125,7 +133,7 @@ export function UnifiedHeader({
               {categories.slice(0, 8).map((cat) => (
                 <Link
                   key={cat.id}
-                  to={`/store/${storeSlug}/products?category=${cat.slug}`}
+                  to={`${getLink('/products')}?category=${cat.slug}`}
                   className="text-sm text-neutral-600 hover:text-neutral-900 whitespace-nowrap font-medium transition-colors"
                 >
                   {cat.name}
@@ -133,7 +141,7 @@ export function UnifiedHeader({
               ))}
               {categories.length > 8 && (
                 <Link
-                  to={`/store/${storeSlug}/categories`}
+                  to={getLink('/categories')}
                   className={`text-sm ${accentText} whitespace-nowrap font-medium`}
                 >
                   View All
@@ -147,7 +155,7 @@ export function UnifiedHeader({
       {/* Mobile Header */}
       <div className="lg:hidden">
         <div className="flex items-center justify-between p-4">
-          <Link to={`/store/${storeSlug}`} className="flex items-center gap-2">
+          <Link to={getLink('/')} className="flex items-center gap-2">
             {logoPath ? (
               <img src={getLogoUrl(logoPath)} alt={storeName} className="h-8 w-auto object-contain" />
             ) : (
@@ -156,7 +164,7 @@ export function UnifiedHeader({
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link to={`/store/${storeSlug}/wishlist`}>
+            <Link to={getLink('/wishlist')}>
               <Button variant="ghost" size="icon" className="relative h-9 w-9">
                 <Heart className="w-5 h-5" />
                 {wishlistCount > 0 && (
@@ -176,24 +184,24 @@ export function UnifiedHeader({
                 <div className="py-4">
                   <h3 className="font-bold text-lg mb-4">Menu</h3>
                   <div className="space-y-2">
-                    <Link 
-                      to={`/store/${storeSlug}/account`}
+                    <Link
+                      to={getLink('/account')}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100"
                     >
                       <User className="w-5 h-5" />
                       My Account
                     </Link>
-                    <Link 
-                      to={`/store/${storeSlug}/account/orders`}
+                    <Link
+                      to={getLink('/account/orders')}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100"
                     >
                       <ShoppingCart className="w-5 h-5" />
                       My Orders
                     </Link>
-                    <Link 
-                      to={`/store/${storeSlug}/wishlist`}
+                    <Link
+                      to={getLink('/wishlist')}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-neutral-100"
                     >
@@ -208,7 +216,7 @@ export function UnifiedHeader({
                         {categories.slice(0, 10).map((cat) => (
                           <Link
                             key={cat.id}
-                            to={`/store/${storeSlug}/products?category=${cat.slug}`}
+                            to={`${getLink('/products')}?category=${cat.slug}`}
                             onClick={() => setMobileMenuOpen(false)}
                             className="block p-2 text-neutral-600 hover:text-neutral-900"
                           >

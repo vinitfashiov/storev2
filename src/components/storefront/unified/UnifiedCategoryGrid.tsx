@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Category {
   id: string;
@@ -39,12 +40,19 @@ export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'prim
     return supabase.storage.from('store-assets').getPublicUrl(imageUrl).data.publicUrl;
   };
 
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   return (
     <section className="py-6">
       <h2 className="text-lg lg:text-xl font-bold text-neutral-900 px-4 lg:px-6 mb-4">
         Shop by Category
       </h2>
-      
+
       {/* Mobile: Horizontal scroll */}
       <div className="lg:hidden">
         <div className="flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide">
@@ -55,13 +63,13 @@ export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'prim
             return (
               <Link
                 key={category.id}
-                to={`/store/${storeSlug}/products?category=${category.slug}`}
+                to={`${getLink('/products')}?category=${category.slug}`}
                 className="flex flex-col items-center shrink-0"
               >
                 <div className={`w-16 h-16 rounded-2xl ${iconData.bg} flex items-center justify-center overflow-hidden`}>
                   {imageUrl ? (
-                    <img 
-                      src={imageUrl} 
+                    <img
+                      src={imageUrl}
                       alt={category.name}
                       className="w-12 h-12 object-contain"
                     />
@@ -88,13 +96,13 @@ export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'prim
             return (
               <Link
                 key={category.id}
-                to={`/store/${storeSlug}/products?category=${category.slug}`}
+                to={`${getLink('/products')}?category=${category.slug}`}
                 className="flex flex-col items-center group"
               >
                 <div className={`w-24 h-24 rounded-full ${iconData.bg} flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform`}>
                   {imageUrl ? (
-                    <img 
-                      src={imageUrl} 
+                    <img
+                      src={imageUrl}
                       alt={category.name}
                       className="w-16 h-16 object-contain"
                     />
