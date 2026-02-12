@@ -135,8 +135,10 @@ Deno.serve(async (req) => {
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          route: "otp",
+          sender_id: "BBTPLE",
+          message: "180929",
           variables_values: otpCode,
+          route: "dlt",
           numbers: cleanPhone,
         })
       });
