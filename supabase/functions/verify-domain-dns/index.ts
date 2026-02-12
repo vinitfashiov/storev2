@@ -106,12 +106,17 @@ serve(async (req) => {
     }
 
     // Check for Ownership Verification (TXT record needed)
-    // Vercel returns this in the 'verification' array or error object for 409s
-    const verificationChallenges = vercelData?.verification || [];
+    // Vercel returns this in the 'verification' array OR inside 'error.verification' for 409s
+    let verificationChallenges = vercelData?.verification || [];
 
-    // Sometimes it's nested in error.code === 'existing_project_domain' context, 
-    // but typically standard 'verification' array works for newer API versions.
-    // If 409, Vercel might send the challenges in the error body or we specifically look for TXT.
+    if (vercelData?.error?.verification) {
+      if (Array.isArray(vercelData.error.verification)) {
+        verificationChallenges = [...verificationChallenges, ...vercelData.error.verification];
+      } else if (typeof vercelData.error.verification === 'object') {
+        // Sometimes it's a single object
+        verificationChallenges.push(vercelData.error.verification);
+      }
+    }
 
     if (verificationChallenges.length > 0) {
       verificationChallenges.forEach((challenge: any) => {
