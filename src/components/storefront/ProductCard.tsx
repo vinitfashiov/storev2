@@ -3,6 +3,7 @@ import { ShoppingCart, Package, Heart, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -27,21 +28,28 @@ interface ProductCardProps {
   onToggleWishlist?: (productId: string) => void;
 }
 
-export function ProductCard({ 
-  product, 
-  storeSlug, 
-  onAddToCart, 
-  isAdding, 
-  isWishlisted, 
-  onToggleWishlist 
+export function ProductCard({
+  product,
+  storeSlug,
+  onAddToCart,
+  isAdding,
+  isWishlisted,
+  onToggleWishlist
 }: ProductCardProps) {
-  const discount = product.compare_at_price 
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
+  const discount = product.compare_at_price
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
 
   // For products with variants, check total_variant_stock; otherwise check stock_qty
-  const effectiveStock = product.has_variants 
-    ? (product.total_variant_stock ?? 0) 
+  const effectiveStock = product.has_variants
+    ? (product.total_variant_stock ?? 0)
     : product.stock_qty;
   const isOutOfStock = effectiveStock <= 0;
 
@@ -56,11 +64,11 @@ export function ProductCard({
 
   return (
     <div className="group bg-white rounded-xl overflow-hidden border border-neutral-100 hover:shadow-lg transition-all duration-300">
-      <Link to={`/store/${storeSlug}/product/${product.slug}`}>
+      <Link to={getLink(`/product/${product.slug}`)}>
         <div className="aspect-square bg-neutral-50 relative overflow-hidden">
           {imageUrl ? (
-            <img 
-              src={imageUrl} 
+            <img
+              src={imageUrl}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
@@ -69,14 +77,14 @@ export function ProductCard({
               <Package className="w-12 h-12 text-neutral-300" />
             </div>
           )}
-          
+
           {/* Discount Badge */}
           {discount > 0 && (
             <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-medium px-2 py-1 rounded">
               -{discount}%
             </span>
           )}
-          
+
           {/* Out of Stock Overlay */}
           {isOutOfStock && (
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
@@ -95,11 +103,11 @@ export function ProductCard({
               }}
               className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white shadow-md flex items-center justify-center hover:scale-110 transition-transform"
             >
-              <Heart 
+              <Heart
                 className={cn(
                   "w-4 h-4 transition-colors",
                   isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-400"
-                )} 
+                )}
               />
             </button>
           )}
@@ -107,8 +115,8 @@ export function ProductCard({
           {/* Quick Add Button - Shows on Hover */}
           {!isOutOfStock && (
             <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="w-full bg-white text-neutral-900 hover:bg-neutral-100"
                 disabled={isAdding}
                 onClick={(e) => {
@@ -131,9 +139,9 @@ export function ProductCard({
             {product.brand.name}
           </p>
         )}
-        
+
         {/* Product Name */}
-        <Link to={`/store/${storeSlug}/product/${product.slug}`}>
+        <Link to={getLink(`/product/${product.slug}`)}>
           <h3 className="font-medium text-neutral-800 line-clamp-2 hover:text-amber-700 transition-colors text-sm md:text-base">
             {product.name}
           </h3>
@@ -142,9 +150,9 @@ export function ProductCard({
         {/* Rating - Placeholder */}
         <div className="flex items-center gap-1 my-2">
           {[1, 2, 3, 4, 5].map((star) => (
-            <Star 
-              key={star} 
-              className="w-3 h-3 fill-amber-400 text-amber-400" 
+            <Star
+              key={star}
+              className="w-3 h-3 fill-amber-400 text-amber-400"
             />
           ))}
           <span className="text-xs text-neutral-500 ml-1">4.5</span>

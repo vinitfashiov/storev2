@@ -16,6 +16,7 @@ import { GroceryProductCard } from '@/components/storefront/grocery/GroceryProdu
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { toast } from 'sonner';
 import { Package, Search, SlidersHorizontal, MapPin, X, ArrowLeft } from 'lucide-react';
 
@@ -50,6 +51,8 @@ export default function ProductList() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { customer } = useStoreAuth();
+  const { tenant: customDomainTenant, isCustomDomain } = useCustomDomain();
+
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -65,47 +68,62 @@ export default function ProductList() {
   const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || 'all');
   const [sortBy, setSortBy] = useState('name');
   const [addingProduct, setAddingProduct] = useState<string | null>(null);
-  
+
   // Price filter state
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [maxPrice, setMaxPrice] = useState(100000);
-  
+
   // Live search results
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  const { itemCount, addToCart } = useCart(slug || '', tenant?.id || null);
+  // Use either the URL slug or the custom domain tenant slug
+  const effectiveSlug = slug || customDomainTenant?.store_slug;
+  const effectiveTenantId = tenant?.id || customDomainTenant?.id;
+
+  const { itemCount, addToCart } = useCart(effectiveSlug || '', effectiveTenantId || null);
+
+  // Helper to generate correct links based on domain context
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${effectiveSlug}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchTenant = async () => {
-      if (!slug) return;
+      let currentTenant = customDomainTenant as Tenant | null;
 
-      const { data } = await supabase
-        .from('tenants')
-        .select('id, store_name, store_slug, business_type, address, phone')
-        .eq('store_slug', slug)
-        .eq('is_active', true)
-        .maybeSingle();
+      if (!currentTenant) {
+        if (!slug) return;
 
-      if (data) {
-        setTenant(data as Tenant);
-        
-        const [catsRes, brandsRes] = await Promise.all([
-          supabase.from('categories').select('id, name, slug, parent_id').eq('tenant_id', data.id).eq('is_active', true),
-          supabase.from('brands').select('id, name, slug').eq('tenant_id', data.id).eq('is_active', true)
-        ]);
-        setCategories(catsRes.data || []);
-        setBrands(brandsRes.data || []);
+        const { data } = await supabase
+          .from('tenants')
+          .select('id, store_name, store_slug, business_type, address, phone')
+          .eq('store_slug', slug)
+          .eq('is_active', true)
+          .maybeSingle();
 
-        // Fetch zones for grocery stores
-        if (data.business_type === 'grocery') {
-          const { data: zonesData } = await supabase.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', data.id).eq('is_active', true);
-          setZones(zonesData || []);
-        }
+        if (!data) return;
+        currentTenant = data as Tenant;
+      }
+
+      setTenant(currentTenant);
+
+      const [catsRes, brandsRes] = await Promise.all([
+        supabase.from('categories').select('id, name, slug, parent_id').eq('tenant_id', currentTenant.id).eq('is_active', true),
+        supabase.from('brands').select('id, name, slug').eq('tenant_id', currentTenant.id).eq('is_active', true)
+      ]);
+      setCategories(catsRes.data || []);
+      setBrands(brandsRes.data || []);
+
+      // Fetch zones for grocery stores
+      if (currentTenant.business_type === 'grocery') {
+        const { data: zonesData } = await supabase.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', currentTenant.id).eq('is_active', true);
+        setZones(zonesData || []);
       }
     };
 
     fetchTenant();
-  }, [slug]);
+  }, [slug, customDomainTenant]);
 
   // Fetch wishlist for logged in customer
   useEffect(() => {
@@ -144,7 +162,7 @@ export default function ProductList() {
         .eq('tenant_id', tenant.id)
         .eq('zone_id', selectedZone.id)
         .eq('is_available', false);
-      
+
       setUnavailableProductIds(new Set(data?.map(p => p.product_id) || []));
     };
     fetchAvailability();
@@ -176,7 +194,7 @@ export default function ProductList() {
       else query = query.order('name', { ascending: true });
 
       const { data } = await query;
-      
+
       // Fetch variant stock for products with variants
       const productsWithStock: Product[] = [];
       for (const p of (data || [])) {
@@ -195,7 +213,7 @@ export default function ProductList() {
           total_variant_stock: totalVariantStock
         } as Product);
       }
-      
+
       // Update max price for filter
       const prices = productsWithStock.map(p => p.price);
       if (prices.length > 0) {
@@ -203,7 +221,7 @@ export default function ProductList() {
         setMaxPrice(max || 100000);
         setPriceRange([0, max || 100000]);
       }
-      
+
       setProducts(productsWithStock);
       setLoading(false);
     };
@@ -232,7 +250,7 @@ export default function ProductList() {
         .eq('tenant_id', tenant.id)
         .eq('customer_id', customer.id)
         .eq('product_id', productId);
-      
+
       if (!error) {
         setWishlistedIds(prev => {
           const next = new Set(prev);
@@ -247,7 +265,7 @@ export default function ProductList() {
         customer_id: customer.id,
         product_id: productId
       });
-      
+
       if (!error) {
         setWishlistedIds(prev => new Set(prev).add(productId));
         toast.success('Added to wishlist');
@@ -298,13 +316,13 @@ export default function ProductList() {
     return products.filter(p => {
       // Zone availability filter
       if (unavailableProductIds.has(p.id)) return false;
-      
+
       // Search filter
       if (searchQuery && !p.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      
+
       // Price filter
       if (p.price < priceRange[0] || p.price > priceRange[1]) return false;
-      
+
       return true;
     });
   }, [products, unavailableProductIds, searchQuery, priceRange]);
@@ -319,7 +337,7 @@ export default function ProductList() {
 
   // Get parent categories for display
   const parentCategories = categories.filter(c => !c.parent_id);
-  
+
   const hasActiveFilters = selectedCategory !== 'all' || selectedBrand !== 'all' || searchQuery || priceRange[0] > 0 || priceRange[1] < maxPrice;
 
   // Get cart item quantities for grocery products - MUST be before any conditional returns
@@ -347,11 +365,11 @@ export default function ProductList() {
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
           <div className="flex items-center gap-3 px-4 h-14">
-            <Link to={`/store/${slug}`} className="p-1">
+            <Link to={getLink('/')} className="p-1">
               <ArrowLeft className="w-5 h-5 text-neutral-700" />
             </Link>
             <h1 className="flex-1 font-semibold text-neutral-900 truncate">
-              {selectedCategory !== 'all' 
+              {selectedCategory !== 'all'
                 ? parentCategories.find(c => c.slug === selectedCategory)?.name || 'Products'
                 : 'All Products'}
             </h1>
@@ -362,7 +380,7 @@ export default function ProductList() {
               <SlidersHorizontal className="w-5 h-5 text-neutral-600" />
             </button>
           </div>
-          
+
           {/* Filter Bar */}
           <div className="px-4 py-2 flex gap-2 overflow-x-auto">
             <Select value={selectedCategory} onValueChange={handleCategoryChange}>
@@ -376,7 +394,7 @@ export default function ProductList() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             {brands.length > 0 && (
               <Select value={selectedBrand} onValueChange={handleBrandChange}>
                 <SelectTrigger className="w-auto min-w-[110px] h-9 text-sm bg-neutral-100 border-0">
@@ -390,7 +408,7 @@ export default function ProductList() {
                 </SelectContent>
               </Select>
             )}
-            
+
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-auto min-w-[120px] h-9 text-sm bg-neutral-100 border-0">
                 <SlidersHorizontal className="w-3.5 h-3.5 mr-1.5" />
@@ -443,7 +461,7 @@ export default function ProductList() {
                 <GroceryProductCard
                   key={product.id}
                   product={product as any}
-                  storeSlug={slug!}
+                  storeSlug={effectiveSlug!}
                   onAddToCart={handleAddToCart}
                   cartQuantity={cartQuantities[product.id] || 0}
                   isAdding={addingProduct === product.id}
@@ -467,7 +485,7 @@ export default function ProductList() {
         </main>
 
         {/* Bottom Navigation */}
-        <GroceryBottomNav storeSlug={slug!} cartCount={itemCount} />
+        <GroceryBottomNav storeSlug={effectiveSlug!} cartCount={itemCount} />
       </div>
     );
   }
@@ -491,15 +509,15 @@ export default function ProductList() {
             <Card className="absolute z-50 w-full max-w-md shadow-lg">
               <CardContent className="p-2">
                 {searchResults.map(product => (
-                  <a
+                  <Link
                     key={product.id}
-                    href={`/store/${slug}/product/${product.slug}`}
+                    to={getLink(`/product/${product.slug}`)}
                     className="flex items-center gap-3 p-2 hover:bg-muted rounded-md"
                     onClick={() => setShowSearchResults(false)}
                   >
                     <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
                       {product.images?.[0] ? (
-                        <img 
+                        <img
                           src={supabase.storage.from('product-images').getPublicUrl(product.images[0]).data.publicUrl}
                           alt={product.name}
                           className="w-full h-full object-cover rounded"
@@ -512,7 +530,7 @@ export default function ProductList() {
                       <p className="text-sm font-medium">{product.name}</p>
                       <p className="text-xs text-primary">₹{product.price}</p>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </CardContent>
             </Card>
@@ -572,7 +590,7 @@ export default function ProductList() {
               </Select>
             </div>
           </div>
-          
+
           {/* Price Filter */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
             <Label className="whitespace-nowrap font-medium">Price Range:</Label>
@@ -591,7 +609,7 @@ export default function ProductList() {
               <span>-</span>
               <span>₹{priceRange[1]}</span>
             </div>
-            
+
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="w-4 h-4 mr-1" /> Clear Filters
@@ -617,7 +635,7 @@ export default function ProductList() {
               <ProductCard
                 key={product.id}
                 product={product}
-                storeSlug={slug!}
+                storeSlug={effectiveSlug!}
                 onAddToCart={handleAddToCart}
                 isAdding={addingProduct === product.id}
                 isWishlisted={wishlistedIds.has(product.id)}

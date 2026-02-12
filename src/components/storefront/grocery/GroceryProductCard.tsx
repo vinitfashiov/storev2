@@ -3,6 +3,7 @@ import { Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -25,14 +26,20 @@ interface GroceryProductCardProps {
   isAdding?: boolean;
 }
 
-export function GroceryProductCard({ 
-  product, 
-  storeSlug, 
+export function GroceryProductCard({
+  product,
+  storeSlug,
   onAddToCart,
   cartQuantity = 0,
   isAdding = false
 }: GroceryProductCardProps) {
   const [quantity, setQuantity] = useState(cartQuantity);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   const getImageUrl = (img: string) => {
     if (img.startsWith('http')) return img;
@@ -40,13 +47,13 @@ export function GroceryProductCard({
   };
 
   const imageUrl = product.images?.[0] ? getImageUrl(product.images[0]) : null;
-  
+
   // Check stock - for products with variants, use total_variant_stock
-  const effectiveStock = product.has_variants 
-    ? (product.total_variant_stock ?? 0) 
+  const effectiveStock = product.has_variants
+    ? (product.total_variant_stock ?? 0)
     : product.stock_qty;
   const isOutOfStock = effectiveStock <= 0;
-  const discount = product.compare_at_price 
+  const discount = product.compare_at_price
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
 
@@ -70,7 +77,7 @@ export function GroceryProductCard({
 
   return (
     <Link
-      to={`/store/${storeSlug}/product/${product.slug}`}
+      to={getLink(`/product/${product.slug}`)}
       className="bg-white rounded-xl border border-neutral-200 overflow-hidden flex flex-col relative group"
     >
       {/* Discount Badge */}
@@ -85,8 +92,8 @@ export function GroceryProductCard({
       {/* Image */}
       <div className="aspect-square bg-neutral-50 relative overflow-hidden">
         {imageUrl ? (
-          <img 
-            src={imageUrl} 
+          <img
+            src={imageUrl}
             alt={product.name}
             className="w-full h-full object-contain p-2"
           />

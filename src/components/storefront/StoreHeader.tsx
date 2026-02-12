@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { cn } from '@/lib/utils';
 
 interface Category {
@@ -44,11 +45,17 @@ export function StoreHeader({
   categories = []
 }: StoreHeaderProps) {
   const { customer, signOut } = useStoreAuth();
+  const { isCustomDomain } = useCustomDomain();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
+  };
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
   };
 
   return (
@@ -73,8 +80,8 @@ export function StoreHeader({
               </SheetTrigger>
               <SheetContent side="left" className="w-80 p-0">
                 <div className="p-4 border-b border-neutral-200">
-                  <Link 
-                    to={`/store/${storeSlug}`} 
+                  <Link
+                    to={getLink('/')}
                     onClick={() => setMobileMenuOpen(false)}
                     className="font-serif text-xl font-semibold tracking-tight"
                   >
@@ -83,7 +90,7 @@ export function StoreHeader({
                 </div>
                 <nav className="p-4 space-y-1">
                   <Link
-                    to={`/store/${storeSlug}/products`}
+                    to={getLink('/products')}
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center justify-between py-3 px-2 text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"
                   >
@@ -93,7 +100,7 @@ export function StoreHeader({
                   {categories.map((cat) => (
                     <Link
                       key={cat.id}
-                      to={`/store/${storeSlug}/products?category=${cat.slug}`}
+                      to={getLink(`/products?category=${cat.slug}`)}
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center justify-between py-3 px-2 text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors"
                     >
@@ -106,7 +113,7 @@ export function StoreHeader({
                   {customer ? (
                     <div className="space-y-2">
                       <Link
-                        to={`/store/${storeSlug}/account`}
+                        to={getLink('/account')}
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 py-2 text-neutral-700"
                       >
@@ -123,7 +130,7 @@ export function StoreHeader({
                     </div>
                   ) : (
                     <Link
-                      to={`/store/${storeSlug}/login`}
+                      to={getLink('/login')}
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <Button className="w-full">Sign In</Button>
@@ -134,10 +141,10 @@ export function StoreHeader({
             </Sheet>
 
             {/* Logo */}
-            <Link to={`/store/${storeSlug}`} className="shrink-0">
+            <Link to={getLink('/')} className="shrink-0">
               {logoPath ? (
-                <img 
-                  src={logoPath} 
+                <img
+                  src={logoPath}
                   alt={storeName}
                   className="h-10 w-auto object-contain"
                 />
@@ -164,9 +171,9 @@ export function StoreHeader({
             {/* Right Icons */}
             <div className="flex items-center gap-1 md:gap-2">
               {/* Mobile Search Toggle */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="md:hidden"
                 onClick={() => setSearchOpen(!searchOpen)}
               >
@@ -174,7 +181,7 @@ export function StoreHeader({
               </Button>
 
               {/* Wishlist */}
-              <Link to={`/store/${storeSlug}/wishlist`}>
+              <Link to={getLink('/wishlist')}>
                 <Button variant="ghost" size="icon" className="relative">
                   <Heart className="w-5 h-5" />
                   {wishlistCount > 0 && (
@@ -186,7 +193,7 @@ export function StoreHeader({
               </Link>
 
               {/* Cart */}
-              <Link to={`/store/${storeSlug}/cart`}>
+              <Link to={getLink('/cart')}>
                 <Button variant="ghost" size="icon" className="relative">
                   <ShoppingCart className="w-5 h-5" />
                   {cartCount > 0 && (
@@ -208,19 +215,19 @@ export function StoreHeader({
                   {customer ? (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to={`/store/${storeSlug}/account`} className="flex items-center gap-2">
+                        <Link to={getLink('/account')} className="flex items-center gap-2">
                           <User className="w-4 h-4" />
                           My Account
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to={`/store/${storeSlug}/account/orders`} className="flex items-center gap-2">
+                        <Link to={getLink('/account/orders')} className="flex items-center gap-2">
                           <Package className="w-4 h-4" />
                           My Orders
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to={`/store/${storeSlug}/account/addresses`} className="flex items-center gap-2">
+                        <Link to={getLink('/account/addresses')} className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
                           Addresses
                         </Link>
@@ -234,13 +241,13 @@ export function StoreHeader({
                   ) : (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to={`/store/${storeSlug}/login`} className="flex items-center gap-2">
+                        <Link to={getLink('/login')} className="flex items-center gap-2">
                           <User className="w-4 h-4" />
                           Sign In
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to={`/store/${storeSlug}/signup`} className="flex items-center gap-2">
+                        <Link to={getLink('/signup')} className="flex items-center gap-2">
                           <User className="w-4 h-4" />
                           Create Account
                         </Link>
@@ -277,7 +284,7 @@ export function StoreHeader({
             <ul className="flex items-center justify-center gap-8">
               <li>
                 <Link
-                  to={`/store/${storeSlug}/products`}
+                  to={getLink('/products')}
                   className="inline-block py-3 text-sm font-medium text-neutral-700 hover:text-amber-700 transition-colors relative group"
                 >
                   ALL PRODUCTS
@@ -287,7 +294,7 @@ export function StoreHeader({
               {categories.slice(0, 7).map((cat) => (
                 <li key={cat.id}>
                   <Link
-                    to={`/store/${storeSlug}/products?category=${cat.slug}`}
+                    to={getLink(`/products?category=${cat.slug}`)}
                     className="inline-block py-3 text-sm font-medium text-neutral-700 hover:text-amber-700 transition-colors relative group"
                   >
                     {cat.name.toUpperCase()}
@@ -306,7 +313,7 @@ export function StoreHeader({
           <ul className="flex items-center gap-6 px-4 min-w-max">
             <li>
               <Link
-                to={`/store/${storeSlug}/products`}
+                to={getLink('/products')}
                 className="inline-block py-3 text-xs font-medium text-neutral-700 whitespace-nowrap"
               >
                 ALL
@@ -315,7 +322,7 @@ export function StoreHeader({
             {categories.map((cat) => (
               <li key={cat.id}>
                 <Link
-                  to={`/store/${storeSlug}/products?category=${cat.slug}`}
+                  to={getLink(`/products?category=${cat.slug}`)}
                   className="inline-block py-3 text-xs font-medium text-neutral-700 whitespace-nowrap"
                 >
                   {cat.name.toUpperCase()}

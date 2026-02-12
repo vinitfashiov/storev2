@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface StoreFooterProps {
   storeName: string;
@@ -12,14 +13,21 @@ interface StoreFooterProps {
   logoPath?: string | null;
 }
 
-export function StoreFooter({ 
-  storeName, 
-  storeSlug, 
-  address, 
-  phone, 
+export function StoreFooter({
+  storeName,
+  storeSlug,
+  address,
+  phone,
   email,
-  logoPath 
+  logoPath
 }: StoreFooterProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   return (
     <footer className="bg-neutral-900 text-white">
       {/* Main Footer */}
@@ -28,8 +36,8 @@ export function StoreFooter({
           {/* Store Info */}
           <div>
             {logoPath ? (
-              <img 
-                src={logoPath} 
+              <img
+                src={logoPath}
                 alt={storeName}
                 className="h-10 w-auto object-contain mb-4 brightness-0 invert"
               />
@@ -66,27 +74,27 @@ export function StoreFooter({
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-5">Shop</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link to={`/store/${storeSlug}/products`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/products')} className="text-neutral-400 hover:text-white transition-colors">
                   All Products
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/products?sort=newest`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/products?sort=newest')} className="text-neutral-400 hover:text-white transition-colors">
                   New Arrivals
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/products?sort=popular`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/products?sort=popular')} className="text-neutral-400 hover:text-white transition-colors">
                   Best Sellers
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/wishlist`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/wishlist')} className="text-neutral-400 hover:text-white transition-colors">
                   Wishlist
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/cart`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/cart')} className="text-neutral-400 hover:text-white transition-colors">
                   Cart
                 </Link>
               </li>
@@ -98,27 +106,27 @@ export function StoreFooter({
             <h4 className="font-semibold text-sm uppercase tracking-wider mb-5">Information</h4>
             <ul className="space-y-3 text-sm">
               <li>
-                <Link to={`/store/${storeSlug}/page/about`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/page/about')} className="text-neutral-400 hover:text-white transition-colors">
                   About Us
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/page/contact`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/page/contact')} className="text-neutral-400 hover:text-white transition-colors">
                   Contact Us
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/page/terms`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/page/terms')} className="text-neutral-400 hover:text-white transition-colors">
                   Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/page/privacy`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/page/privacy')} className="text-neutral-400 hover:text-white transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to={`/store/${storeSlug}/page/refund`} className="text-neutral-400 hover:text-white transition-colors">
+                <Link to={getLink('/page/refund')} className="text-neutral-400 hover:text-white transition-colors">
                   Refund Policy
                 </Link>
               </li>
@@ -132,8 +140,8 @@ export function StoreFooter({
               Enter your email to be the first to know about new collections and exclusive launches.
             </p>
             <div className="flex gap-2">
-              <Input 
-                type="email" 
+              <Input
+                type="email"
                 placeholder="Your Email"
                 className="bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500 flex-1"
               />
@@ -152,7 +160,7 @@ export function StoreFooter({
             <p className="text-sm text-neutral-500">
               © {new Date().getFullYear()} {storeName}. All Rights Reserved.
             </p>
-            
+
             {/* Payment Icons - UI Only */}
             <div className="flex items-center gap-4">
               <span className="text-xs text-neutral-500">We Accept:</span>

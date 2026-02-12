@@ -11,12 +11,13 @@ import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { toast } from 'sonner';
-import { 
-  Package, 
-  ShoppingCart, 
-  Minus, 
-  Plus, 
+import {
+  Package,
+  ShoppingCart,
+  Minus,
+  Plus,
   ChevronLeft,
   Check,
   AlertCircle,
@@ -69,6 +70,8 @@ export default function ProductDetail() {
   const { slug, productSlug } = useParams<{ slug: string; productSlug: string }>();
   const navigate = useNavigate();
   const { customer } = useStoreAuth();
+  const { tenant: customDomainTenant, isCustomDomain } = useCustomDomain();
+
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
@@ -82,30 +85,48 @@ export default function ProductDetail() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(false);
 
-  const { itemCount, addToCart } = useCart(slug || '', tenant?.id || null);
+  // Use either the URL slug or the custom domain tenant slug
+  const effectiveSlug = slug || customDomainTenant?.store_slug;
+  const effectiveTenantId = tenant?.id || customDomainTenant?.id;
+
+  const { itemCount, addToCart } = useCart(effectiveSlug || '', effectiveTenantId || null);
+
+  // Helper helper to generate correct links based on domain context
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${effectiveSlug}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!slug || !productSlug) return;
+      // If on custom domain, we might already have the tenant
+      let currentTenant = customDomainTenant as Tenant | null;
 
-      const { data: tenantData } = await supabase
-        .from('tenants')
-        .select('id, store_name, store_slug, business_type, address, phone')
-        .eq('store_slug', slug)
-        .eq('is_active', true)
-        .maybeSingle();
+      if (!currentTenant) {
+        if (!slug) return; // Can't fetch without slug if not context provided
 
-      if (!tenantData) {
-        setLoading(false);
-        return;
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('id, store_name, store_slug, business_type, address, phone')
+          .eq('store_slug', slug)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (!tenantData) {
+          setLoading(false);
+          return;
+        }
+        currentTenant = tenantData as Tenant;
       }
 
-      setTenant(tenantData as Tenant);
+      setTenant(currentTenant);
+
+      if (!productSlug) return;
 
       const { data: productData } = await supabase
         .from('products')
         .select('*, category:categories(name), brand:brands(name)')
-        .eq('tenant_id', tenantData.id)
+        .eq('tenant_id', currentTenant.id)
         .eq('slug', productSlug)
         .eq('is_active', true)
         .maybeSingle();
@@ -169,7 +190,7 @@ export default function ProductDetail() {
     };
 
     fetchData();
-  }, [slug, productSlug]);
+  }, [slug, productSlug, customDomainTenant]);
 
   useEffect(() => {
     if (!product?.has_variants || variants.length === 0) {
@@ -227,7 +248,7 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
+
     const price = selectedVariant?.price ?? product.price;
     const stockQty = selectedVariant?.stock_qty ?? product.stock_qty;
 
@@ -235,7 +256,7 @@ export default function ProductDetail() {
       toast.error('This item is out of stock');
       return;
     }
-    
+
     setAdding(true);
     const success = await addToCart(product.id, price, quantity);
     if (success) {
@@ -255,7 +276,7 @@ export default function ProductDetail() {
   const displayComparePrice = selectedVariant?.compare_at_price ?? product?.compare_at_price;
   const displayStockQty = selectedVariant?.stock_qty ?? product?.stock_qty ?? 0;
 
-  const discount = displayComparePrice 
+  const discount = displayComparePrice
     ? Math.round(((displayComparePrice - displayPrice) / displayComparePrice) * 100)
     : 0;
 
@@ -284,7 +305,7 @@ export default function ProductDetail() {
             <Package className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
             <h1 className="text-xl font-bold mb-2">Product not found</h1>
             <p className="text-neutral-500 mb-4">This product doesn't exist or has been removed.</p>
-            <Link to={`/store/${slug}/products`}>
+            <Link to={getLink('/products')}>
               <Button>Browse Products</Button>
             </Link>
           </CardContent>
@@ -332,8 +353,8 @@ export default function ProductDetail() {
           <div className="relative bg-neutral-50">
             <div className="aspect-square overflow-hidden">
               {product.images && product.images.length > 0 ? (
-                <img 
-                  src={getImageUrl(product.images[selectedImage])} 
+                <img
+                  src={getImageUrl(product.images[selectedImage])}
                   alt={product.name}
                   className="w-full h-full object-contain"
                 />
@@ -358,9 +379,8 @@ export default function ProductDetail() {
                   <button
                     key={idx}
                     onClick={() => setSelectedImage(idx)}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      selectedImage === idx ? (isGrocery ? 'bg-green-600 w-4' : 'bg-primary w-4') : 'bg-neutral-400'
-                    }`}
+                    className={`w-2 h-2 rounded-full transition-all ${selectedImage === idx ? (isGrocery ? 'bg-green-600 w-4' : 'bg-primary w-4') : 'bg-neutral-400'
+                      }`}
                   />
                 ))}
               </div>
@@ -413,11 +433,10 @@ export default function ProductDetail() {
                         <button
                           key={value}
                           onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
-                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
-                            selectedAttributes[attr.name] === value
-                              ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
-                              : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
-                          }`}
+                          className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${selectedAttributes[attr.name] === value
+                            ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
+                            : 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
+                            }`}
                         >
                           {value}
                         </button>
@@ -453,8 +472,8 @@ export default function ProductDetail() {
 
         {/* Desktop Layout - 2 Column Grid */}
         <div className="hidden lg:block max-w-7xl mx-auto px-6 py-8">
-          <Link 
-            to={`/store/${slug}/products`}
+          <Link
+            to={getLink('/products')}
             className="inline-flex items-center text-sm text-neutral-500 hover:text-neutral-900 mb-6"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
@@ -466,8 +485,8 @@ export default function ProductDetail() {
             <div className="space-y-4">
               <div className="aspect-square rounded-2xl bg-neutral-50 overflow-hidden relative">
                 {product.images && product.images.length > 0 ? (
-                  <img 
-                    src={getImageUrl(product.images[selectedImage])} 
+                  <img
+                    src={getImageUrl(product.images[selectedImage])}
                     alt={product.name}
                     className="w-full h-full object-contain p-4"
                   />
@@ -476,7 +495,7 @@ export default function ProductDetail() {
                     <Package className="w-32 h-32 text-neutral-300" />
                   </div>
                 )}
-                
+
                 {/* Discount Badge */}
                 {discount > 0 && (
                   <div className="absolute top-4 left-4">
@@ -486,7 +505,7 @@ export default function ProductDetail() {
                   </div>
                 )}
               </div>
-              
+
               {/* Thumbnails */}
               {product.images && product.images.length > 1 && (
                 <div className="flex gap-3">
@@ -494,11 +513,10 @@ export default function ProductDetail() {
                     <button
                       key={idx}
                       onClick={() => setSelectedImage(idx)}
-                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
-                        selectedImage === idx 
-                          ? (isGrocery ? 'border-green-600' : 'border-primary') 
-                          : 'border-transparent hover:border-neutral-300'
-                      }`}
+                      className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${selectedImage === idx
+                        ? (isGrocery ? 'border-green-600' : 'border-primary')
+                        : 'border-transparent hover:border-neutral-300'
+                        }`}
                     >
                       <img src={getImageUrl(img)} alt="" className="w-full h-full object-contain bg-neutral-50 p-1" />
                     </button>
@@ -564,11 +582,10 @@ export default function ProductDetail() {
                           <button
                             key={value}
                             onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
-                            className={`px-5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
-                              selectedAttributes[attr.name] === value
-                                ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
-                                : 'border-neutral-200 text-neutral-700 hover:border-neutral-400'
-                            }`}
+                            className={`px-5 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selectedAttributes[attr.name] === value
+                              ? (isGrocery ? 'border-green-600 bg-green-50 text-green-700' : 'border-primary bg-primary/10 text-primary')
+                              : 'border-neutral-200 text-neutral-700 hover:border-neutral-400'
+                              }`}
                           >
                             {value}
                           </button>
@@ -599,8 +616,8 @@ export default function ProductDetail() {
                   </button>
                 </div>
 
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className={`flex-1 h-14 text-lg font-bold rounded-xl ${isGrocery ? 'bg-green-600 hover:bg-green-700' : ''}`}
                   disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
                   onClick={handleAddToCart}
@@ -651,7 +668,7 @@ export default function ProductDetail() {
           </div>
 
           {/* Add to Cart Button */}
-          <Button 
+          <Button
             size="lg"
             className={`px-8 font-bold ${isGrocery ? 'bg-green-600 hover:bg-green-700' : ''}`}
             disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
@@ -673,6 +690,6 @@ export default function ProductDetail() {
       </div>
     </div>
   );
-
 }
+
 

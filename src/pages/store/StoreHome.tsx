@@ -126,6 +126,7 @@ function GroceryStoreContent({
     isInitialized,
     isLoading: locationLoading
   } = useGroceryLocation();
+  const { isCustomDomain } = useCustomDomain();
 
   const handleLocationClick = () => {
     setShowLocationModal(true);
@@ -133,7 +134,9 @@ function GroceryStoreContent({
 
   const handleSearchSubmit = () => {
     if (searchQuery.trim()) {
-      navigate(`/store/${tenant.store_slug}/products?q=${encodeURIComponent(searchQuery.trim())}`);
+      const path = `/products?q=${encodeURIComponent(searchQuery.trim())}`;
+      const target = isCustomDomain ? path : `/store/${tenant.store_slug}${path}`;
+      navigate(target);
     }
   };
 
