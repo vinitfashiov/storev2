@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { 
-  Facebook, 
-  Instagram, 
-  Twitter, 
+import {
+  Facebook,
+  Instagram,
+  Twitter,
   Mail,
   MapPin,
   Phone,
@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface D2CFooterProps {
   storeName: string;
@@ -29,9 +30,17 @@ export function D2CFooter({
   phone,
   email
 }: D2CFooterProps) {
+  const { isCustomDomain } = useCustomDomain();
+
   const getLogoUrl = (path: string) => {
     if (path.startsWith('http')) return path;
     return supabase.storage.from('store-assets').getPublicUrl(path).data.publicUrl;
+  };
+
+  // Helper to generate correct links based on domain context
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
   };
 
   return (
@@ -81,16 +90,16 @@ export function D2CFooter({
           <div>
             <h4 className="text-xs tracking-[0.2em] text-neutral-400 mb-6">SHOP</h4>
             <nav className="space-y-4">
-              <Link to={`/store/${storeSlug}/products`} className="block text-sm font-light hover:text-neutral-300 transition-colors">
+              <Link to={getLink('/products')} className="block text-sm font-light hover:text-neutral-300 transition-colors">
                 All Products
               </Link>
-              <Link to={`/store/${storeSlug}/products`} className="block text-sm font-light hover:text-neutral-300 transition-colors">
+              <Link to={getLink('/products')} className="block text-sm font-light hover:text-neutral-300 transition-colors">
                 New Arrivals
               </Link>
-              <Link to={`/store/${storeSlug}/products`} className="block text-sm font-light hover:text-neutral-300 transition-colors">
+              <Link to={getLink('/products')} className="block text-sm font-light hover:text-neutral-300 transition-colors">
                 Best Sellers
               </Link>
-              <Link to={`/store/${storeSlug}/products`} className="block text-sm font-light hover:text-neutral-300 transition-colors">
+              <Link to={getLink('/products')} className="block text-sm font-light hover:text-neutral-300 transition-colors">
                 Sale
               </Link>
             </nav>
@@ -153,7 +162,7 @@ export function D2CFooter({
             <p className="text-xs text-neutral-500">
               © {new Date().getFullYear()} {storeName}. All rights reserved.
             </p>
-            
+
             <div className="flex items-center gap-6">
               <a href="#" className="text-neutral-400 hover:text-white transition-colors">
                 <Instagram className="w-5 h-5" />

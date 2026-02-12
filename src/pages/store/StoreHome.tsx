@@ -345,12 +345,12 @@ export default function StoreHome() {
   const { itemCount, addToCart } = useCart(slug || '', tenant?.id || null);
 
   // Set dynamic PWA manifest for this storefront
-  useDynamicManifest({ 
-    type: 'storefront', 
+  useDynamicManifest({
+    type: 'storefront',
     slug: slug || undefined,
-    tenantId: tenant?.id 
+    tenantId: tenant?.id
   });
-  
+
   // Update Apple PWA meta tags with store name
   useApplePWAConfig(
     storeSettings?.website_title || tenant?.store_name || 'Store',
@@ -423,6 +423,13 @@ export default function StoreHome() {
     );
   }
 
+  // Helper helper to generate correct links based on domain context
+  // This logic is duplicated here because we pass strings to children like D2CProductSection
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return customDomain.isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
+
   // E-commerce Store Layout - Premium D2C Brand Design
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -471,7 +478,7 @@ export default function StoreHome() {
             storeSlug={tenant.store_slug}
             onAddToCart={handleAddToCart}
             addingProductId={addingProduct}
-            viewAllLink={`/store/${tenant.store_slug}/products`}
+            viewAllLink={getLink('/products')}
             columns={4}
             variant="featured"
           />
@@ -489,7 +496,7 @@ export default function StoreHome() {
             storeSlug={tenant.store_slug}
             onAddToCart={handleAddToCart}
             addingProductId={addingProduct}
-            viewAllLink={`/store/${tenant.store_slug}/products`}
+            viewAllLink={getLink('/products')}
             columns={4}
           />
         </main>

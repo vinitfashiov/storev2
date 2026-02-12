@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Category {
   id: string;
@@ -15,16 +16,24 @@ interface D2CCategorySectionProps {
   variant?: 'grid' | 'scroll';
 }
 
-export function D2CCategorySection({ 
-  categories, 
-  storeSlug, 
-  variant = 'grid' 
+export function D2CCategorySection({
+  categories,
+  storeSlug,
+  variant = 'grid'
 }: D2CCategorySectionProps) {
+  const { isCustomDomain } = useCustomDomain();
+
   if (categories.length === 0) return null;
 
   const getImageUrl = (path: string) => {
     if (path.startsWith('http')) return path;
     return supabase.storage.from('category-images').getPublicUrl(path).data.publicUrl;
+  };
+
+  // Helper to generate correct links based on domain context
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
   };
 
   // Placeholder category images
@@ -49,7 +58,7 @@ export function D2CCategorySection({
             {categories.slice(0, 6).map((category, index) => (
               <Link
                 key={category.id}
-                to={`/store/${storeSlug}/products?category=${category.slug}`}
+                to={`${getLink('/products')}?category=${category.slug}`}
                 className="group flex-shrink-0 w-40 lg:w-56"
               >
                 <div className="aspect-[3/4] overflow-hidden bg-neutral-200">
@@ -70,7 +79,7 @@ export function D2CCategorySection({
             {categories.slice(0, 4).map((category, index) => (
               <Link
                 key={category.id}
-                to={`/store/${storeSlug}/products?category=${category.slug}`}
+                to={`${getLink('/products')}?category=${category.slug}`}
                 className="group relative aspect-[3/4] overflow-hidden"
               >
                 <img

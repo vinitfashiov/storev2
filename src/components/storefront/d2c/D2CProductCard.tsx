@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Package, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -39,18 +40,25 @@ export function D2CProductCard({
 }: D2CProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const { isCustomDomain } = useCustomDomain();
 
   const getImageUrl = (img: string) => {
     if (img.startsWith('http')) return img;
     return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
 
-  const effectiveStock = product.has_variants 
-    ? (product.total_variant_stock ?? 0) 
+  // Helper to generate correct links based on domain context
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
+  const effectiveStock = product.has_variants
+    ? (product.total_variant_stock ?? 0)
     : product.stock_qty;
   const isOutOfStock = effectiveStock <= 0;
 
-  const discount = product.compare_at_price 
+  const discount = product.compare_at_price
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
 
@@ -69,7 +77,7 @@ export function D2CProductCard({
 
   return (
     <Link
-      to={`/store/${storeSlug}/product/${product.slug}`}
+      to={getLink(`/product/${product.slug}`)}
       className="group block"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -83,8 +91,8 @@ export function D2CProductCard({
         {/* Image */}
         {product.images && product.images[0] ? (
           <>
-            <img 
-              src={getImageUrl(product.images[0])} 
+            <img
+              src={getImageUrl(product.images[0])}
               alt={product.name}
               onLoad={() => setImageLoaded(true)}
               className={cn(
@@ -95,8 +103,8 @@ export function D2CProductCard({
             />
             {/* Second image on hover if available */}
             {product.images[1] && (
-              <img 
-                src={getImageUrl(product.images[1])} 
+              <img
+                src={getImageUrl(product.images[1])}
                 alt={product.name}
                 className={cn(
                   "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
@@ -121,8 +129,8 @@ export function D2CProductCard({
               onClick={handleWishlist}
               className={cn(
                 "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                isWishlisted 
-                  ? "bg-white text-red-500" 
+                isWishlisted
+                  ? "bg-white text-red-500"
                   : "bg-white/80 text-neutral-600 hover:bg-white hover:text-red-500",
                 "opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
               )}
@@ -172,7 +180,7 @@ export function D2CProductCard({
             {product.brand.name}
           </p>
         )}
-        
+
         {/* Name */}
         <h3 className={cn(
           "font-normal text-neutral-900 group-hover:text-neutral-600 transition-colors",
@@ -201,9 +209,9 @@ export function D2CProductCard({
           <div className="flex items-center gap-1.5 pt-1">
             <div className="flex">
               {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star} 
-                  className="w-3 h-3 fill-neutral-900 text-neutral-900" 
+                <Star
+                  key={star}
+                  className="w-3 h-3 fill-neutral-900 text-neutral-900"
                 />
               ))}
             </div>
