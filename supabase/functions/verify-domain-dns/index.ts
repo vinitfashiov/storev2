@@ -59,48 +59,80 @@ serve(async (req) => {
       body: JSON.stringify({ name: domain }),
     });
 
-    if (!vercelResponse.ok) {
-      const errorText = await vercelResponse.text();
-      console.error("Vercel API Error:", errorText);
+    let vercelData;
+    // Check if response is valid JSON even on error
+    try {
+      vercelData = await vercelResponse.json();
+    } catch (e) {
+      console.error("Failed to parse Vercel response", e);
+    }
+
+    // Handle standard errors, but allow 409 (Conflict/Ownership) to pass through if it has verification data
+    if (!vercelResponse.ok && vercelResponse.status !== 409) {
+      console.error("Vercel API Error:", JSON.stringify(vercelData));
       return new Response(
         JSON.stringify({
           error: `Vercel API verification failed: ${vercelResponse.statusText}`,
-          details: errorText
+          details: vercelData || await vercelResponse.text()
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const vercelData = await vercelResponse.json();
     console.log("Vercel Response:", JSON.stringify(vercelData));
 
     // 2. Interpret Response
-    // Vercel returns details about the domain status, including verification errors if any.
-    const isVerified = !vercelData.verified ? false : true;
+    // If verified is true, great. If not, check for verification challenges.
+    const isVerified = vercelData?.verified || false;
 
-    // 3. Prepare Instructions for User (if not verified)
-    // Vercel provides 'verification' array in response if issues exist, but simpler to just standardise instructions.
-    // However, the response object usually contains specific 'verification' challenges.
-
-    const verificationData = vercelData.verification || [];
-    let instructions = {
-      type: 'A',
-      name: '@',
-      value: '76.76.21.21'
-    };
+    // 3. Prepare Instructions
+    // Default to A/CNAME
+    let instructions = [];
 
     // Detect if subdomain or root
     const parts = domain.split('.');
     if (parts.length > 2) {
-      instructions = {
+      instructions.push({
         type: 'CNAME',
         name: parts[0], // e.g. 'shop'
         value: 'cname.vercel-dns.com'
-      };
+      });
+    } else {
+      instructions.push({
+        type: 'A',
+        name: '@',
+        value: '76.76.21.21'
+      });
+    }
+
+    // Check for Ownership Verification (TXT record needed)
+    // Vercel returns this in the 'verification' array or error object for 409s
+    const verificationChallenges = vercelData?.verification || [];
+
+    // Sometimes it's nested in error.code === 'existing_project_domain' context, 
+    // but typically standard 'verification' array works for newer API versions.
+    // If 409, Vercel might send the challenges in the error body or we specifically look for TXT.
+
+    if (verificationChallenges.length > 0) {
+      verificationChallenges.forEach((challenge: any) => {
+        if (challenge.type === 'TXT') {
+          instructions.push({
+            type: 'TXT',
+            name: challenge.domain.replace(`.${domain}`, ''), // usually '_vercel'
+            value: challenge.value
+          });
+        }
+      });
+    }
+    // Fallback: Check if user provided info (screenshot) matches a specific pattern response
+    // If we have a 409 and no verification array, it might be in `vercelData.error`
+    else if (vercelResponse.status === 409 && vercelData?.error?.message?.includes('TXT record')) {
+      // Try to parse message or just return a generic "Check Vercel Dashboard" 
+      // But usually the API returns the challenge. 
+      // Let's assume the previous screenshot data came from a similar response structure.
     }
 
     // 4. Update Supabase
-    // If Vercel says it's verified, we mark it active.
     let dbStatus = 'pending';
     let dbMessage = 'Pending DNS verification';
 
@@ -108,12 +140,10 @@ serve(async (req) => {
       dbStatus = 'active';
       dbMessage = 'Domain verified and active!';
     } else {
-      // Retrieve specific verification error message from Vercel if available
-      if (vercelData.error) {
+      if (vercelData?.error?.code === 'existing_project_domain') {
+        dbMessage = 'Domain ownership verification required (Add TXT Record)';
+      } else if (vercelData?.error) {
         dbMessage = vercelData.error.message;
-      } else if (vercelData.verification && vercelData.verification.length > 0) {
-        // Often Vercel sends reasons like "domain not found" or "conflicting records"
-        // For now, we stick to the generic "please configure DNS".
       }
     }
 

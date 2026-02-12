@@ -59,6 +59,9 @@ export default function AdminDomains() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tenantId, setTenantId] = useState<string | null>(null);
 
+  // State to store verification instructions per domain
+  const [verificationInstructions, setVerificationInstructions] = useState<Record<string, any[]>>({});
+
   useEffect(() => {
     fetchTenantAndDomains();
   }, []);
@@ -157,9 +160,20 @@ export default function AdminDomains() {
       if (data.verified) {
         setDomains(prev => prev.map(d => d.id === domain.id ? { ...d, status: 'active' } : d));
         toast.success(data.message || 'Domain verified and activated!');
+        // Clear instructions if verified
+        const newInstructions = { ...verificationInstructions };
+        delete newInstructions[domain.id];
+        setVerificationInstructions(newInstructions);
       } else {
         if (!isAuto) {
           toast.error(data.message || 'Verification pending. Please check DNS configuration.');
+        }
+        // Save specific instructions if provided (e.g., TXT record)
+        if (data.instructions && Array.isArray(data.instructions)) {
+          setVerificationInstructions(prev => ({
+            ...prev,
+            [domain.id]: data.instructions
+          }));
         }
       }
     } catch (err) {
@@ -180,6 +194,10 @@ export default function AdminDomains() {
     } else {
       setDomains(domains.filter(d => d.id !== id));
       toast.success('Domain removed');
+      // Clear instructions
+      const newInstructions = { ...verificationInstructions };
+      delete newInstructions[id];
+      setVerificationInstructions(newInstructions);
     }
   };
 
@@ -193,7 +211,7 @@ export default function AdminDomains() {
     return parts.length > 2 ? 'subdomain' : 'root';
   };
 
-  const getDnsInstructions = (domain: string) => {
+  const getStandardDnsInstructions = (domain: string) => {
     const parts = domain.split('.');
     if (parts.length > 2) {
       // Subdomain like shop.example.com -> CNAME
@@ -294,6 +312,19 @@ export default function AdminDomains() {
               </div>
             </div>
           </div>
+
+          <div className="mt-4 p-3 border border-yellow-200 bg-yellow-50 rounded-md">
+            <div className="flex gap-2">
+              <AlertCircle className="w-5 h-5 text-yellow-600 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-yellow-800">Ownership Verification</p>
+                <p className="text-xs text-yellow-700 mt-1">
+                  If you see a "Verification Needed" or "Linked to another account" error, you may need to add a <strong>TXT</strong> record. Check the status card below for specific instructions.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <p className="mt-3 text-xs text-muted-foreground">
             DNS changes can take up to 48 hours to propagate. Click "Verify DNS" after configuring to activate your domain.
           </p>
@@ -318,98 +349,126 @@ export default function AdminDomains() {
       ) : (
         <div className="space-y-4">
           {domains.map((domain) => {
-            const dnsInfo = getDnsInstructions(domain.domain);
             const domainType = getDomainType(domain.domain);
+            const standardDns = getStandardDnsInstructions(domain.domain);
+            const customInstructions = verificationInstructions[domain.id];
 
             return (
               <Card key={domain.id}>
                 <CardContent className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Globe className="w-5 h-5 text-primary" />
+                  <div className="flex flex-col gap-4">
+                    {/* Header Row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Globe className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{domain.domain}</span>
+                            <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>
+                              {domain.status === 'active' ? (
+                                <>
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Pending
+                                </>
+                              )}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {domainType === 'subdomain' ? 'Subdomain' : 'Root'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Default DNS: {standardDns.type} record for "{standardDns.name}" → {standardDns.value}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{domain.domain}</span>
-                          <Badge variant={domain.status === 'active' ? 'default' : 'secondary'}>
-                            {domain.status === 'active' ? (
+
+                      <div className="flex items-center gap-2">
+                        {domain.status === 'active' && (
+                          <Button variant="ghost" size="sm" asChild>
+                            <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-1" />
+                              Visit
+                            </a>
+                          </Button>
+                        )}
+
+                        {domain.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleVerifyDomain(domain)}
+                            disabled={verifying === domain.id}
+                          >
+                            {verifying === domain.id ? (
                               <>
-                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                Active
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                Verifying...
                               </>
                             ) : (
                               <>
-                                <AlertCircle className="w-3 h-3 mr-1" />
-                                Pending
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                                Verify DNS
                               </>
                             )}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {domainType === 'subdomain' ? 'Subdomain' : 'Root'}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          DNS: {dnsInfo.type} record for "{dnsInfo.name}" → {dnsInfo.value}
-                        </p>
+                          </Button>
+                        )}
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remove Domain</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to remove {domain.domain}? Your storefront will no longer be accessible on this domain.
+                                <br /><br />
+                                <strong>Note:</strong> You should also remove the DNS records from your provider to avoid errors.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteDomain(domain.id)}>
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {domain.status === 'active' && (
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={`https://${domain.domain}`} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-1" />
-                            Visit
-                          </a>
-                        </Button>
-                      )}
-
-                      {domain.status === 'pending' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleVerifyDomain(domain)}
-                          disabled={verifying === domain.id}
-                        >
-                          {verifying === domain.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              Verifying...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="w-4 h-4 mr-1" />
-                              Verify DNS
-                            </>
-                          )}
-                        </Button>
-                      )}
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Domain</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to remove {domain.domain}? Your storefront will no longer be accessible on this domain.
-                              <br /><br />
-                              <strong>Note:</strong> You should also remove the DNS records from your provider to avoid errors.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteDomain(domain.id)}>
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    {/* Verification Instructions (TXT Records etc) */}
+                    {customInstructions && customInstructions.length > 0 && (
+                      <div className="bg-red-50 border border-red-100 rounded-md p-3 mt-2">
+                        <h4 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          Action Required: Add these records to verify ownership
+                        </h4>
+                        <div className="space-y-2">
+                          {customInstructions.map((instr, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-xs bg-white p-2 rounded border border-red-100">
+                              <div>
+                                <span className="font-bold text-red-700">{instr.type}</span> &nbsp;
+                                <span className="text-muted-foreground">Name:</span> <code className="bg-gray-100 px-1 rounded">{instr.name}</code> &nbsp;
+                                <span className="text-muted-foreground">Value:</span> <code className="bg-gray-100 px-1 rounded truncate max-w-[200px] inline-block align-bottom">{instr.value}</code>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(instr.value)}>
+                                <Copy className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
