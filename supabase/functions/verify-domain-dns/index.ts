@@ -83,7 +83,9 @@ serve(async (req) => {
 
     // 2. Interpret Response
     // If verified is true, great. If not, check for verification challenges.
-    const isVerified = vercelData?.verified || false;
+    let isVerified = vercelData?.verified || false;
+    let dbStatus = 'pending';
+    let dbMessage = 'Pending DNS verification';
 
     // 3. Prepare Instructions
     // Default to A/CNAME
@@ -134,21 +136,42 @@ serve(async (req) => {
     else if (vercelResponse.status === 409 && vercelData?.error?.message?.includes('TXT record')) {
       // Try to parse message or just return a generic "Check Vercel Dashboard" 
       // But usually the API returns the challenge. 
-      // Let's assume the previous screenshot data came from a similar response structure.
+      // Fallback: Check if user provided info (screenshot) matches a specific pattern response
+      // If we have a 409 and no verification array, it might be in `vercelData.error`
     }
 
-    // 4. Update Supabase
-    let dbStatus = 'pending';
-    let dbMessage = 'Pending DNS verification';
+    // NOTE: 'existing_project_domain' with 409 usually means it is ALREADY added to THIS Vercel project.
+    // In that case, we should treat it as success/verified.
+    if (vercelData?.error?.code === 'existing_project_domain') {
+      if (vercelData.error.message.includes('owned by another account')) {
+        // This means it is on a DIFFERENT Vercel account (User's private one)
+        dbMessage = 'Domain is owned by another Vercel account. Please remove it from there or verify ownership via TXT.';
+      } else {
+        // "Already in use by one of your projects" -> It's in OUR project. Success.
+        console.log("Domain already exists in project. Marking as active.");
+        isVerified = true;
+        dbStatus = 'active';
+        dbMessage = 'Domain verified and active! (Existing)';
+        // Clear instructions as we don't need them
+        instructions = [];
+      }
+    } else if (vercelData?.error?.code === 'domain_owned_by_another_account') {
+      // Explicit ownership error
+      dbMessage = 'Domain is owned by another Vercel account. Please remove it from there or verify ownership via TXT.';
+    }
 
+    // Update Supabase status
     if (isVerified) {
       dbStatus = 'active';
       dbMessage = 'Domain verified and active!';
     } else {
-      if (vercelData?.error?.code === 'existing_project_domain') {
-        dbMessage = 'Domain ownership verification required (Add TXT Record)';
-      } else if (vercelData?.error) {
-        dbMessage = vercelData.error.message;
+      if (dbMessage === 'Pending DNS verification') { // Only set if not already set above
+        if (vercelData?.error?.code === 'existing_project_domain') {
+          // Fallback if logic above didn't catch specific message nuances
+          dbMessage = 'Domain ownership verification required (Add TXT Record)';
+        } else if (vercelData?.error) {
+          dbMessage = vercelData.error.message;
+        }
       }
     }
 
