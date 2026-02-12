@@ -36,7 +36,7 @@ serve(async (req: Request) => {
   try {
     const { action, phone, otp, tenantId, name, customerEmail } = await req.json();
     const cleanPhone = cleanPhoneNumber(phone);
-    
+
     console.log(`Store Customer OTP - Action: ${action}, Phone: ${cleanPhone}, Tenant: ${tenantId}, Name: ${name || 'not provided'}, Email: ${customerEmail || 'not provided'}`);
 
     if (!cleanPhone || cleanPhone.length !== 10) {
@@ -71,7 +71,7 @@ serve(async (req: Request) => {
         .maybeSingle();
 
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           exists: !!existingCustomer,
           customerName: existingCustomer?.name || null
         }),
@@ -86,7 +86,7 @@ serve(async (req: Request) => {
 
       // Store OTP with tenant context
       const otpKey = `${cleanPhone}_${tenantId}`;
-      
+
       // Check if user exists (do this in parallel with OTP storage for speed)
       const [existingCustomerResult, _] = await Promise.all([
         supabase
@@ -133,17 +133,17 @@ serve(async (req: Request) => {
 
       try {
         const smsUrl = `https://www.fast2sms.com/dev/bulkV2?authorization=${FAST2SMS_API_KEY}&route=otp&variables_values=${otpCode}&flash=0&numbers=${cleanPhone}`;
-        
+
         // Use AbortController for timeout
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
-        
+
         const smsResponse = await fetch(smsUrl, {
           method: "GET",
           headers: { "Cache-Control": "no-cache" },
           signal: controller.signal
         });
-        
+
         clearTimeout(timeout);
 
         const smsResult = await smsResponse.json();
@@ -156,11 +156,11 @@ serve(async (req: Request) => {
         console.error("SMS sending error:", smsError);
         // Clean up stored OTP
         await supabase.from("otp_verifications").delete().eq("phone", otpKey);
-        
-        const errorMessage = smsError.name === 'AbortError' 
+
+        const errorMessage = smsError.name === 'AbortError'
           ? "SMS service timeout. Please try again."
           : "Failed to send OTP. Please try again.";
-        
+
         return new Response(
           JSON.stringify({ error: errorMessage }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -265,10 +265,10 @@ serve(async (req: Request) => {
 
         // Name provided - complete signup
         // Use customer-provided email if valid, otherwise use generated email
-        const finalEmail = customerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) 
-          ? customerEmail.toLowerCase().trim() 
+        const finalEmail = customerEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)
+          ? customerEmail.toLowerCase().trim()
           : email;
-        
+
         console.log(`Creating account for ${cleanPhone} with name: ${name}, email: ${finalEmail}`);
 
         // Create auth user
@@ -348,7 +348,7 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Store Customer OTP error:", error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
+      JSON.stringify({ error: `Server error: ${(error as Error).message}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
