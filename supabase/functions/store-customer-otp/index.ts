@@ -1,34 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const FAST2SMS_API_KEY = Deno.env.get("FAST2SMS_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-function generateOTP(): string {
-  return (100000 + Math.floor(Math.random() * 900000)).toString();
-}
-
-// Generate a cryptographically secure random password
-function generatePassword(): string {
-  // Use crypto.randomUUID for strong random password
-  return crypto.randomUUID() + crypto.randomUUID().slice(0, 8);
-}
-
-function cleanPhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/\D/g, "");
-  if (cleaned.startsWith("91") && cleaned.length === 12) {
-    cleaned = cleaned.substring(2);
-  }
-  return cleaned;
-}
-
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
