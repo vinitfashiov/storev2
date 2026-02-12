@@ -42,8 +42,8 @@ const PLATFORM_DOMAINS = [
 ];
 
 function isPlatformDomain(hostname: string): boolean {
-  return PLATFORM_DOMAINS.some(domain => 
-    hostname === domain || 
+  return PLATFORM_DOMAINS.some(domain =>
+    hostname === domain ||
     hostname.endsWith(`.${domain}`) ||
     hostname.includes('localhost')
   );
@@ -60,7 +60,7 @@ interface CustomDomainProviderProps {
 export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
   const hostname = window.location.hostname.toLowerCase();
   const isPlatform = isPlatformDomain(hostname);
-  
+
   // For platform domains, skip all async work - return immediately
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [loading, setLoading] = useState(!isPlatform); // Not loading for platform domains
@@ -70,7 +70,7 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
   useEffect(() => {
     // Skip entirely for platform domains
     if (isPlatform) return;
-    
+
     const resolveTenant = async () => {
       // Check cache first
       const cached = domainCache.get(hostname);
@@ -79,14 +79,13 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
         setLoading(false);
         return;
       }
-      
+
       // Try exact match
       let domainData = null;
       const { data: exactMatch } = await supabase
         .from('custom_domains')
         .select('tenant_id')
         .eq('domain', hostname)
-        .eq('status', 'active')
         .maybeSingle();
 
       if (exactMatch) {
@@ -98,9 +97,8 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
           .from('custom_domains')
           .select('tenant_id')
           .eq('domain', withoutWww)
-          .eq('status', 'active')
           .maybeSingle();
-        
+
         domainData = wwwMatch;
       }
 
@@ -113,7 +111,7 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
         domainCache.set(hostname, { tenant: null, expiresAt: Date.now() + CACHE_TTL });
         return;
       }
-      
+
       // Fetch tenant
       const { data: tenantData } = await supabase
         .from('tenants')
@@ -136,7 +134,7 @@ export function CustomDomainProvider({ children }: CustomDomainProviderProps) {
         setError('Store not found');
         domainCache.set(hostname, { tenant: null, expiresAt: Date.now() + CACHE_TTL });
       }
-      
+
       setLoading(false);
     };
 
