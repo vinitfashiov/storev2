@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -6,14 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const EXPECTED_IP = "185.158.133.1";
-
-interface DnsResponse {
-  Answer?: Array<{
-    type: number;
-    data: string;
-  }>;
-}
+// Vercel Constants
+const VERCEL_API_URL = "https://api.vercel.com/v9/projects";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -32,86 +27,112 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const vercelToken = Deno.env.get('VERCEL_API_TOKEN');
+    const vercelProjectId = Deno.env.get('VERCEL_PROJECT_ID');
+    const vercelTeamId = Deno.env.get('VERCEL_TEAM_ID'); // Optional
 
-    // Get domain info
-    const { data: domainInfo, error: domainError } = await supabase
-      .from('custom_domains')
-      .select('id, tenant_id, status')
-      .eq('id', domain_id)
-      .single();
-
-    if (domainError || !domainInfo) {
-      console.error('Domain lookup error:', domainError);
+    if (!vercelToken || !vercelProjectId) {
+      console.error("Missing Vercel credentials");
       return new Response(
-        JSON.stringify({ error: 'Domain not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check DNS records using Google DNS API
-    console.log(`Checking DNS for domain: ${domain}`);
-    const dnsUrl = `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`;
-    
-    const dnsResponse = await fetch(dnsUrl, {
-      headers: { 'Accept': 'application/dns-json' }
-    });
-
-    if (!dnsResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: 'DNS lookup failed' }),
+        JSON.stringify({ error: 'Server misconfiguration: Missing Vercel credentials' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const dnsData: DnsResponse = await dnsResponse.json();
-    console.log('DNS response:', JSON.stringify(dnsData));
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const aRecords = dnsData.Answer?.filter(r => r.type === 1) || [];
-    const hasCorrectARecord = aRecords.some(r => r.data === EXPECTED_IP);
+    // 1. Add/Get Domain Status from Vercel
+    console.log(`Checking/Adding domain on Vercel: ${domain}`);
 
-    if (!hasCorrectARecord) {
-      const currentIps = aRecords.map(r => r.data).join(', ') || 'none';
-      console.log(`DNS verification failed. Current IPs: ${currentIps}, Expected: ${EXPECTED_IP}`);
-      
+    // Construct Vercel API URL
+    let url = `${VERCEL_API_URL}/${vercelProjectId}/domains?teamId=${vercelTeamId || ''}`;
+    if (!vercelTeamId) {
+      url = `${VERCEL_API_URL}/${vercelProjectId}/domains`;
+    }
+
+    const vercelResponse = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${vercelToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: domain }),
+    });
+
+    if (!vercelResponse.ok) {
+      const errorText = await vercelResponse.text();
+      console.error("Vercel API Error:", errorText);
       return new Response(
         JSON.stringify({
-          verified: false,
-          current_records: currentIps,
-          expected_ip: EXPECTED_IP,
-          message: aRecords.length === 0 
-            ? 'No A records found. Please add the required DNS records.'
-            : `A records point to ${currentIps} instead of ${EXPECTED_IP}. Please update your DNS settings.`
+          error: `Vercel API verification failed: ${vercelResponse.statusText}`,
+          details: errorText
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // DNS verified - update the domain status to active
+    const vercelData = await vercelResponse.json();
+    console.log("Vercel Response:", JSON.stringify(vercelData));
+
+    // 2. Interpret Response
+    // Vercel returns details about the domain status, including verification errors if any.
+    const isVerified = !vercelData.verified ? false : true;
+
+    // 3. Prepare Instructions for User (if not verified)
+    // Vercel provides 'verification' array in response if issues exist, but simpler to just standardise instructions.
+    // However, the response object usually contains specific 'verification' challenges.
+
+    const verificationData = vercelData.verification || [];
+    let instructions = {
+      type: 'A',
+      name: '@',
+      value: '76.76.21.21'
+    };
+
+    // Detect if subdomain or root
+    const parts = domain.split('.');
+    if (parts.length > 2) {
+      instructions = {
+        type: 'CNAME',
+        name: parts[0], // e.g. 'shop'
+        value: 'cname.vercel-dns.com'
+      };
+    }
+
+    // 4. Update Supabase
+    // If Vercel says it's verified, we mark it active.
+    let dbStatus = 'pending';
+    let dbMessage = 'Pending DNS verification';
+
+    if (isVerified) {
+      dbStatus = 'active';
+      dbMessage = 'Domain verified and active!';
+    } else {
+      // Retrieve specific verification error message from Vercel if available
+      if (vercelData.error) {
+        dbMessage = vercelData.error.message;
+      } else if (vercelData.verification && vercelData.verification.length > 0) {
+        // Often Vercel sends reasons like "domain not found" or "conflicting records"
+        // For now, we stick to the generic "please configure DNS".
+      }
+    }
+
     const { error: updateError } = await supabase
       .from('custom_domains')
-      .update({ status: 'active' })
+      .update({ status: dbStatus })
       .eq('id', domain_id);
 
     if (updateError) {
       console.error('Failed to update domain status:', updateError);
-      return new Response(
-        JSON.stringify({
-          verified: true,
-          activated: false,
-          error: 'DNS verified but failed to activate domain'
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
-
-    console.log(`Domain ${domain} verified and activated successfully`);
 
     return new Response(
       JSON.stringify({
-        verified: true,
-        activated: true,
-        message: 'Domain DNS verified and activated successfully!'
+        verified: isVerified,
+        activated: isVerified,
+        vercelStatus: vercelData,
+        instructions: instructions, // Send back instructions so frontend can display them dynamicallly
+        message: dbMessage
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

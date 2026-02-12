@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { 
-  Globe, 
-  Plus, 
-  Trash2, 
-  AlertCircle, 
+import {
+  Globe,
+  Plus,
+  Trash2,
+  AlertCircle,
   CheckCircle2,
   Copy,
   ExternalLink,
@@ -100,7 +100,7 @@ export default function AdminDomains() {
     // Updated pattern to support subdomains (e.g., shop.example.com)
     const domainPattern = /^[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,}$/i;
     const cleanDomain = newDomain.toLowerCase().trim().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
-    
+
     if (!domainPattern.test(cleanDomain)) {
       toast.error('Please enter a valid domain (e.g., example.com or shop.example.com)');
       return;
@@ -132,35 +132,40 @@ export default function AdminDomains() {
       setDomains([newDomainData, ...domains]);
       setNewDomain('');
       setDialogOpen(false);
-      toast.success('Domain added! Configure DNS and verify to activate.');
+      toast.success('Domain added! Verifying with Vercel...');
+
+      // Auto-trigger verification to register it on Vercel immediately
+      handleVerifyDomain(newDomainData, true);
     }
 
     setAdding(false);
   };
 
-  const handleVerifyDomain = async (domain: CustomDomain) => {
-    setVerifying(domain.id);
-    
+  const handleVerifyDomain = async (domain: CustomDomain, isAuto = false) => {
+    if (!isAuto) setVerifying(domain.id);
+
     try {
       const { data, error } = await supabase.functions.invoke('verify-domain-dns', {
         body: { domain: domain.domain, domain_id: domain.id }
       });
 
       if (error) {
-        toast.error('Failed to verify domain');
+        if (!isAuto) toast.error('Failed to verify domain');
         return;
       }
 
-      if (data.verified && data.activated) {
-        setDomains(domains.map(d => d.id === domain.id ? { ...d, status: 'active' } : d));
-        toast.success('Domain verified and activated!');
+      if (data.verified) {
+        setDomains(prev => prev.map(d => d.id === domain.id ? { ...d, status: 'active' } : d));
+        toast.success(data.message || 'Domain verified and activated!');
       } else {
-        toast.error(data.message || 'DNS verification failed');
+        if (!isAuto) {
+          toast.error(data.message || 'Verification pending. Please check DNS configuration.');
+        }
       }
     } catch (err) {
-      toast.error('Failed to verify domain');
+      if (!isAuto) toast.error('Failed to verify domain');
     } finally {
-      setVerifying(null);
+      if (!isAuto) setVerifying(null);
     }
   };
 
@@ -191,12 +196,12 @@ export default function AdminDomains() {
   const getDnsInstructions = (domain: string) => {
     const parts = domain.split('.');
     if (parts.length > 2) {
-      // Subdomain like shop.example.com
+      // Subdomain like shop.example.com -> CNAME
       const subdomain = parts.slice(0, -2).join('.');
-      return { type: 'A', name: subdomain };
+      return { type: 'CNAME', name: subdomain, value: 'cname.vercel-dns.com' };
     }
-    // Root domain
-    return { type: 'A', name: '@' };
+    // Root domain -> A Record
+    return { type: 'A', name: '@', value: '76.76.21.21' };
   };
 
   if (loading) {
@@ -216,7 +221,7 @@ export default function AdminDomains() {
           <h1 className="text-2xl font-display font-bold">Custom Domains</h1>
           <p className="text-muted-foreground">Connect your own domain to your storefront</p>
         </div>
-        
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -268,9 +273,9 @@ export default function AdminDomains() {
                 <div>
                   <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
                   <span className="text-muted-foreground">Name:</span> <strong>@</strong> &nbsp;
-                  <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+                  <span className="text-muted-foreground">Value:</span> <strong>76.76.21.21</strong>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('76.76.21.21')}>
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
@@ -279,11 +284,11 @@ export default function AdminDomains() {
               <p className="text-muted-foreground mb-2 font-sans">For subdomains (shop.example.com):</p>
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-muted-foreground">Type:</span> <strong>A</strong> &nbsp;
+                  <span className="text-muted-foreground">Type:</span> <strong>CNAME</strong> &nbsp;
                   <span className="text-muted-foreground">Name:</span> <strong>shop</strong> (your subdomain) &nbsp;
-                  <span className="text-muted-foreground">Value:</span> <strong>185.158.133.1</strong>
+                  <span className="text-muted-foreground">Value:</span> <strong>cname.vercel-dns.com</strong>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('185.158.133.1')}>
+                <Button variant="ghost" size="sm" onClick={() => copyToClipboard('cname.vercel-dns.com')}>
                   <Copy className="w-3 h-3" />
                 </Button>
               </div>
@@ -315,7 +320,7 @@ export default function AdminDomains() {
           {domains.map((domain) => {
             const dnsInfo = getDnsInstructions(domain.domain);
             const domainType = getDomainType(domain.domain);
-            
+
             return (
               <Card key={domain.id}>
                 <CardContent className="py-4">
@@ -345,11 +350,11 @@ export default function AdminDomains() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          DNS: A record with name "{dnsInfo.name}" → 185.158.133.1
+                          DNS: {dnsInfo.type} record for "{dnsInfo.name}" → {dnsInfo.value}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       {domain.status === 'active' && (
                         <Button variant="ghost" size="sm" asChild>
@@ -359,11 +364,11 @@ export default function AdminDomains() {
                           </a>
                         </Button>
                       )}
-                      
+
                       {domain.status === 'pending' && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleVerifyDomain(domain)}
                           disabled={verifying === domain.id}
                         >
@@ -380,7 +385,7 @@ export default function AdminDomains() {
                           )}
                         </Button>
                       )}
-                      
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
@@ -392,6 +397,8 @@ export default function AdminDomains() {
                             <AlertDialogTitle>Remove Domain</AlertDialogTitle>
                             <AlertDialogDescription>
                               Are you sure you want to remove {domain.domain}? Your storefront will no longer be accessible on this domain.
+                              <br /><br />
+                              <strong>Note:</strong> You should also remove the DNS records from your provider to avoid errors.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
