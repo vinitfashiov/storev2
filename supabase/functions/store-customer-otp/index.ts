@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
       const otpCode = generateOTP();
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-      const otpKey = `${cleanPhone}_${tenantId}`;
+      const otpKey = cleanPhone;
 
       // Delete existing OTPs for this key
       await supabase.from("otp_verifications").delete().eq("phone", otpKey);
@@ -155,14 +155,14 @@ Deno.serve(async (req) => {
         await supabase.from("otp_verifications").delete().eq("phone", otpKey);
         return new Response(
           JSON.stringify({ error: smsData.message || "Failed to send OTP" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
     // VERIFY action
     if (action === "verify") {
-      const otpKey = `${cleanPhone}_${tenantId}`;
+      const otpKey = cleanPhone;
 
       // Get OTP
       const { data: otpRecord, error: otpError } = await supabase
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
         await supabase.from("otp_verifications").delete().eq("id", otpRecord.id);
         return new Response(
           JSON.stringify({ error: "OTP expired. Please request a new one." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
       if (!otpRecord.verified && otpRecord.otp !== otp) {
         return new Response(
           JSON.stringify({ error: "Invalid OTP. Please try again." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
