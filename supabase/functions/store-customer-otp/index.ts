@@ -22,13 +22,25 @@ function cleanPhoneNumber(phone: string): string {
   return cleaned;
 }
 
+console.log("Store Customer OTP: Script loaded, starting server...");
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    console.log("Raw request body:", rawBody);
+
+    let body;
+    try {
+      body = JSON.parse(rawBody);
+    } catch (e) {
+      console.error("JSON Parse Error:", e);
+      throw new Error(`Invalid JSON body: ${e.message}`);
+    }
+
     const { action, phone, otp, tenantId, name, customerEmail } = body;
     const cleanPhone = cleanPhoneNumber(phone || "");
 
