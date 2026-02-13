@@ -13,6 +13,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 interface StoreAuthProps {
   tenantId: string;
   storeName: string;
+  storeSlug: string;
 }
 
 type AuthStep = 'phone' | 'otp' | 'name';
@@ -42,11 +43,22 @@ const AuthSkeleton = () => (
   </div>
 );
 
-export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
-  const { slug } = useParams<{ slug: string }>();
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
+
+export default function StoreAuth({ tenantId, storeName, storeSlug }: StoreAuthProps) {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { refreshCustomer, loading: authLoading } = useStoreAuth();
-  
+  const { isCustomDomain } = useCustomDomain();
+
+  // Use prop slug or param slug
+  const slug = storeSlug || paramSlug;
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
+
   const [step, setStep] = useState<AuthStep>('phone');
   const [loading, setLoading] = useState(false);
   const [phone, setPhone] = useState('');
@@ -70,14 +82,14 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = cleanPhone(phone);
-    
+
     if (cleaned.length !== 10) {
       toast.error('Please enter a valid 10-digit phone number');
       return;
     }
 
     setLoading(true);
-    
+
     // Show optimistic UI immediately
     toast.loading('Sending OTP...', { id: 'otp-send' });
 
@@ -114,7 +126,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (otp.length !== 6) {
       toast.error('Please enter a valid 6-digit OTP');
       return;
@@ -124,10 +136,10 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
 
     try {
       const { data, error } = await supabase.functions.invoke('store-customer-otp', {
-        body: { 
-          action: 'verify', 
-          phone: cleanPhone(phone), 
-          otp, 
+        body: {
+          action: 'verify',
+          phone: cleanPhone(phone),
+          otp,
           tenantId,
           name: isNewUser ? null : undefined // For existing users, don't send name
         }
@@ -162,9 +174,10 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
       }
 
       await refreshCustomer();
-      
+
       toast.success(data.action === 'signup' ? 'Account created successfully!' : 'Logged in successfully!');
-      navigate(`/store/${slug}`);
+      toast.success(data.action === 'signup' ? 'Account created successfully!' : 'Logged in successfully!');
+      navigate(getLink('/'));
     } catch (error: any) {
       console.error('OTP verify error:', error);
       toast.error(error.message || 'Verification failed');
@@ -175,7 +188,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
 
   const handleNameSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast.error('Please enter your name');
       return;
@@ -185,10 +198,10 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
 
     try {
       const { data, error } = await supabase.functions.invoke('store-customer-otp', {
-        body: { 
-          action: 'verify', 
-          phone: cleanPhone(phone), 
-          otp, 
+        body: {
+          action: 'verify',
+          phone: cleanPhone(phone),
+          otp,
           tenantId,
           name: name.trim(),
           customerEmail: email.trim() || undefined
@@ -217,9 +230,10 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
       }
 
       await refreshCustomer();
-      
+
       toast.success('Account created successfully!');
-      navigate(`/store/${slug}`);
+      toast.success('Account created successfully!');
+      navigate(getLink('/'));
     } catch (error: any) {
       console.error('Name submit error:', error);
       toast.error(error.message || 'Failed to create account');
@@ -230,7 +244,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
 
   const handleResendOTP = async () => {
     if (countdown > 0) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('store-customer-otp', {
@@ -292,7 +306,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {step === 'phone' ? (
-          <Link to={`/store/${slug}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+          <Link to={getLink('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
             <ArrowLeft className="w-4 h-4" />
             Back to store
           </Link>
@@ -302,7 +316,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
             Go back
           </button>
         )}
-        
+
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mx-auto mb-4">
@@ -360,7 +374,7 @@ export default function StoreAuth({ tenantId, storeName }: StoreAuthProps) {
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
-                
+
                 <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
                   {loading ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...</>

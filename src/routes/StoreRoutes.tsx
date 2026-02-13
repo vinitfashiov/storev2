@@ -66,7 +66,7 @@ function StoreAddressesWrapper() {
 function StoreAuthInner() {
     const { tenant, loading } = useStoreTenant();
     if (loading || !tenant) return null;
-    return <StoreAuth tenantId={tenant.id} storeName={tenant.store_name} />;
+    return <StoreAuth tenantId={tenant.id} storeName={tenant.store_name} storeSlug={tenant.store_slug} />;
 }
 
 function StoreAccountInner() {
