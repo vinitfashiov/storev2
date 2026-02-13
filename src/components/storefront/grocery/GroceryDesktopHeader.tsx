@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useGroceryLocation } from '@/contexts/GroceryLocationContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface GroceryDesktopHeaderProps {
   storeName: string;
@@ -31,13 +32,19 @@ export function GroceryDesktopHeader({
 }: GroceryDesktopHeaderProps) {
   const [isFocused, setIsFocused] = useState(false);
   const { pincode, deliveryArea, isLocationSet } = useGroceryLocation();
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   const getLogoUrl = (path: string) => {
     if (path.startsWith('http')) return path;
     return supabase.storage.from('store-assets').getPublicUrl(path).data.publicUrl;
   };
 
-  const locationDisplay = isLocationSet 
+  const locationDisplay = isLocationSet
     ? deliveryArea?.name || pincode || 'Location set'
     : 'Select location';
 
@@ -46,7 +53,7 @@ export function GroceryDesktopHeader({
       <div className="max-w-7xl mx-auto px-6 py-3">
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <Link to={`/store/${storeSlug}`} className="flex items-center gap-2 shrink-0">
+          <Link to={getLink('/')} className="flex items-center gap-2 shrink-0">
             {logoPath ? (
               <img src={getLogoUrl(logoPath)} alt={storeName} className="h-10 w-auto object-contain" />
             ) : (
@@ -55,7 +62,7 @@ export function GroceryDesktopHeader({
           </Link>
 
           {/* Delivery Address - Now clickable */}
-          <button 
+          <button
             onClick={onLocationClick}
             className="flex flex-col items-start shrink-0 hover:opacity-80 transition-opacity cursor-pointer group"
           >
@@ -87,18 +94,18 @@ export function GroceryDesktopHeader({
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 shrink-0">
-            <Link to={`/store/${storeSlug}/wishlist`}>
+            <Link to={getLink('/wishlist')}>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 text-neutral-600 hover:text-green-600 hover:bg-green-50">
                 <Heart className="w-5 h-5" />
               </Button>
             </Link>
-            <Link to={`/store/${storeSlug}/account`}>
+            <Link to={getLink('/account')}>
               <Button variant="ghost" className="text-neutral-700 hover:text-green-600 hover:bg-green-50 font-medium">
                 <User className="w-4 h-4 mr-2" />
                 Account
               </Button>
             </Link>
-            <Link to={`/store/${storeSlug}/cart`}>
+            <Link to={getLink('/cart')}>
               <Button className="bg-green-600 hover:bg-green-700 text-white font-medium h-10 px-4 rounded-lg">
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 My Cart

@@ -3,6 +3,7 @@ import { Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -25,14 +26,20 @@ interface GroceryDesktopProductCardProps {
   isAdding?: boolean;
 }
 
-export function GroceryDesktopProductCard({ 
-  product, 
-  storeSlug, 
+export function GroceryDesktopProductCard({
+  product,
+  storeSlug,
   onAddToCart,
   cartQuantity = 0,
   isAdding = false
 }: GroceryDesktopProductCardProps) {
   const [quantity, setQuantity] = useState(cartQuantity);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   const getImageUrl = (img: string) => {
     if (img.startsWith('http')) return img;
@@ -40,13 +47,13 @@ export function GroceryDesktopProductCard({
   };
 
   const imageUrl = product.images?.[0] ? getImageUrl(product.images[0]) : null;
-  
+
   // Check stock - for products with variants, use total_variant_stock
-  const effectiveStock = product.has_variants 
-    ? (product.total_variant_stock ?? 0) 
+  const effectiveStock = product.has_variants
+    ? (product.total_variant_stock ?? 0)
     : product.stock_qty;
   const isOutOfStock = effectiveStock <= 0;
-  const discount = product.compare_at_price 
+  const discount = product.compare_at_price
     ? Math.round(((product.compare_at_price - product.price) / product.compare_at_price) * 100)
     : 0;
 
@@ -69,7 +76,7 @@ export function GroceryDesktopProductCard({
 
   return (
     <Link
-      to={`/store/${storeSlug}/product/${product.slug}`}
+      to={getLink(`/product/${product.slug}`)}
       className="bg-white rounded-xl border border-neutral-200 overflow-hidden flex flex-col relative group hover:shadow-md transition-shadow"
     >
       {/* Delivery Time Badge */}
@@ -92,8 +99,8 @@ export function GroceryDesktopProductCard({
       {/* Image */}
       <div className="aspect-square bg-white relative overflow-hidden p-3">
         {imageUrl ? (
-          <img 
-            src={imageUrl} 
+          <img
+            src={imageUrl}
             alt={product.name}
             className="w-full h-full object-contain"
           />
@@ -117,7 +124,7 @@ export function GroceryDesktopProductCard({
           {product.name}
         </h3>
         <span className="text-xs text-neutral-500 mb-2">{product.unit || '1 unit'}</span>
-        
+
         <div className="mt-auto flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
             <span className="font-bold text-neutral-900">₹{product.price}</span>

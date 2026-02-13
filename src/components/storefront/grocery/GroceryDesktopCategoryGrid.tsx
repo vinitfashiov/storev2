@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Category {
   id: string;
@@ -34,6 +35,13 @@ const categoryIcons = [
 ];
 
 export function GroceryDesktopCategoryGrid({ categories, storeSlug }: GroceryDesktopCategoryGridProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   if (categories.length === 0) return null;
 
   const getImageUrl = (imageUrl: string | null | undefined) => {
@@ -53,13 +61,13 @@ export function GroceryDesktopCategoryGrid({ categories, storeSlug }: GroceryDes
     return (
       <Link
         key={category.id}
-        to={`/store/${storeSlug}/products?category=${category.slug}`}
+        to={`${getLink('/products')}?category=${category.slug}`}
         className="flex flex-col items-center group"
       >
         <div className={`w-20 h-20 rounded-full ${iconData.bg} flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform mb-2`}>
           {imageUrl ? (
-            <img 
-              src={imageUrl} 
+            <img
+              src={imageUrl}
               alt={category.name}
               className="w-14 h-14 object-contain"
             />
