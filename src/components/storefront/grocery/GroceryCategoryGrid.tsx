@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Category {
   id: string;
@@ -18,6 +19,13 @@ interface GroceryCategoryGridProps {
 const categoryEmojis = ['🥬', '🥛', '🥣', '☕', '🥜', '🍪', '🍚', '🫙', '🧴', '🍫', '🧹', '🌿'];
 
 export function GroceryCategoryGrid({ categories, storeSlug, title = "Top categories" }: GroceryCategoryGridProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   if (categories.length === 0) return null;
 
   const getImageUrl = (imageUrl: string | null | undefined) => {
@@ -33,17 +41,17 @@ export function GroceryCategoryGrid({ categories, storeSlug, title = "Top catego
         {categories.map((category, index) => {
           const imageUrl = getImageUrl(category.image_url);
           const emoji = categoryEmojis[index % categoryEmojis.length];
-          
+
           return (
             <Link
               key={category.id}
-              to={`/store/${storeSlug}/products?category=${category.slug}`}
+              to={`${getLink('/products')}?category=${category.slug}`}
               className="flex flex-col items-center group"
             >
               <div className="w-full aspect-square rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden group-hover:bg-neutral-200 transition-colors mb-2">
                 {imageUrl ? (
-                  <img 
-                    src={imageUrl} 
+                  <img
+                    src={imageUrl}
                     alt={category.name}
                     className="w-3/4 h-3/4 object-contain"
                   />

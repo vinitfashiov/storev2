@@ -3,6 +3,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from './ProductCard';
 import { useRef } from 'react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -44,6 +45,18 @@ export function ProductSection({
   bgColor = 'bg-white'
 }: ProductSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
+  const resolveLink = (link: string | undefined) => {
+    if (!link) return getLink('/products');
+    if (link.startsWith('http')) return link;
+    return getLink(link);
+  };
 
   if (products.length === 0) return null;
 
@@ -75,7 +88,7 @@ export function ProductSection({
         {/* Products */}
         {variant === 'carousel' ? (
           <div className="relative">
-            <div 
+            <div
               ref={scrollRef}
               className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-4 snap-x snap-mandatory"
             >
@@ -90,7 +103,7 @@ export function ProductSection({
                 </div>
               ))}
             </div>
-            
+
             {/* Carousel Controls */}
             {products.length > 4 && (
               <>
@@ -126,7 +139,7 @@ export function ProductSection({
         {/* View All Button */}
         {showViewAll && (
           <div className="text-center mt-10">
-            <Link to={viewAllLink || `/store/${storeSlug}/products`}>
+            <Link to={resolveLink(viewAllLink)}>
               <Button variant="outline" className="rounded-full px-8 border-neutral-300 hover:bg-neutral-100">
                 View All Products
                 <ArrowRight className="w-4 h-4 ml-2" />

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Banner {
   id: string;
@@ -22,6 +23,12 @@ interface HeroBannerProps {
 
 export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: HeroBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -49,7 +56,7 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
             <p className="text-lg text-neutral-600 mb-8 max-w-lg">
               {storeDescription || 'Explore our exclusive collection of premium products crafted with excellence.'}
             </p>
-            <Link to={`/store/${storeSlug}/products`}>
+            <Link to={getLink('/products')}>
               <Button size="lg" className="bg-amber-700 hover:bg-amber-800 text-white px-8 rounded-full">
                 Explore Collection
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -73,8 +80,8 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
             key={banner.id}
             className={cn(
               "transition-all duration-700 ease-in-out",
-              index === currentIndex 
-                ? "opacity-100 relative" 
+              index === currentIndex
+                ? "opacity-100 relative"
                 : "opacity-0 absolute inset-0 pointer-events-none"
             )}
           >
@@ -89,7 +96,7 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
               />
               {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-neutral-900/70 via-neutral-900/40 to-transparent" />
-              
+
               {/* Content */}
               <div className="absolute inset-0 flex items-center">
                 <div className="container mx-auto px-4">
@@ -103,9 +110,9 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
                       {banner.title}
                     </h2>
                     {banner.cta_text && banner.cta_url && (
-                      <Link to={banner.cta_url.startsWith('/') ? `/store/${storeSlug}${banner.cta_url}` : banner.cta_url}>
-                        <Button 
-                          size="lg" 
+                      <Link to={banner.cta_url.startsWith('/') ? getLink(banner.cta_url) : banner.cta_url}>
+                        <Button
+                          size="lg"
                           className="bg-amber-600 hover:bg-amber-700 text-white px-8 rounded-full border-0"
                         >
                           {banner.cta_text}
@@ -150,8 +157,8 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
               onClick={() => setCurrentIndex(index)}
               className={cn(
                 "w-2.5 h-2.5 rounded-full transition-all",
-                index === currentIndex 
-                  ? "bg-white w-8" 
+                index === currentIndex
+                  ? "bg-white w-8"
                   : "bg-white/50 hover:bg-white/70"
               )}
               aria-label={`Go to slide ${index + 1}`}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Store, ArrowLeft } from 'lucide-react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface StoreSignupProps {
   tenantId: string;
@@ -41,18 +43,49 @@ const SignupSkeleton = () => (
   </div>
 );
 
-export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
-  const { slug } = useParams<{ slug: string }>();
+export default function StoreSignup() {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { signUp, loading: authLoading } = useStoreAuth();
+  const { tenant: cdTenant, isCustomDomain } = useCustomDomain();
+
+  // Use slug from params or context
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
+  const [tenant, setTenant] = useState<any>(null);
 
-  if (authLoading) return <SignupSkeleton />;
+  const getLink = (path: string) => {
+    if (!slug) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      if (isCustomDomain && cdTenant) {
+        setTenant(cdTenant);
+        return;
+      }
+
+      if (!slug) return;
+      const { data } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('store_slug', slug)
+        .eq('is_active', true)
+        .maybeSingle();
+      setTenant(data);
+    };
+    fetchTenant();
+  }, [slug, isCustomDomain, cdTenant]);
+
+  if (authLoading || !tenant) return <SignupSkeleton />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (form.password !== form.confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -65,7 +98,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
 
     setLoading(true);
 
-    const { error } = await signUp(form.phone, form.password, form.name, tenantId, form.email);
+    const { error } = await signUp(form.phone, form.password, form.name, tenant.id, form.email);
 
     if (error) {
       toast.error(error.message);
@@ -75,24 +108,24 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
 
     toast.success('Account created successfully!');
     // Navigate to store - use slug if available, otherwise go to root (for custom domains)
-    navigate(slug ? `/store/${slug}` : '/');
+    navigate(getLink('/'));
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link to={slug ? `/store/${slug}` : '/'} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to store
         </Link>
-        
+
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
               <Store className="w-6 h-6 text-primary-foreground" />
             </div>
             <CardTitle>Create an account</CardTitle>
-            <CardDescription>Sign up to shop at {storeName}</CardDescription>
+            <CardDescription>Sign up to shop at {tenant.store_name}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,7 +189,7 @@ export default function StoreSignup({ tenantId, storeName }: StoreSignupProps) {
             </form>
             <p className="text-center text-sm text-muted-foreground mt-4">
               Already have an account?{' '}
-              <Link to={slug ? `/store/${slug}/login` : '/login'} className="text-primary hover:underline">
+              <Link to={getLink('/login')} className="text-primary hover:underline">
                 Sign in
               </Link>
             </p>

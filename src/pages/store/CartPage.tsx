@@ -8,6 +8,7 @@ import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight } from 'lucide-react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Tenant {
   id: string;
@@ -46,8 +47,13 @@ const CartSkeleton = () => (
 );
 
 export default function CartPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { tenant: cdTenant, isCustomDomain } = useCustomDomain();
+
+  // Use slug from params or context
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,8 +61,33 @@ export default function CartPage() {
 
   const { cart, loading, itemCount, updateQuantity, removeItem, getSubtotal } = useCart(slug || '', tenant?.id || null);
 
+  const getLink = (path: string) => {
+    if (!slug) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
+
   useEffect(() => {
     const fetchTenant = async () => {
+      // If we have tenant from context, use it
+      if (isCustomDomain && cdTenant) {
+        setTenant(cdTenant as Tenant);
+        if (cdTenant.business_type === 'grocery') {
+          const { data: settings } = await supabase
+            .from('tenant_delivery_settings')
+            .select('free_delivery_above')
+            .eq('tenant_id', cdTenant.id)
+            .maybeSingle();
+          if (settings) {
+            setDeliverySettings({
+              free_delivery_above: settings.free_delivery_above ? Number(settings.free_delivery_above) : null
+            });
+          }
+        }
+        setTenantLoading(false);
+        return;
+      }
+
       if (!slug) {
         setTenantLoading(false);
         return;
@@ -86,7 +117,7 @@ export default function CartPage() {
       setTenantLoading(false);
     };
     fetchTenant();
-  }, [slug]);
+  }, [slug, isCustomDomain, cdTenant]);
 
   const getImageUrl = (images: any) => {
     if (!images) return null;
@@ -106,7 +137,7 @@ export default function CartPage() {
 
   const subtotal = getSubtotal();
   const isGrocery = tenant.business_type === 'grocery';
-  
+
   // Check if eligible for free delivery
   const freeDeliveryThreshold = deliverySettings?.free_delivery_above;
   const isEligibleForFreeDelivery = freeDeliveryThreshold && subtotal >= freeDeliveryThreshold;
@@ -147,7 +178,7 @@ export default function CartPage() {
               </div>
               <h3 className="font-bold text-lg mb-2">Your cart is empty</h3>
               <p className="text-neutral-500 text-sm mb-6">Add some products to get started!</p>
-              <Link to={`/store/${slug}/products`}>
+              <Link to={getLink('/products')}>
                 <Button className="bg-green-600 hover:bg-green-700">Browse Products</Button>
               </Link>
             </div>
@@ -158,15 +189,14 @@ export default function CartPage() {
                 <div className="lg:col-span-2">
                   {/* Free Delivery Banner */}
                   {freeDeliveryThreshold && (
-                    <div className={`mx-4 lg:mx-0 mt-4 lg:mt-0 p-3 rounded-xl flex items-center gap-3 ${
-                      isEligibleForFreeDelivery 
-                        ? 'bg-green-50 border border-green-200' 
-                        : 'bg-amber-50 border border-amber-200'
-                    }`}>
+                    <div className={`mx-4 lg:mx-0 mt-4 lg:mt-0 p-3 rounded-xl flex items-center gap-3 ${isEligibleForFreeDelivery
+                      ? 'bg-green-50 border border-green-200'
+                      : 'bg-amber-50 border border-amber-200'
+                      }`}>
                       <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-amber-600'}`} />
                       <p className={`text-sm font-medium ${isEligibleForFreeDelivery ? 'text-green-700' : 'text-amber-700'}`}>
-                        {isEligibleForFreeDelivery 
-                          ? '🎉 Yay! You are eligible for FREE delivery!' 
+                        {isEligibleForFreeDelivery
+                          ? '🎉 Yay! You are eligible for FREE delivery!'
                           : `Add ₹${amountToFreeDelivery.toFixed(0)} more for FREE delivery`
                         }
                       </p>
@@ -184,14 +214,14 @@ export default function CartPage() {
                         const lineTotal = item.unit_price * item.qty;
                         return (
                           <div key={item.id} className="flex gap-3 p-4">
-                            <Link 
-                              to={`/store/${slug}/product/${item.product?.slug || ''}`}
+                            <Link
+                              to={getLink(`/product/${item.product?.slug || ''}`)}
                               className="w-20 h-20 bg-neutral-100 rounded-xl shrink-0 overflow-hidden flex items-center justify-center"
                             >
                               {imageUrl ? (
-                                <img 
-                                  src={imageUrl} 
-                                  alt={item.product?.name || 'Product'} 
+                                <img
+                                  src={imageUrl}
+                                  alt={item.product?.name || 'Product'}
                                   className="w-full h-full object-contain p-1"
                                 />
                               ) : (
@@ -199,7 +229,7 @@ export default function CartPage() {
                               )}
                             </Link>
                             <div className="flex-1 min-w-0">
-                              <Link to={`/store/${slug}/product/${item.product?.slug || ''}`}>
+                              <Link to={getLink(`/product/${item.product?.slug || ''}`)}>
                                 <h3 className="font-medium text-sm line-clamp-2 hover:text-green-600 transition-colors">
                                   {item.product?.name || 'Product'}
                                 </h3>
@@ -208,14 +238,14 @@ export default function CartPage() {
                               <div className="flex items-center justify-between mt-2">
                                 <p className="font-bold text-green-700">₹{lineTotal.toFixed(2)}</p>
                                 <div className="flex items-center gap-1 border border-green-600 rounded-lg bg-green-50">
-                                  <button 
+                                  <button
                                     onClick={() => updateQuantity(item.id, item.qty - 1)}
                                     className="p-2 text-green-600 hover:bg-green-100 rounded-l-lg transition-colors active:scale-95"
                                   >
                                     <Minus className="w-4 h-4" />
                                   </button>
                                   <span className="text-sm font-bold text-green-700 w-8 text-center">{item.qty}</span>
-                                  <button 
+                                  <button
                                     onClick={() => updateQuantity(item.id, item.qty + 1)}
                                     className="p-2 text-green-600 hover:bg-green-100 rounded-r-lg transition-colors active:scale-95"
                                   >
@@ -231,8 +261,8 @@ export default function CartPage() {
                   </div>
 
                   {/* Add More Items */}
-                  <Link 
-                    to={`/store/${slug}/products`}
+                  <Link
+                    to={getLink('/products')}
                     className="mx-4 lg:mx-0 mt-4 flex items-center justify-between p-4 bg-white rounded-xl border border-neutral-200 hover:border-green-300 transition-colors"
                   >
                     <span className="text-sm font-medium text-neutral-700">Add more items</span>
@@ -259,7 +289,25 @@ export default function CartPage() {
                         <span>Subtotal</span>
                         <span>₹{subtotal.toFixed(2)}</span>
                       </div>
-                      <Link to={`/store/${slug}/checkout`}>
+                    </div>
+                    <Link to={getLink('/checkout')}>
+                      <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl">
+                        Proceed to Checkout
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {cart && cart.items.length > 0 && (
+                <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg safe-area-bottom">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-xs text-neutral-500">Total</p>
+                        <p className="text-xl font-bold">₹{subtotal.toFixed(2)}</p>
+                      </div>
+                      <Link to={getLink('/checkout')} className="flex-1 ml-4">
                         <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl">
                           Proceed to Checkout
                         </Button>
@@ -267,40 +315,22 @@ export default function CartPage() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
+
+              <div className="hidden lg:block">
+                <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={tenant.address} phone={tenant.phone} />
               </div>
             </div>
           )}
         </main>
-
-        {/* Mobile Sticky Bottom - Cart Summary + Checkout Button */}
-        {cart && cart.items.length > 0 && (
-          <div className="lg:hidden fixed bottom-16 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg safe-area-bottom">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-xs text-neutral-500">Total</p>
-                  <p className="text-xl font-bold">₹{subtotal.toFixed(2)}</p>
-                </div>
-                <Link to={`/store/${slug}/checkout`} className="flex-1 ml-4">
-                  <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-white font-bold text-base rounded-xl">
-                    Proceed to Checkout
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile Bottom Nav */}
-        <GroceryBottomNav storeSlug={tenant.store_slug} cartCount={itemCount} />
-
-        {/* Desktop Footer */}
-        <div className="hidden lg:block">
-          <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={tenant.address} phone={tenant.phone} />
-        </div>
       </div>
     );
   }
+
+
+
 
   // E-commerce Layout (Original)
   return (
@@ -323,7 +353,7 @@ export default function CartPage() {
               <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-medium mb-2">Your cart is empty</h3>
               <p className="text-sm text-muted-foreground mb-4">Add some products to get started!</p>
-              <Link to={`/store/${slug}/products`}>
+              <Link to={getLink('/products')}>
                 <Button>Browse Products</Button>
               </Link>
             </CardContent>
@@ -338,9 +368,9 @@ export default function CartPage() {
                     <CardContent className="p-4 flex gap-4">
                       <div className="w-20 h-20 bg-muted rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
                         {imageUrl ? (
-                          <img 
-                            src={imageUrl} 
-                            alt={item.product?.name || 'Product'} 
+                          <img
+                            src={imageUrl}
+                            alt={item.product?.name || 'Product'}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -380,7 +410,7 @@ export default function CartPage() {
                 <div className="border-t pt-4 flex justify-between font-bold text-lg mb-4">
                   <span>Total</span><span>₹{subtotal.toFixed(2)}</span>
                 </div>
-                <Link to={`/store/${slug}/checkout`}>
+                <Link to={getLink('/checkout')}>
                   <Button className="w-full" size="lg">
                     Checkout <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>

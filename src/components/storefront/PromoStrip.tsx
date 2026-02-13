@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface PromoStripProps {
   title?: string;
@@ -17,6 +18,19 @@ export function PromoStrip({
   ctaLink,
   storeSlug
 }: PromoStripProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
+  const resolveLink = (link: string | undefined) => {
+    if (!link) return getLink('/products');
+    if (link.startsWith('http')) return link;
+    return getLink(link);
+  };
+
   return (
     <section className="bg-gradient-to-r from-amber-600 to-amber-700 py-16 md:py-20">
       <div className="container mx-auto px-4 text-center">
@@ -26,9 +40,9 @@ export function PromoStrip({
         <p className="text-amber-100 text-lg md:text-xl mb-8 max-w-xl mx-auto">
           {subtitle}
         </p>
-        <Link to={ctaLink || `/store/${storeSlug}/products`}>
-          <Button 
-            size="lg" 
+        <Link to={resolveLink(ctaLink)}>
+          <Button
+            size="lg"
             variant="outline"
             className="rounded-full px-8 bg-transparent border-white text-white hover:bg-white hover:text-amber-700"
           >

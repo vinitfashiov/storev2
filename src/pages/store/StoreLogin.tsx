@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,11 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Store, ArrowLeft } from 'lucide-react';
-
-interface StoreLoginProps {
-  tenantId: string;
-  storeName: string;
-}
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Loading skeleton for login page
 const LoginSkeleton = () => (
@@ -43,47 +42,128 @@ const LoginSkeleton = () => (
   </div>
 );
 
-export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
-  const { slug } = useParams<{ slug: string }>();
+export default function StoreLogin() {
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { signIn, loading: authLoading } = useStoreAuth();
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ phone: '', password: '' });
+  const { toast } = useToast();
+  const { tenant: cdTenant, isCustomDomain } = useCustomDomain();
+  const { signInWithOtp, verifyOtp, loading: authLoading } = useStoreAuth();
 
-  if (authLoading) return <LoginSkeleton />;
+  // Use slug from params or context
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
+  const [loading, setLoading] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [tenant, setTenant] = useState<any>(null);
+
+  const getLink = (path: string) => {
+    if (!slug) return path;
+    const cleanPath = path.startsWith('/') ? path : `/ ${path} `;
+    return isCustomDomain ? cleanPath : `/ store / ${slug}${cleanPath} `;
+  };
+
+  useEffect(() => {
+    const fetchTenant = async () => {
+      if (isCustomDomain && cdTenant) {
+        setTenant(cdTenant);
+        return;
+      }
+
+      if (!slug) return;
+      const { data } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('store_slug', slug)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (data) {
+        setTenant(data);
+      } else {
+        navigate('/404'); // Or a generic error page
+      }
+    };
+
+    fetchTenant();
+  }, [slug, isCustomDomain, cdTenant, navigate]);
+
+  if (authLoading || !tenant) return <LoginSkeleton />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(form.phone, form.password, tenantId);
+    if (!otpSent) {
+      // Send OTP
+      const { error } = await signInWithOtp(phoneNumber, tenant.id);
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message,
+        });
+        setLoading(false);
+        return;
+      }
+      setOtpSent(true);
+      toast({
+        title: 'OTP Sent',
+        description: 'Please check your phone for the verification code.',
+      });
+    } else {
+      // Verify OTP
+      const { error, data } = await verifyOtp(phoneNumber, otp, tenant.id);
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message,
+        });
+        setLoading(false);
+        return;
+      }
 
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+      toast({
+        title: 'Login Successful',
+        description: 'You have been successfully logged in.',
+      });
+
+      // Check if the user has a profile
+      if (data?.user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .single();
+
+        if (profile) {
+          navigate(getLink('/account'));
+        } else {
+          // If not signed up, redirect to signup
+          navigate(getLink('/signup'));
+        }
+      }
     }
-
-    toast.success('Logged in successfully!');
-    // Navigate to store - use slug if available, otherwise go to root (for custom domains)
-    navigate(slug ? `/store/${slug}` : '/');
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Link to={slug ? `/store/${slug}` : '/'} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to store
         </Link>
-        
+
         <Card>
           <CardHeader className="text-center">
             <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-4">
               <Store className="w-6 h-6 text-primary-foreground" />
             </div>
             <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Sign in to your {storeName} account</CardDescription>
+            <CardDescription>Sign in to your {tenant?.store_name} account</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -93,29 +173,33 @@ export default function StoreLogin({ tenantId, storeName }: StoreLoginProps) {
                   id="phone"
                   type="tel"
                   required
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="9876543210"
+                  disabled={otpSent}
                 />
               </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="••••••••"
-                />
-              </div>
+              {otpSent && (
+                <div>
+                  <Label htmlFor="otp">OTP</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    required
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="••••••"
+                    maxLength={6}
+                  />
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Signing in...</> : 'Sign In'}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {otpSent ? 'Verifying...' : 'Sending OTP...'}</> : (otpSent ? 'Verify OTP' : 'Send OTP')}
               </Button>
             </form>
-            <p className="text-center text-sm text-muted-foreground mt-4">
+            <p className="mt-4 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link to={slug ? `/store/${slug}/signup` : '/signup'} className="text-primary hover:underline">
+              <Link to={getLink('/signup')} className="text-primary hover:underline">
                 Sign up
               </Link>
             </p>

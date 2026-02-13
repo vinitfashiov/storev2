@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { GroceryProductCard } from './GroceryProductCard';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Product {
   id: string;
@@ -21,14 +22,21 @@ interface GroceryProductSectionProps {
   showViewAll?: boolean;
 }
 
-export function GroceryProductSection({ 
-  title, 
-  products, 
-  storeSlug, 
+export function GroceryProductSection({
+  title,
+  products,
+  storeSlug,
   onAddToCart,
   addingProductId,
   showViewAll = true
 }: GroceryProductSectionProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   if (products.length === 0) return null;
 
   return (
@@ -36,8 +44,8 @@ export function GroceryProductSection({
       <div className="flex items-center justify-between px-4 mb-3">
         <h2 className="text-lg font-bold text-neutral-900">{title}</h2>
         {showViewAll && (
-          <Link 
-            to={`/store/${storeSlug}/products`}
+          <Link
+            to={getLink('/products')}
             className="flex items-center gap-1 text-green-600 text-sm font-medium"
           >
             See all

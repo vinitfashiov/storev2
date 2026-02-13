@@ -16,6 +16,7 @@ import {
   CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin,
   Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield
 } from 'lucide-react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 // Shared singleton for script loading across navigations
 let razorpayScriptPromise: Promise<void> | null = null;
@@ -81,8 +82,18 @@ declare global {
 }
 
 export default function CheckoutPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { tenant: cdTenant, isCustomDomain } = useCustomDomain();
+
+  // Use slug from params or context
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
+  const getLink = (path: string) => {
+    if (!slug) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
   const { customer } = useStoreAuth();
   const { trackEvent } = useStoreAnalyticsEvent();
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -91,12 +102,12 @@ export default function CheckoutPage() {
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '' });
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Customer addresses state
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
-  
+
   // Grocery-specific state
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
@@ -105,7 +116,7 @@ export default function CheckoutPage() {
   const [deliveryOption, setDeliveryOption] = useState<'asap' | 'slot'>('asap');
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [zoneError, setZoneError] = useState<string>('');
-  
+
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -125,6 +136,38 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const fetchTenant = async () => {
+      // Logic for custom domain from context
+      if (isCustomDomain && cdTenant) {
+        setTenant(cdTenant as Tenant);
+        const { data: integration } = await supabase
+          .from('tenant_integrations')
+          .select('razorpay_key_id, razorpay_key_secret')
+          .eq('tenant_id', cdTenant.id)
+          .maybeSingle();
+        setRazorpayConfigured(!!(integration?.razorpay_key_id && integration?.razorpay_key_secret));
+
+        if (cdTenant.business_type === 'grocery') {
+          const [settingsRes, zonesRes, slotsRes] = await Promise.all([
+            supabase.from('tenant_delivery_settings').select('*').eq('tenant_id', cdTenant.id).maybeSingle(),
+            supabase.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', cdTenant.id).eq('is_active', true),
+            supabase.from('delivery_slots').select('id, label, zone_id').eq('tenant_id', cdTenant.id).eq('is_active', true)
+          ]);
+          if (settingsRes.data) {
+            setDeliverySettings({
+              delivery_mode: settingsRes.data.delivery_mode as 'slots' | 'asap' | 'both',
+              asap_eta_minutes: settingsRes.data.asap_eta_minutes,
+              min_order_amount: Number(settingsRes.data.min_order_amount),
+              delivery_fee: Number(settingsRes.data.delivery_fee),
+              free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null
+            });
+            if (settingsRes.data.delivery_mode === 'slots') setDeliveryOption('slot');
+          }
+          if (zonesRes.data) setZones(zonesRes.data);
+          if (slotsRes.data) setSlots(slotsRes.data);
+        }
+        return;
+      }
+
       if (!slug) return;
       const { data } = await supabase.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
       if (data) {
@@ -135,7 +178,7 @@ export default function CheckoutPage() {
           .eq('tenant_id', data.id)
           .maybeSingle();
         setRazorpayConfigured(!!(integration?.razorpay_key_id && integration?.razorpay_key_secret));
-        
+
         if (data.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
             supabase.from('tenant_delivery_settings').select('*').eq('tenant_id', data.id).maybeSingle(),
@@ -158,7 +201,7 @@ export default function CheckoutPage() {
       }
     };
     fetchTenant();
-  }, [slug]);
+  }, [slug, isCustomDomain, cdTenant]);
 
   useEffect(() => {
     if (customer) {
@@ -182,7 +225,7 @@ export default function CheckoutPage() {
         .select('*')
         .eq('customer_id', customer.id)
         .order('is_default', { ascending: false });
-      
+
       if (data && data.length > 0) {
         setSavedAddresses(data);
         const defaultAddr = data.find(a => a.is_default) || data[0];
@@ -262,7 +305,7 @@ export default function CheckoutPage() {
 
   const isGrocery = tenant?.business_type === 'grocery';
   const subtotal = getSubtotal();
-  
+
   useEffect(() => {
     if (appliedCoupon && subtotal > 0) {
       let newDiscount = 0;
@@ -272,19 +315,19 @@ export default function CheckoutPage() {
         newDiscount = appliedCoupon.coupon_value;
       }
       if (newDiscount > subtotal) newDiscount = subtotal;
-      
+
       if (newDiscount !== appliedCoupon.discount_amount) {
         setAppliedCoupon({ ...appliedCoupon, discount_amount: newDiscount });
       }
     }
   }, [subtotal]);
-  
+
   const calculateDeliveryFee = () => {
     if (!isGrocery || !deliverySettings) return 0;
     if (deliverySettings.free_delivery_above && subtotal >= deliverySettings.free_delivery_above) return 0;
     return deliverySettings.delivery_fee;
   };
-  
+
   const deliveryFee = calculateDeliveryFee();
   const discountTotal = appliedCoupon?.discount_amount || 0;
   const total = subtotal + deliveryFee - discountTotal;
@@ -293,10 +336,10 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim() || !slug) return;
-    
+
     setCouponLoading(true);
     setCouponError('');
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('validate-coupon', {
         body: {
@@ -306,9 +349,9 @@ export default function CheckoutPage() {
           customer_id: customer?.id || null
         }
       });
-      
+
       if (error) throw error;
-      
+
       if (data.valid) {
         setAppliedCoupon({
           coupon_id: data.coupon_id,
@@ -363,7 +406,10 @@ export default function CheckoutPage() {
             trackEvent('purchase_complete', { order_number: verifyData.order_number || orderNumber, total: amount, payment_method: 'razorpay' });
             await clearCart();
             toast.success('Payment successful!');
-            navigate(`/store/${slug}/order-confirmation?order=${verifyData.order_number || orderNumber}`);
+            trackEvent('purchase_complete', { order_number: verifyData.order_number || orderNumber, total: amount, payment_method: 'razorpay' });
+            await clearCart();
+            toast.success('Payment successful!');
+            navigate(getLink(`/order-confirmation?order=${verifyData.order_number || orderNumber}`));
           } catch (err: any) {
             toast.error(err.message || 'Payment verification failed');
             setSubmitting(false);
@@ -391,7 +437,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cart || !tenant || cart.items.length === 0) return;
-    
+
     // Form validation
     if (!form.name?.trim()) {
       toast.error('Please enter your name');
@@ -414,7 +460,7 @@ export default function CheckoutPage() {
       toast.error('Please enter a valid 6-digit pincode');
       return;
     }
-    
+
     if (isGrocery) {
       if (zones.length > 0 && !selectedZone) {
         toast.error('Please enter a valid delivery pincode');
@@ -555,7 +601,7 @@ export default function CheckoutPage() {
             customer_id: customer?.id || null,
             discount_amount: discountTotal
           });
-          
+
           // Use atomic coupon increment to prevent race conditions
           await supabase.rpc('increment_coupon_usage', {
             p_coupon_id: appliedCoupon.coupon_id
@@ -569,8 +615,8 @@ export default function CheckoutPage() {
             .select('id, pincodes')
             .eq('tenant_id', tenant.id)
             .eq('is_active', true);
-          
-          const matchedArea = deliveryAreas?.find(area => 
+
+          const matchedArea = deliveryAreas?.find(area =>
             area.pincodes?.includes(form.pincode)
           );
 
@@ -580,7 +626,7 @@ export default function CheckoutPage() {
             delivery_area_id: matchedArea?.id || null,
             status: 'unassigned'
           });
-          
+
           if (assignmentError) {
             console.error('Delivery assignment error:', assignmentError);
             // Don't fail the order, just log the error
@@ -592,7 +638,10 @@ export default function CheckoutPage() {
 
         await clearCart();
         toast.success('Order placed successfully!');
-        navigate(`/store/${slug}/order-confirmation?order=${orderNumber}`);
+        await clearCart();
+        toast.success('Order placed successfully!');
+        navigate(getLink(`/order-confirmation?order=${orderNumber}`));
+        setSubmitting(false);
         setSubmitting(false);
       }
     } catch (error: any) {
@@ -652,30 +701,30 @@ export default function CheckoutPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm text-neutral-600">Full Name *</Label>
-                      <Input 
-                        required 
-                        value={form.name} 
-                        onChange={e => setForm({...form, name: e.target.value})}
+                      <Input
+                        required
+                        value={form.name}
+                        onChange={e => setForm({ ...form, name: e.target.value })}
                         className="mt-1 h-12 rounded-xl"
                         placeholder="Enter your name"
                       />
                     </div>
                     <div>
                       <Label className="text-sm text-neutral-600">Phone *</Label>
-                      <Input 
-                        required 
-                        value={form.phone} 
-                        onChange={e => setForm({...form, phone: e.target.value})}
+                      <Input
+                        required
+                        value={form.phone}
+                        onChange={e => setForm({ ...form, phone: e.target.value })}
                         className="mt-1 h-12 rounded-xl"
                         placeholder="10-digit phone number"
                       />
                     </div>
                     <div className="sm:col-span-2">
                       <Label className="text-sm text-neutral-600">Email (optional)</Label>
-                      <Input 
-                        type="email" 
-                        value={form.email} 
-                        onChange={e => setForm({...form, email: e.target.value})}
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={e => setForm({ ...form, email: e.target.value })}
                         className="mt-1 h-12 rounded-xl"
                         placeholder="For order updates"
                       />
@@ -691,7 +740,7 @@ export default function CheckoutPage() {
                       Delivery Address
                     </h2>
                     {savedAddresses.length > 0 && !showNewAddressForm && (
-                      <button 
+                      <button
                         type="button"
                         onClick={handleAddNewAddress}
                         className="text-sm text-green-600 font-medium flex items-center gap-1"
@@ -709,11 +758,10 @@ export default function CheckoutPage() {
                           key={addr.id}
                           type="button"
                           onClick={() => handleAddressSelect(addr.id)}
-                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                            selectedAddressId === addr.id
+                          className={`w-full p-4 rounded-xl border-2 text-left transition-all ${selectedAddressId === addr.id
                               ? 'border-green-600 bg-green-50'
                               : 'border-neutral-200 hover:border-neutral-300'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start justify-between">
                             <div>
@@ -739,7 +787,7 @@ export default function CheckoutPage() {
                   {(showNewAddressForm || savedAddresses.length === 0) && (
                     <div className="space-y-4">
                       {savedAddresses.length > 0 && (
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             setShowNewAddressForm(false);
@@ -754,19 +802,19 @@ export default function CheckoutPage() {
                       )}
                       <div>
                         <Label className="text-sm text-neutral-600">Address Line 1 *</Label>
-                        <Input 
-                          required 
-                          value={form.line1} 
-                          onChange={e => setForm({...form, line1: e.target.value})}
+                        <Input
+                          required
+                          value={form.line1}
+                          onChange={e => setForm({ ...form, line1: e.target.value })}
                           className="mt-1 h-12 rounded-xl"
                           placeholder="House/Flat number, Building name"
                         />
                       </div>
                       <div>
                         <Label className="text-sm text-neutral-600">Address Line 2</Label>
-                        <Input 
-                          value={form.line2} 
-                          onChange={e => setForm({...form, line2: e.target.value})}
+                        <Input
+                          value={form.line2}
+                          onChange={e => setForm({ ...form, line2: e.target.value })}
                           className="mt-1 h-12 rounded-xl"
                           placeholder="Street, Area, Landmark"
                         />
@@ -774,29 +822,29 @@ export default function CheckoutPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label className="text-sm text-neutral-600">City *</Label>
-                          <Input 
-                            required 
-                            value={form.city} 
-                            onChange={e => setForm({...form, city: e.target.value})}
+                          <Input
+                            required
+                            value={form.city}
+                            onChange={e => setForm({ ...form, city: e.target.value })}
                             className="mt-1 h-12 rounded-xl"
                           />
                         </div>
                         <div>
                           <Label className="text-sm text-neutral-600">State *</Label>
-                          <Input 
-                            required 
-                            value={form.state} 
-                            onChange={e => setForm({...form, state: e.target.value})}
+                          <Input
+                            required
+                            value={form.state}
+                            onChange={e => setForm({ ...form, state: e.target.value })}
                             className="mt-1 h-12 rounded-xl"
                           />
                         </div>
                       </div>
                       <div>
                         <Label className="text-sm text-neutral-600">Pincode *</Label>
-                        <Input 
-                          required 
-                          value={form.pincode} 
-                          onChange={e => setForm({...form, pincode: e.target.value})}
+                        <Input
+                          required
+                          value={form.pincode}
+                          onChange={e => setForm({ ...form, pincode: e.target.value })}
                           className="mt-1 h-12 rounded-xl"
                           maxLength={6}
                           placeholder="6-digit pincode"
@@ -831,11 +879,10 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => setDeliveryOption('asap')}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            deliveryOption === 'asap'
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${deliveryOption === 'asap'
                               ? 'border-green-600 bg-green-50'
                               : 'border-neutral-200'
-                          }`}
+                            }`}
                         >
                           <Zap className={`w-5 h-5 mb-2 ${deliveryOption === 'asap' ? 'text-green-600' : 'text-neutral-400'}`} />
                           <p className="font-semibold text-sm">Express</p>
@@ -846,11 +893,10 @@ export default function CheckoutPage() {
                         <button
                           type="button"
                           onClick={() => setDeliveryOption('slot')}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            deliveryOption === 'slot'
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${deliveryOption === 'slot'
                               ? 'border-green-600 bg-green-50'
                               : 'border-neutral-200'
-                          }`}
+                            }`}
                         >
                           <Clock className={`w-5 h-5 mb-2 ${deliveryOption === 'slot' ? 'text-green-600' : 'text-neutral-400'}`} />
                           <p className="font-semibold text-sm">Scheduled</p>
@@ -865,11 +911,10 @@ export default function CheckoutPage() {
                             key={slot.id}
                             type="button"
                             onClick={() => setSelectedSlotId(slot.id)}
-                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between ${
-                              selectedSlotId === slot.id
+                            className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between ${selectedSlotId === slot.id
                                 ? 'border-green-600 bg-green-50'
                                 : 'border-neutral-200'
-                            }`}
+                              }`}
                           >
                             <span className="text-sm font-medium">{slot.label}</span>
                             {selectedSlotId === slot.id && (
@@ -895,8 +940,8 @@ export default function CheckoutPage() {
                         <div>
                           <span className="font-bold text-green-700">{appliedCoupon.coupon_code}</span>
                           <p className="text-sm text-green-600">
-                            {appliedCoupon.coupon_type === 'percent' 
-                              ? `${appliedCoupon.coupon_value || 0}% off` 
+                            {appliedCoupon.coupon_type === 'percent'
+                              ? `${appliedCoupon.coupon_value || 0}% off`
                               : `₹${appliedCoupon.coupon_value || 0} off`
                             } • Saving ₹{(discountTotal || 0).toFixed(0)}
                           </p>
@@ -908,15 +953,15 @@ export default function CheckoutPage() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Input 
-                        placeholder="Enter coupon code" 
-                        value={couponCode} 
+                      <Input
+                        placeholder="Enter coupon code"
+                        value={couponCode}
                         onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
                         className="flex-1 h-12 rounded-xl"
                       />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={handleApplyCoupon}
                         disabled={couponLoading || !couponCode.trim()}
                         className="h-12 px-6 rounded-xl"
@@ -938,11 +983,10 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('cod')}
-                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${
-                        paymentMethod === 'cod'
+                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${paymentMethod === 'cod'
                           ? 'border-green-600 bg-green-50'
                           : 'border-neutral-200'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <Truck className="w-5 h-5 text-neutral-600" />
@@ -958,11 +1002,10 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
                       disabled={!razorpayConfigured}
-                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${
-                        paymentMethod === 'razorpay'
+                      className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${paymentMethod === 'razorpay'
                           ? 'border-green-600 bg-green-50'
                           : 'border-neutral-200'
-                      } ${!razorpayConfigured ? 'opacity-50' : ''}`}
+                        } ${!razorpayConfigured ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3">
                         <CreditCard className="w-5 h-5 text-neutral-600" />
@@ -985,7 +1028,7 @@ export default function CheckoutPage() {
               <div className="hidden lg:block">
                 <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24">
                   <h3 className="font-bold text-lg mb-4">Order Summary</h3>
-                  
+
                   {/* Cart Items Preview */}
                   <div className="space-y-3 max-h-60 overflow-y-auto mb-4">
                     {cart.items.map(item => {
@@ -1043,9 +1086,9 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 mt-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl" 
+                  <Button
+                    type="submit"
+                    className="w-full h-12 mt-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
                     disabled={submitting || cart.items.length === 0 || !meetsMinOrder || (zones.length > 0 && !selectedZone)}
                   >
                     {submitting ? (
@@ -1081,11 +1124,11 @@ export default function CheckoutPage() {
                 <p className="text-xs text-neutral-500">Total Amount</p>
                 <p className="text-xl font-bold">₹{total.toFixed(0)}</p>
               </div>
-              <Button 
+              <Button
                 type="submit"
                 form="checkout-form"
                 onClick={handleSubmit}
-                className="h-12 px-8 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl" 
+                className="h-12 px-8 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl"
                 disabled={submitting || cart.items.length === 0 || !meetsMinOrder || (zones.length > 0 && !selectedZone)}
               >
                 {submitting ? (
@@ -1130,23 +1173,23 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 rounded-xl border">
               <h2 className="font-bold text-lg mb-4">Contact Details</h2>
               <div className="space-y-4">
-                <div><Label>Full Name *</Label><Input required value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-                <div><Label>Phone *</Label><Input required value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} /></div>
-                <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+                <div><Label>Full Name *</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+                <div><Label>Phone *</Label><Input required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+                <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
               </div>
             </div>
-            
+
             {/* Delivery Address */}
             <div className="bg-white p-6 rounded-xl border">
               <h2 className="font-bold text-lg mb-4">Delivery Address</h2>
               <div className="space-y-4">
-                <div><Label>Address Line 1 *</Label><Input required value={form.line1} onChange={e => setForm({...form, line1: e.target.value})} /></div>
-                <div><Label>Address Line 2</Label><Input value={form.line2} onChange={e => setForm({...form, line2: e.target.value})} /></div>
+                <div><Label>Address Line 1 *</Label><Input required value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} /></div>
+                <div><Label>Address Line 2</Label><Input value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} /></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label>City *</Label><Input required value={form.city} onChange={e => setForm({...form, city: e.target.value})} /></div>
-                  <div><Label>State *</Label><Input required value={form.state} onChange={e => setForm({...form, state: e.target.value})} /></div>
+                  <div><Label>City *</Label><Input required value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} /></div>
+                  <div><Label>State *</Label><Input required value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} /></div>
                 </div>
-                <div><Label>Pincode *</Label><Input required value={form.pincode} onChange={e => setForm({...form, pincode: e.target.value})} maxLength={6} /></div>
+                <div><Label>Pincode *</Label><Input required value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} maxLength={6} /></div>
               </div>
             </div>
           </div>

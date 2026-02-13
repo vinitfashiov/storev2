@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useGroceryLocation } from '@/contexts/GroceryLocationContext';
 import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import { cn } from '@/lib/utils';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface GroceryHeaderProps {
   storeName: string;
@@ -31,9 +32,15 @@ export function GroceryHeader({
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   const { pincode, deliveryArea, isLocationSet } = useGroceryLocation();
-  
+
   const { isListening, isSupported, startListening, stopListening, transcript } = useVoiceSearch({
     onResult: (result) => {
       onSearchChange(result);
@@ -64,8 +71,8 @@ export function GroceryHeader({
     inputRef.current?.focus();
   };
 
-  const locationDisplay = isLocationSet 
-    ? deliveryArea?.name || pincode 
+  const locationDisplay = isLocationSet
+    ? deliveryArea?.name || pincode
     : 'Set Location';
 
   return (
@@ -74,7 +81,7 @@ export function GroceryHeader({
       <div className="px-4 py-3 border-b border-neutral-100">
         <div className="flex items-center justify-between gap-3">
           {/* Location Selector */}
-          <button 
+          <button
             onClick={onLocationClick}
             className="flex items-center gap-1.5 flex-1 min-w-0"
           >
@@ -92,12 +99,12 @@ export function GroceryHeader({
 
           {/* Right Icons */}
           <div className="flex items-center gap-1">
-            <Link to={`/store/${storeSlug}/wishlist`}>
+            <Link to={getLink('/wishlist')}>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
                 <Heart className="w-5 h-5 text-neutral-700" />
               </Button>
             </Link>
-            <Link to={`/store/${storeSlug}/account`}>
+            <Link to={getLink('/account')}>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10 bg-green-100 hover:bg-green-200">
                 <User className="w-5 h-5 text-green-700" />
               </Button>
@@ -124,25 +131,25 @@ export function GroceryHeader({
             onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit?.()}
             className="pl-12 pr-24 h-12 bg-transparent border-none rounded-xl focus-visible:ring-0 text-base placeholder:text-neutral-400"
           />
-          
+
           {/* Clear button */}
           {searchQuery && (
-            <button 
+            <button
               onClick={handleClearSearch}
               className="absolute right-14 p-1.5 hover:bg-neutral-200 rounded-full transition-colors"
             >
               <X className="w-4 h-4 text-neutral-500" />
             </button>
           )}
-          
+
           {/* Voice search button */}
           {isSupported && (
-            <button 
+            <button
               onClick={handleVoiceClick}
               className={cn(
                 "absolute right-3 p-2 rounded-full transition-all",
-                isListening 
-                  ? "bg-red-500 text-white animate-pulse" 
+                isListening
+                  ? "bg-red-500 text-white animate-pulse"
                   : "bg-neutral-200 hover:bg-neutral-300 text-neutral-600"
               )}
             >
@@ -150,7 +157,7 @@ export function GroceryHeader({
             </button>
           )}
         </div>
-        
+
         {/* Listening indicator */}
         {isListening && (
           <div className="flex items-center justify-center gap-2 mt-2 text-sm text-red-600">

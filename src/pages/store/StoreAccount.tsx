@@ -2,18 +2,19 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { toast } from 'sonner';
-import { 
-  ArrowLeft, 
-  Package, 
-  MapPin, 
-  LogOut, 
-  User, 
+import {
+  ArrowLeft,
+  Package,
+  MapPin,
+  LogOut,
+  User,
   ChevronRight,
   Heart,
   CreditCard,
@@ -69,19 +70,36 @@ const AccountSkeleton = () => (
 );
 
 export default function StoreAccount({ storeName }: StoreAccountProps) {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { customer, signOut, refreshCustomer } = useStoreAuth();
+  const { tenant: cdTenant, isCustomDomain } = useCustomDomain();
+
+  // Use slug from params or context
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [tenantLoading, setTenantLoading] = useState(true);
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailValue, setEmailValue] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
 
+  const getLink = (path: string) => {
+    if (!slug) return path;
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
+
   const { itemCount } = useCart(slug || '', tenant?.id || null);
 
   useEffect(() => {
     const fetchTenant = async () => {
+      if (isCustomDomain && cdTenant) {
+        setTenant(cdTenant as Tenant);
+        setTenantLoading(false);
+        return;
+      }
+
       if (!slug) {
         setTenantLoading(false);
         return;
@@ -96,7 +114,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
       setTenantLoading(false);
     };
     fetchTenant();
-  }, [slug]);
+  }, [slug, isCustomDomain, cdTenant]);
 
   // Show skeleton while loading
   if (tenantLoading) return <AccountSkeleton />;
@@ -104,7 +122,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
   const handleSignOut = async () => {
     await signOut();
     toast.success('Logged out successfully');
-    navigate(`/store/${slug}`);
+    navigate(getLink('/'));
   };
 
   const handleStartEditEmail = () => {
@@ -124,7 +142,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
     if (!customer) return;
 
     const trimmedEmail = emailValue.trim().toLowerCase();
-    
+
     // Validate email format
     if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       toast.error('Please enter a valid email address');
@@ -184,10 +202,10 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
               <h2 className="font-bold text-lg mb-2">Sign in to your account</h2>
               <p className="text-neutral-500 text-sm mb-6">Track orders, manage addresses, and more</p>
               <div className="space-y-3">
-                <Link to={`/store/${slug}/login`} className="block">
+                <Link to={getLink('/login')} className="block">
                   <Button className="w-full bg-green-600 hover:bg-green-700">Sign In</Button>
                 </Link>
-                <Link to={`/store/${slug}/signup`} className="block">
+                <Link to={getLink('/signup')} className="block">
                   <Button variant="outline" className="w-full">Create Account</Button>
                 </Link>
               </div>
@@ -203,11 +221,11 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
   // Grocery Mobile Layout
   if (isGrocery) {
     const menuItems = [
-      { icon: User, label: 'My Account', href: `/store/${slug}/account`, description: 'Profile details' },
-      { icon: Package, label: 'My Orders', href: `/store/${slug}/account/orders`, description: 'Track your orders' },
+      { icon: User, label: 'My Account', href: getLink('/account'), description: 'Profile details' },
+      { icon: Package, label: 'My Orders', href: getLink('/account/orders'), description: 'Track your orders' },
       { icon: CreditCard, label: 'Payments', href: '#', description: 'Saved cards & UPI' },
-      { icon: MapPin, label: 'Address', href: `/store/${slug}/account/addresses`, description: 'Saved addresses' },
-      { icon: Heart, label: 'Favourites', href: `/store/${slug}/wishlist`, description: 'Your wishlist' },
+      { icon: MapPin, label: 'Address', href: getLink('/account/addresses'), description: 'Saved addresses' },
+      { icon: Heart, label: 'Favourites', href: getLink('/wishlist'), description: 'Your wishlist' },
       { icon: Tag, label: 'Promocodes', href: '#', description: 'Discounts & offers' },
       { icon: Settings, label: 'Settings', href: '#', description: 'App preferences' },
       { icon: HelpCircle, label: 'Help', href: '#', description: 'Support & FAQ' },
@@ -218,14 +236,14 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
         {/* Mobile Header */}
         <div className="lg:hidden sticky top-0 z-40 bg-white border-b border-neutral-100">
           <div className="flex items-center gap-3 p-4">
-            <button onClick={() => navigate(`/store/${slug}`)} className="p-1">
+            <button onClick={() => navigate(getLink('/'))} className="p-1">
               <ChevronLeft className="w-6 h-6" />
             </button>
           </div>
         </div>
 
         <main className="flex-1">
-        {/* Profile Section */}
+          {/* Profile Section */}
           <div className="bg-white p-4">
             <div className="flex items-center justify-between">
               <div>
@@ -241,14 +259,14 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
                       className="h-8 text-sm w-48"
                       autoFocus
                     />
-                    <button 
-                      onClick={handleSaveEmail} 
+                    <button
+                      onClick={handleSaveEmail}
                       disabled={savingEmail}
                       className="p-1.5 rounded-full bg-green-100 text-green-600 hover:bg-green-200"
                     >
                       {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     </button>
-                    <button 
+                    <button
                       onClick={handleCancelEditEmail}
                       disabled={savingEmail}
                       className="p-1.5 rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
@@ -263,7 +281,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
                     ) : (
                       <p className="text-neutral-400 text-sm italic">Add email for order updates</p>
                     )}
-                    <button 
+                    <button
                       onClick={handleStartEditEmail}
                       className="p-1 rounded-full hover:bg-neutral-100"
                     >
@@ -309,8 +327,8 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
 
           {/* Sign Out */}
           <div className="p-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full border-red-200 text-red-600 hover:bg-red-50"
               onClick={handleSignOut}
             >
@@ -329,7 +347,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={`/store/${slug}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to store
         </Link>
@@ -365,14 +383,14 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
                       className="h-8 text-sm w-48"
                       autoFocus
                     />
-                    <button 
-                      onClick={handleSaveEmail} 
+                    <button
+                      onClick={handleSaveEmail}
                       disabled={savingEmail}
                       className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20"
                     >
                       {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     </button>
-                    <button 
+                    <button
                       onClick={handleCancelEditEmail}
                       disabled={savingEmail}
                       className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80"
@@ -387,7 +405,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
                     ) : (
                       <span className="text-muted-foreground italic text-sm">Not set</span>
                     )}
-                    <button 
+                    <button
                       onClick={handleStartEditEmail}
                       className="p-1 rounded-full hover:bg-muted"
                     >
@@ -399,7 +417,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
             </CardContent>
           </Card>
 
-          <Link to={`/store/${slug}/account/orders`}>
+          <Link to={getLink('/account/orders')}>
             <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
@@ -411,7 +429,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
             </Card>
           </Link>
 
-          <Link to={`/store/${slug}/account/addresses`}>
+          <Link to={getLink('/account/addresses')}>
             <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
               <CardContent className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">

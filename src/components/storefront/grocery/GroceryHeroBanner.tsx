@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Banner {
   id: string;
@@ -18,6 +20,12 @@ interface GroceryHeroBannerProps {
 
 export function GroceryHeroBanner({ banners, storeSlug }: GroceryHeroBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -41,8 +49,8 @@ export function GroceryHeroBanner({ banners, storeSlug }: GroceryHeroBannerProps
             <div className="flex-1">
               <h2 className="text-white text-3xl font-bold mb-2">Paan corner</h2>
               <p className="text-white/90 text-lg mb-4">Your favourite paan shop is now online</p>
-              <Link 
-                to={`/store/${storeSlug}/products`}
+              <Link
+                to={getLink('/products')}
                 className="inline-block bg-emerald-900 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-emerald-950 transition-colors"
               >
                 Shop Now
@@ -75,8 +83,8 @@ export function GroceryHeroBanner({ banners, storeSlug }: GroceryHeroBannerProps
               <p className="text-white/90 text-lg mb-4">{currentBanner.subtitle}</p>
             )}
             {currentBanner.cta_text && currentBanner.cta_url && (
-              <Link 
-                to={currentBanner.cta_url}
+              <Link
+                to={currentBanner.cta_url.startsWith('/') ? getLink(currentBanner.cta_url) : currentBanner.cta_url}
                 className="inline-block bg-emerald-900 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-emerald-950 transition-colors"
               >
                 {currentBanner.cta_text}
@@ -84,7 +92,7 @@ export function GroceryHeroBanner({ banners, storeSlug }: GroceryHeroBannerProps
             )}
           </div>
         </div>
-        
+
         {/* Dots */}
         {banners.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
@@ -92,9 +100,8 @@ export function GroceryHeroBanner({ banners, storeSlug }: GroceryHeroBannerProps
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentIndex ? 'bg-white w-6' : 'bg-white/50'
-                }`}
+                className={`w-2 h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-6' : 'bg-white/50'
+                  }`}
               />
             ))}
           </div>

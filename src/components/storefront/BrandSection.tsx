@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Brand {
   id: string;
@@ -15,6 +16,13 @@ interface BrandSectionProps {
 }
 
 export function BrandSection({ brands, storeSlug, title = "Shop by Brand" }: BrandSectionProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   if (brands.length === 0) return null;
 
   const getLogoUrl = (logoPath: string | null) => {
@@ -39,22 +47,22 @@ export function BrandSection({ brands, storeSlug, title = "Shop by Brand" }: Bra
         <h2 className="font-serif text-2xl md:text-3xl font-semibold text-center text-neutral-900 mb-10">
           {title}
         </h2>
-        
+
         <div className="flex flex-wrap justify-center gap-6 md:gap-8">
           {brands.map((brand, index) => {
             const logoUrl = getLogoUrl(brand.logo_path);
             const bgColor = brandColors[index % brandColors.length];
-            
+
             return (
               <Link
                 key={brand.id}
-                to={`/store/${storeSlug}/products?brand=${brand.slug}`}
+                to={`${getLink('/products')}?brand=${brand.slug}`}
                 className="group flex flex-col items-center gap-3 w-24 md:w-28"
               >
                 <div className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl ${bgColor} flex items-center justify-center group-hover:scale-105 transition-transform shadow-sm overflow-hidden`}>
                   {logoUrl ? (
-                    <img 
-                      src={logoUrl} 
+                    <img
+                      src={logoUrl}
                       alt={brand.name}
                       className="w-14 h-14 md:w-16 md:h-16 object-contain"
                     />
