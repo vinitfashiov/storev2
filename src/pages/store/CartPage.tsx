@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
@@ -73,7 +73,7 @@ export default function CartPage() {
       if (isCustomDomain && cdTenant) {
         setTenant(cdTenant as Tenant);
         if (cdTenant.business_type === 'grocery') {
-          const { data: settings } = await supabase
+          const { data: settings } = await supabaseStore
             .from('tenant_delivery_settings')
             .select('free_delivery_above')
             .eq('tenant_id', cdTenant.id)
@@ -92,7 +92,7 @@ export default function CartPage() {
         setTenantLoading(false);
         return;
       }
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('tenants')
         .select('id, store_name, store_slug, business_type, address, phone')
         .eq('store_slug', slug)
@@ -102,7 +102,7 @@ export default function CartPage() {
         setTenant(data as Tenant);
         // Fetch delivery settings for grocery stores
         if (data.business_type === 'grocery') {
-          const { data: settings } = await supabase
+          const { data: settings } = await supabaseStore
             .from('tenant_delivery_settings')
             .select('free_delivery_above')
             .eq('tenant_id', data.id)
@@ -126,7 +126,7 @@ export default function CartPage() {
     const img = imageArray[0];
     if (typeof img === 'string') {
       if (img.startsWith('http')) return img;
-      return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+      return supabaseStore.storage.from('product-images').getPublicUrl(img).data.publicUrl;
     }
     return null;
   };

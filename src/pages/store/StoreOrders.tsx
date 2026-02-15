@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,7 +65,7 @@ export default function StoreOrders() {
         return;
       }
 
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('orders')
         .select('id, order_number, status, payment_status, total, created_at')
         .eq('customer_id', customer.id)

@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Loader2, Store, ArrowLeft } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 
 // Loading skeleton for login page
 const LoginSkeleton = () => (
@@ -72,7 +72,7 @@ export default function StoreLogin() {
       }
 
       if (!slug) return;
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('tenants')
         .select('*')
         .eq('store_slug', slug)
@@ -132,7 +132,7 @@ export default function StoreLogin() {
 
       // Check if the user has a profile
       if (data?.user?.id) {
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseStore
           .from('profiles')
           .select('id')
           .eq('user_id', data.user.id)

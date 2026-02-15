@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Json } from '@/integrations/supabase/types';
 import { useStoreAnalyticsEvent } from '@/contexts/StoreAnalyticsContext';
 
@@ -45,7 +45,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
 
   const fetchCart = useCallback(async (cartId: string) => {
     try {
-      const { data: cartData, error: cartError } = await supabase
+      const { data: cartData, error: cartError } = await supabaseStore
         .from('carts')
         .select('*')
         .eq('id', cartId)
@@ -60,7 +60,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         return null;
       }
 
-      const { data: items } = await supabase
+      const { data: items } = await supabaseStore
         .from('cart_items')
         .select(`
           *,
@@ -88,7 +88,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
     if (!tenantId) return null;
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseStore
         .from('carts')
         .insert({
           tenant_id: tenantId,
@@ -121,41 +121,41 @@ export function useCart(storeSlug: string, tenantId: string | null) {
       }
 
       const existingItem = currentCart.items.find(item => item.product_id === productId);
-      
+
       // INSTANT optimistic update with proper temp ID handling
       const newQty = existingItem ? existingItem.qty + qty : qty;
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
+
       setCart(prev => {
         if (!prev) return prev;
         const updatedItems = existingItem
-          ? prev.items.map(item => 
-              item.product_id === productId 
-                ? { ...item, qty: newQty }
-                : item
-            )
-          : [...prev.items, { 
-              id: tempId, 
-              product_id: productId, 
-              qty, 
-              unit_price: price,
-              product: null 
-            }];
+          ? prev.items.map(item =>
+            item.product_id === productId
+              ? { ...item, qty: newQty }
+              : item
+          )
+          : [...prev.items, {
+            id: tempId,
+            product_id: productId,
+            qty,
+            unit_price: price,
+            product: null
+          }];
         return { ...prev, items: updatedItems };
       });
       setItemCount(prev => prev + qty);
-      
+
       // Background DB update with error handling
       try {
         if (existingItem) {
-          const { error } = await supabase
+          const { error } = await supabaseStore
             .from('cart_items')
             .update({ qty: newQty })
             .eq('id', existingItem.id);
-          
+
           if (error) throw error;
         } else {
-          const { data, error } = await supabase
+          const { data, error } = await supabaseStore
             .from('cart_items')
             .insert({
               tenant_id: tenantId,
@@ -166,16 +166,16 @@ export function useCart(storeSlug: string, tenantId: string | null) {
             })
             .select('id')
             .single();
-          
+
           if (error) throw error;
-          
+
           // Replace temp ID with real ID
           if (data) {
             setCart(prev => {
               if (!prev) return prev;
               return {
                 ...prev,
-                items: prev.items.map(item => 
+                items: prev.items.map(item =>
                   item.id === tempId ? { ...item, id: data.id } : item
                 )
               };
@@ -242,12 +242,12 @@ export function useCart(storeSlug: string, tenantId: string | null) {
     const timeoutId = setTimeout(async () => {
       try {
         if (qty <= 0) {
-          await supabase
+          await supabaseStore
             .from('cart_items')
             .delete()
             .eq('id', itemId);
         } else {
-          await supabase
+          await supabaseStore
             .from('cart_items')
             .update({ qty })
             .eq('id', itemId);
@@ -272,7 +272,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
     if (!cart) return;
 
     try {
-      await supabase
+      await supabaseStore
         .from('cart_items')
         .delete()
         .eq('cart_id', cart.id);

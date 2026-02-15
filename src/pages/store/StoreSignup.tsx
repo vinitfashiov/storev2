@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Store, ArrowLeft } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 
 interface StoreSignupProps {
   tenantId: string;
@@ -70,7 +70,7 @@ export default function StoreSignup() {
       }
 
       if (!slug) return;
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('tenants')
         .select('*')
         .eq('store_slug', slug)

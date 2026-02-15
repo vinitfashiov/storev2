@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -139,7 +140,7 @@ export default function CheckoutPage() {
       // Logic for custom domain from context
       if (isCustomDomain && cdTenant) {
         setTenant(cdTenant as Tenant);
-        const { data: integration } = await supabase
+        const { data: integration } = await supabaseStore
           .from('tenant_integrations')
           .select('razorpay_key_id, razorpay_key_secret')
           .eq('tenant_id', cdTenant.id)
@@ -148,9 +149,9 @@ export default function CheckoutPage() {
 
         if (cdTenant.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
-            supabase.from('tenant_delivery_settings').select('*').eq('tenant_id', cdTenant.id).maybeSingle(),
-            supabase.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', cdTenant.id).eq('is_active', true),
-            supabase.from('delivery_slots').select('id, label, zone_id').eq('tenant_id', cdTenant.id).eq('is_active', true)
+            supabaseStore.from('tenant_delivery_settings').select('*').eq('tenant_id', cdTenant.id).maybeSingle(),
+            supabaseStore.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', cdTenant.id).eq('is_active', true),
+            supabaseStore.from('delivery_slots').select('id, label, zone_id').eq('tenant_id', cdTenant.id).eq('is_active', true)
           ]);
           if (settingsRes.data) {
             setDeliverySettings({
@@ -169,10 +170,10 @@ export default function CheckoutPage() {
       }
 
       if (!slug) return;
-      const { data } = await supabase.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
+      const { data } = await supabaseStore.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
       if (data) {
         setTenant(data as Tenant);
-        const { data: integration } = await supabase
+        const { data: integration } = await supabaseStore
           .from('tenant_integrations')
           .select('razorpay_key_id, razorpay_key_secret')
           .eq('tenant_id', data.id)
@@ -181,9 +182,9 @@ export default function CheckoutPage() {
 
         if (data.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
-            supabase.from('tenant_delivery_settings').select('*').eq('tenant_id', data.id).maybeSingle(),
-            supabase.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', data.id).eq('is_active', true),
-            supabase.from('delivery_slots').select('id, label, zone_id').eq('tenant_id', data.id).eq('is_active', true)
+            supabaseStore.from('tenant_delivery_settings').select('*').eq('tenant_id', data.id).maybeSingle(),
+            supabaseStore.from('delivery_zones').select('id, name, pincodes').eq('tenant_id', data.id).eq('is_active', true),
+            supabaseStore.from('delivery_slots').select('id, label, zone_id').eq('tenant_id', data.id).eq('is_active', true)
           ]);
           if (settingsRes.data) {
             setDeliverySettings({
@@ -220,7 +221,7 @@ export default function CheckoutPage() {
         setSavedAddresses([]);
         return;
       }
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('customer_addresses')
         .select('*')
         .eq('customer_id', customer.id)
@@ -419,7 +420,7 @@ export default function CheckoutPage() {
         theme: { color: '#16a34a' },
         modal: {
           ondismiss: async () => {
-            await supabase.from('payment_intents').update({ status: 'cancelled' }).eq('id', paymentIntentId);
+            await supabaseStore.from('payment_intents').update({ status: 'cancelled' }).eq('id', paymentIntentId);
             toast.error('Payment cancelled.');
             setSubmitting(false);
           }
@@ -428,7 +429,7 @@ export default function CheckoutPage() {
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (err: any) {
-      await supabase.from('payment_intents').update({ status: 'failed' }).eq('id', paymentIntentId);
+      await supabaseStore.from('payment_intents').update({ status: 'failed' }).eq('id', paymentIntentId);
       toast.error(err.message || 'Failed to initiate payment');
       setSubmitting(false);
     }
@@ -483,7 +484,7 @@ export default function CheckoutPage() {
     try {
       // Save new address if entered
       if (customer && selectedAddressId === 'new' && form.line1) {
-        await supabase.from('customer_addresses').insert({
+        await supabaseStore.from('customer_addresses').insert({
           customer_id: customer.id,
           tenant_id: tenant.id,
           label: 'Home',
@@ -523,7 +524,7 @@ export default function CheckoutPage() {
       };
 
       if (paymentMethod === 'razorpay') {
-        const { data: paymentIntent, error: piError } = await supabase
+        const { data: paymentIntent, error: piError } = await supabaseStore
           .from('payment_intents')
           .insert({
             tenant_id: tenant.id,
@@ -551,7 +552,7 @@ export default function CheckoutPage() {
         }));
 
         // Use atomic order creation to prevent race conditions
-        const { data: orderId, error: orderError } = await supabase.rpc('create_order_atomic', {
+        const { data: orderId, error: orderError } = await supabaseStore.rpc('create_order_atomic', {
           p_tenant_id: tenant.id,
           p_order_number: orderNumber,
           p_customer_id: customer?.id || null,
@@ -594,7 +595,7 @@ export default function CheckoutPage() {
 
         // Record coupon redemption if applicable (using atomic increment)
         if (appliedCoupon) {
-          await supabase.from('coupon_redemptions').insert({
+          await supabaseStore.from('coupon_redemptions').insert({
             tenant_id: tenant.id,
             coupon_id: appliedCoupon.coupon_id,
             order_id: orderId,
@@ -603,14 +604,14 @@ export default function CheckoutPage() {
           });
 
           // Use atomic coupon increment to prevent race conditions
-          await supabase.rpc('increment_coupon_usage', {
+          await supabaseStore.rpc('increment_coupon_usage', {
             p_coupon_id: appliedCoupon.coupon_id
           });
         }
 
         // Create delivery assignment for grocery stores
         if (isGrocery) {
-          const { data: deliveryAreas } = await supabase
+          const { data: deliveryAreas } = await supabaseStore
             .from('delivery_areas')
             .select('id, pincodes')
             .eq('tenant_id', tenant.id)
@@ -620,7 +621,7 @@ export default function CheckoutPage() {
             area.pincodes?.includes(form.pincode)
           );
 
-          const { error: assignmentError } = await supabase.from('delivery_assignments').insert({
+          const { error: assignmentError } = await supabaseStore.from('delivery_assignments').insert({
             tenant_id: tenant.id,
             order_id: orderId,
             delivery_area_id: matchedArea?.id || null,
@@ -657,7 +658,7 @@ export default function CheckoutPage() {
     const img = imageArray[0];
     if (typeof img === 'string') {
       if (img.startsWith('http')) return img;
-      return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+      return supabaseStore.storage.from('product-images').getPublicUrl(img).data.publicUrl;
     }
     return null;
   };
@@ -759,8 +760,8 @@ export default function CheckoutPage() {
                           type="button"
                           onClick={() => handleAddressSelect(addr.id)}
                           className={`w-full p-4 rounded-xl border-2 text-left transition-all ${selectedAddressId === addr.id
-                              ? 'border-green-600 bg-green-50'
-                              : 'border-neutral-200 hover:border-neutral-300'
+                            ? 'border-green-600 bg-green-50'
+                            : 'border-neutral-200 hover:border-neutral-300'
                             }`}
                         >
                           <div className="flex items-start justify-between">
@@ -880,8 +881,8 @@ export default function CheckoutPage() {
                           type="button"
                           onClick={() => setDeliveryOption('asap')}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${deliveryOption === 'asap'
-                              ? 'border-green-600 bg-green-50'
-                              : 'border-neutral-200'
+                            ? 'border-green-600 bg-green-50'
+                            : 'border-neutral-200'
                             }`}
                         >
                           <Zap className={`w-5 h-5 mb-2 ${deliveryOption === 'asap' ? 'text-green-600' : 'text-neutral-400'}`} />
@@ -894,8 +895,8 @@ export default function CheckoutPage() {
                           type="button"
                           onClick={() => setDeliveryOption('slot')}
                           className={`p-4 rounded-xl border-2 text-left transition-all ${deliveryOption === 'slot'
-                              ? 'border-green-600 bg-green-50'
-                              : 'border-neutral-200'
+                            ? 'border-green-600 bg-green-50'
+                            : 'border-neutral-200'
                             }`}
                         >
                           <Clock className={`w-5 h-5 mb-2 ${deliveryOption === 'slot' ? 'text-green-600' : 'text-neutral-400'}`} />
@@ -912,8 +913,8 @@ export default function CheckoutPage() {
                             type="button"
                             onClick={() => setSelectedSlotId(slot.id)}
                             className={`w-full p-3 rounded-xl border-2 text-left flex items-center justify-between ${selectedSlotId === slot.id
-                                ? 'border-green-600 bg-green-50'
-                                : 'border-neutral-200'
+                              ? 'border-green-600 bg-green-50'
+                              : 'border-neutral-200'
                               }`}
                           >
                             <span className="text-sm font-medium">{slot.label}</span>
@@ -984,8 +985,8 @@ export default function CheckoutPage() {
                       type="button"
                       onClick={() => setPaymentMethod('cod')}
                       className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${paymentMethod === 'cod'
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-neutral-200'
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-neutral-200'
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -1003,8 +1004,8 @@ export default function CheckoutPage() {
                       onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
                       disabled={!razorpayConfigured}
                       className={`w-full p-4 rounded-xl border-2 text-left flex items-center justify-between ${paymentMethod === 'razorpay'
-                          ? 'border-green-600 bg-green-50'
-                          : 'border-neutral-200'
+                        ? 'border-green-600 bg-green-50'
+                        : 'border-neutral-200'
                         } ${!razorpayConfigured ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3">

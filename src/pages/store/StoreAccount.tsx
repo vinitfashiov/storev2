@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,7 +104,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
         setTenantLoading(false);
         return;
       }
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('tenants')
         .select('id, store_name, store_slug, business_type')
         .eq('store_slug', slug)
@@ -151,7 +151,7 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
 
     setSavingEmail(true);
     try {
-      const { error } = await supabase
+      const { error } = await supabaseStore
         .from('customers')
         .update({ email: trimmedEmail || null })
         .eq('id', customer.id);

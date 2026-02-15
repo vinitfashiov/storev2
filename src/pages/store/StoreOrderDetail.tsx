@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,17 +107,17 @@ export default function StoreOrderDetail() {
       }
 
       const [orderRes, itemsRes, shipmentRes] = await Promise.all([
-        supabase
+        supabaseStore
           .from('orders')
           .select('*')
           .eq('id', orderId)
           .eq('customer_id', customer.id)
           .single(),
-        supabase
+        supabaseStore
           .from('order_items')
           .select('*')
           .eq('order_id', orderId),
-        supabase
+        supabaseStore
           .from('shiprocket_shipments')
           .select('shiprocket_order_id, awb_code, courier_name, status')
           .eq('order_id', orderId)

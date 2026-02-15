@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -85,7 +85,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
   const fetchAddresses = async () => {
     if (!customer) return;
 
-    const { data } = await supabase
+    const { data } = await supabaseStore
       .from('customer_addresses')
       .select('*')
       .eq('customer_id', customer.id)
@@ -106,13 +106,13 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
 
     // If setting as default, unset other defaults first
     if (form.is_default) {
-      await supabase
+      await supabaseStore
         .from('customer_addresses')
         .update({ is_default: false })
         .eq('customer_id', customer.id);
     }
 
-    const { error } = await supabase.from('customer_addresses').insert({
+    const { error } = await supabaseStore.from('customer_addresses').insert({
       tenant_id: tenantId,
       customer_id: customer.id,
       label: form.label,
@@ -138,7 +138,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('customer_addresses').delete().eq('id', id);
+    const { error } = await supabaseStore.from('customer_addresses').delete().eq('id', id);
     if (error) {
       toast.error('Failed to delete address');
       return;
@@ -150,12 +150,12 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
   const handleSetDefault = async (id: string) => {
     if (!customer) return;
 
-    await supabase
+    await supabaseStore
       .from('customer_addresses')
       .update({ is_default: false })
       .eq('customer_id', customer.id);
 
-    await supabase
+    await supabaseStore
       .from('customer_addresses')
       .update({ is_default: true })
       .eq('id', id);

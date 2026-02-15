@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -105,7 +105,7 @@ export default function ProductDetail() {
       if (!currentTenant) {
         if (!slug) return; // Can't fetch without slug if not context provided
 
-        const { data: tenantData } = await supabase
+        const { data: tenantData } = await supabaseStore
           .from('tenants')
           .select('id, store_name, store_slug, business_type, address, phone')
           .eq('store_slug', slug)
@@ -123,7 +123,7 @@ export default function ProductDetail() {
 
       if (!productSlug) return;
 
-      const { data: productData } = await supabase
+      const { data: productData } = await supabaseStore
         .from('products')
         .select('*, category:categories(name), brand:brands(name)')
         .eq('tenant_id', currentTenant.id)
@@ -135,7 +135,7 @@ export default function ProductDetail() {
         setProduct(productData as Product);
 
         if (productData.has_variants) {
-          const { data: variantsData } = await supabase
+          const { data: variantsData } = await supabaseStore
             .from('product_variants')
             .select('id, sku, price, compare_at_price, stock_qty, is_active')
             .eq('product_id', productData.id)
@@ -143,7 +143,7 @@ export default function ProductDetail() {
 
           if (variantsData && variantsData.length > 0) {
             const variantIds = variantsData.map(v => v.id);
-            const { data: variantAttrsData } = await supabase
+            const { data: variantAttrsData } = await supabaseStore
               .from('variant_attributes')
               .select('variant_id, attribute:attributes(name), attribute_value:attribute_values(value)')
               .in('variant_id', variantIds);
@@ -208,7 +208,7 @@ export default function ProductDetail() {
   useEffect(() => {
     const checkWishlist = async () => {
       if (!customer || !tenant || !product) return;
-      const { data } = await supabase
+      const { data } = await supabaseStore
         .from('wishlists')
         .select('id')
         .eq('tenant_id', tenant.id)
@@ -227,7 +227,7 @@ export default function ProductDetail() {
     }
 
     if (isWishlisted) {
-      await supabase
+      await supabaseStore
         .from('wishlists')
         .delete()
         .eq('tenant_id', tenant.id)
@@ -236,7 +236,7 @@ export default function ProductDetail() {
       setIsWishlisted(false);
       toast.success('Removed from wishlist');
     } else {
-      await supabase.from('wishlists').insert({
+      await supabaseStore.from('wishlists').insert({
         tenant_id: tenant.id,
         customer_id: customer.id,
         product_id: product.id
@@ -269,7 +269,7 @@ export default function ProductDetail() {
 
   const getImageUrl = (img: string) => {
     if (img.startsWith('http')) return img;
-    return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+    return supabaseStore.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
 
   const displayPrice = selectedVariant?.price ?? product?.price ?? 0;

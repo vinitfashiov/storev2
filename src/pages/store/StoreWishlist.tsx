@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,14 +65,14 @@ export default function StoreWishlist() {
     const fetchData = async () => {
       if (!slug || !customer) { setLoading(false); return; }
 
-      const { data: tenantData } = await supabase
+      const { data: tenantData } = await supabaseStore
         .from('tenants')
         .select('id')
         .eq('store_slug', slug)
         .single();
 
       if (tenantData) {
-        const { data: wishlistData } = await supabase
+        const { data: wishlistData } = await supabaseStore
           .from('wishlists')
           .select('id, product:products(id, name, slug, price, compare_at_price, images, stock_qty)')
           .eq('tenant_id', tenantData.id)
@@ -89,7 +89,7 @@ export default function StoreWishlist() {
   }, [slug, customer, authLoading]);
 
   const removeFromWishlist = async (wishlistId: string) => {
-    const { error } = await supabase.from('wishlists').delete().eq('id', wishlistId);
+    const { error } = await supabaseStore.from('wishlists').delete().eq('id', wishlistId);
     if (error) { toast.error('Failed to remove'); return; }
     setWishlist(wishlist.filter(w => w.id !== wishlistId));
     toast.success('Removed from wishlist');
@@ -99,7 +99,7 @@ export default function StoreWishlist() {
     if (!images || images.length === 0) return '/placeholder.svg';
     const img = images[0];
     if (img.startsWith('http')) return img;
-    return supabase.storage.from('product-images').getPublicUrl(img).data.publicUrl;
+    return supabaseStore.storage.from('product-images').getPublicUrl(img).data.publicUrl;
   };
 
   // Show skeleton while loading
