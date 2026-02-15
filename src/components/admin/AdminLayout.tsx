@@ -11,6 +11,7 @@ interface AdminLayoutProps {
   storeSlug: string;
   tenantId: string;
   businessType?: 'ecommerce' | 'grocery';
+  userRole?: 'owner' | 'super_admin';
   onSignOut: () => void;
   onTenantChange: (tenantId: string) => void;
   isTrialExpired: boolean;
@@ -25,6 +26,7 @@ export function AdminLayout({
   storeSlug,
   tenantId,
   businessType,
+  userRole,
   onSignOut,
   onTenantChange,
   isTrialExpired,
@@ -34,7 +36,7 @@ export function AdminLayout({
     <div className="min-h-screen bg-background flex w-full">
       {/* Sidebar - Desktop Only */}
       <div className="hidden md:block">
-        <AdminSidebar storeSlug={storeSlug} storeName={storeName} businessType={businessType} />
+        <AdminSidebar storeSlug={storeSlug} storeName={storeName} businessType={businessType} userRole={userRole} />
       </div>
 
       <div className="flex-1 flex flex-col min-w-0 pb-16 md:pb-0">

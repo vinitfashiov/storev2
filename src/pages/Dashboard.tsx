@@ -45,6 +45,8 @@ const AdminDeliveryOrders = lazy(() => import('./admin/AdminDeliveryOrders'));
 const AdminDeliveryPayouts = lazy(() => import('./admin/AdminDeliveryPayouts'));
 const AdminAccount = lazy(() => import('./admin/AdminAccount'));
 const AdminAnalytics = lazy(() => import('./admin/AdminAnalytics'));
+const SuperAdminDashboard = lazy(() => import('./admin/SuperAdminDashboard'));
+const SuperAdminDataBrowser = lazy(() => import('./admin/SuperAdminDataBrowser'));
 
 // PRELOAD ALL ADMIN CHUNKS - eliminates first-load delay on sidebar navigation
 // This runs when Dashboard mounts and loads all page modules in background
@@ -119,7 +121,7 @@ function ProductFormWrapper({ tenantId, disabled }: { tenantId: string; disabled
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants } = useAuth();
+  const { user, profile, tenant, loading, signOut, switchTenant, refreshTenants, isSuperAdmin } = useAuth();
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const preloadedRef = useRef(false);
 
@@ -249,6 +251,7 @@ export default function Dashboard() {
         storeSlug={tenant.store_slug}
         tenantId={tenant.id}
         businessType={tenant.business_type}
+        userRole={profile?.role}
         onSignOut={handleSignOut}
         onTenantChange={handleTenantChange}
         isTrialExpired={isTrialExpired}
@@ -280,6 +283,13 @@ export default function Dashboard() {
             <Route path="stores" element={<AdminStores onTenantChange={handleTenantChange} onRefresh={refreshTenants} />} />
             <Route path="account" element={<AdminAccount />} />
             <Route path="analytics" element={<AdminAnalytics tenantId={tenant.id} />} />
+            {/* Super Admin Routes */}
+            {isSuperAdmin && (
+              <>
+                <Route path="super-admin" element={<SuperAdminDashboard />} />
+                <Route path="super-admin/data-browser" element={<SuperAdminDataBrowser />} />
+              </>
+            )}
             {/* Inventory Management */}
             <Route path="inventory" element={<AdminInventory tenantId={tenant.id} />} />
             <Route path="suppliers" element={<AdminSuppliers tenantId={tenant.id} />} />

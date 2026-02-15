@@ -6,7 +6,7 @@ interface Profile {
   id: string;
   email: string;
   name: string | null;
-  role: 'owner';
+  role: 'owner' | 'super_admin';
   tenant_id: string | null;
   onboarding_completed: boolean;
 }
@@ -31,6 +31,7 @@ interface AuthContextType {
   tenant: Tenant | null;
   tenants: Tenant[];
   loading: boolean;
+  isSuperAdmin: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -308,6 +309,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dataCache.clear();
   }, []);
 
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -316,6 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       tenant,
       tenants,
       loading,
+      isSuperAdmin,
       signUp,
       signIn,
       signOut,

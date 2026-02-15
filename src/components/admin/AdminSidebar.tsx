@@ -28,7 +28,9 @@ import {
   Monitor,
   BarChart3,
   Calendar,
-  Activity
+  Activity,
+  Shield,
+  Database
 } from 'lucide-react';
 
 const baseNavItems = [
@@ -80,17 +82,25 @@ const settingsNavItems = [
   { href: '/dashboard/upgrade', label: 'Upgrade Plan', icon: Crown },
 ];
 
+const superAdminNavItems = [
+  { href: '/dashboard/super-admin', label: 'Super Admin', icon: Shield },
+  { href: '/dashboard/super-admin/data-browser', label: 'Data Browser', icon: Database },
+];
+
 interface AdminSidebarProps {
   storeSlug: string;
   storeName: string;
   businessType?: 'ecommerce' | 'grocery';
+  userRole?: 'owner' | 'super_admin';
 }
 
-export function AdminSidebar({ storeSlug, storeName, businessType }: AdminSidebarProps) {
+export function AdminSidebar({ storeSlug, storeName, businessType, userRole }: AdminSidebarProps) {
   const location = useLocation();
   const isGrocery = businessType === 'grocery';
+  const isSuperAdmin = userRole === 'super_admin';
 
   const navItems = [
+    ...(isSuperAdmin ? superAdminNavItems : []),
     ...baseNavItems,
     ...inventoryNavItems,
     ...(isGrocery ? groceryNavItems : []),
