@@ -19,6 +19,7 @@ import StoreOrderDetail from '@/pages/store/StoreOrderDetail';
 import StoreAddresses from '@/pages/store/StoreAddresses';
 import StoreWishlist from '@/pages/store/StoreWishlist';
 import StorePageView from '@/pages/store/StorePageView';
+import GroceryCategoriesPage from '@/pages/store/GroceryCategoriesPage';
 
 // Wrapper that provides tenant context for custom domain routes
 function CustomDomainStoreWrapper({ children }: { children: ReactNode }) {
@@ -76,6 +77,7 @@ export function CustomDomainRoutes() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-confirmation" element={<OrderConfirmation />} />
+        <Route path="/categories" element={<GroceryCategoriesPage />} />
 
         {/* tenant is guaranteed by CustomDomainStoreWrapper; fallbacks satisfy TS */}
         <Route
