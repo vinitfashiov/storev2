@@ -153,11 +153,18 @@ export default function AdminDomains() {
       });
 
       if (error) {
-        if (!isAuto) toast.error('Failed to verify domain');
+        console.error('Edge function error:', error);
+        if (!isAuto) toast.error('Failed to verify domain: ' + (error.message || 'Network error'));
         return;
       }
 
-      if (data.verified) {
+      // Handle error returned inside the response body
+      if (data?.error && !data?.verified) {
+        if (!isAuto) toast.error(data.message || data.error || 'Verification failed');
+        return;
+      }
+
+      if (data?.verified) {
         setDomains(prev => prev.map(d => d.id === domain.id ? { ...d, status: 'active' } : d));
         toast.success(data.message || 'Domain verified and activated!');
         // Clear instructions if verified
@@ -166,10 +173,10 @@ export default function AdminDomains() {
         setVerificationInstructions(newInstructions);
       } else {
         if (!isAuto) {
-          toast.error(data.message || 'Verification pending. Please check DNS configuration.');
+          toast.info(data?.message || 'Verification pending. Please check DNS configuration.');
         }
         // Save specific instructions if provided (e.g., TXT record)
-        if (data.instructions && Array.isArray(data.instructions)) {
+        if (data?.instructions && Array.isArray(data.instructions) && data.instructions.length > 0) {
           setVerificationInstructions(prev => ({
             ...prev,
             [domain.id]: data.instructions
@@ -177,6 +184,7 @@ export default function AdminDomains() {
         }
       }
     } catch (err) {
+      console.error('Verify domain error:', err);
       if (!isAuto) toast.error('Failed to verify domain');
     } finally {
       if (!isAuto) setVerifying(null);
@@ -399,26 +407,24 @@ export default function AdminDomains() {
                           </Button>
                         )}
 
-                        {domain.status === 'pending' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVerifyDomain(domain)}
-                            disabled={verifying === domain.id}
-                          >
-                            {verifying === domain.id ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                Verifying...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="w-4 h-4 mr-1" />
-                                Verify DNS
-                              </>
-                            )}
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleVerifyDomain(domain)}
+                          disabled={verifying === domain.id}
+                        >
+                          {verifying === domain.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-4 h-4 mr-1" />
+                              {domain.status === 'active' ? 'Re-verify' : 'Verify DNS'}
+                            </>
+                          )}
+                        </Button>
 
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

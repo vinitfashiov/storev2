@@ -7,9 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Vercel Constants
-const VERCEL_API_URL = "https://api.vercel.com/v9/projects";
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,7 +26,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const vercelToken = Deno.env.get('VERCEL_API_TOKEN');
     const vercelProjectId = Deno.env.get('VERCEL_PROJECT_ID');
-    const vercelTeamId = Deno.env.get('VERCEL_TEAM_ID'); // Optional
+    const vercelTeamId = Deno.env.get('VERCEL_TEAM_ID');
 
     if (!vercelToken || !vercelProjectId) {
       console.error("Missing Vercel credentials");
@@ -40,17 +37,13 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const teamQuery = vercelTeamId ? `?teamId=${vercelTeamId}` : '';
 
-    // 1. Add/Get Domain Status from Vercel
-    console.log(`Checking/Adding domain on Vercel: ${domain}`);
+    // ── Step 1: Try to add the domain to Vercel ──
+    console.log(`[verify-domain-dns] Checking/Adding domain: ${domain}`);
 
-    // Construct Vercel API URL
-    let url = `${VERCEL_API_URL}/${vercelProjectId}/domains?teamId=${vercelTeamId || ''}`;
-    if (!vercelTeamId) {
-      url = `${VERCEL_API_URL}/${vercelProjectId}/domains`;
-    }
-
-    const vercelResponse = await fetch(url, {
+    const addUrl = `https://api.vercel.com/v10/projects/${vercelProjectId}/domains${teamQuery}`;
+    const addResponse = await fetch(addUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${vercelToken}`,
@@ -59,144 +52,178 @@ serve(async (req) => {
       body: JSON.stringify({ name: domain }),
     });
 
-    let vercelData;
-    // Check if response is valid JSON even on error
+    let addData: any;
     try {
-      vercelData = await vercelResponse.json();
-    } catch (e) {
-      console.error("Failed to parse Vercel response", e);
+      addData = await addResponse.json();
+    } catch {
+      console.error("[verify-domain-dns] Failed to parse Vercel add-domain response");
+      addData = null;
     }
 
-    // Handle standard errors, but allow 409 (Conflict/Ownership) to pass through if it has verification data
-    if (!vercelResponse.ok && vercelResponse.status !== 409) {
-      console.error("Vercel API Error:", JSON.stringify(vercelData));
+    console.log(`[verify-domain-dns] Add response ${addResponse.status}:`, JSON.stringify(addData));
+
+    // ── Step 2: If domain already exists, GET its real config status ──
+    let isVerified = false;
+    let instructions: any[] = [];
+    let dbMessage = 'Pending DNS verification';
+
+    // Build default DNS instructions based on domain type
+    const parts = domain.split('.');
+    const isSubdomain = parts.length > 2;
+    const defaultInstruction = isSubdomain
+      ? { type: 'CNAME', name: parts.slice(0, -2).join('.'), value: 'cname.vercel-dns.com' }
+      : { type: 'A', name: '@', value: '76.76.21.21' };
+
+    if (addResponse.ok) {
+      // Domain was freshly added — check if already verified
+      isVerified = addData?.verified === true;
+      if (!isVerified) {
+        instructions.push(defaultInstruction);
+        // Check for verification challenges (TXT records)
+        const challenges = addData?.verification || [];
+        for (const c of challenges) {
+          if (c.type === 'TXT') {
+            instructions.push({
+              type: 'TXT',
+              name: c.domain?.replace(`.${domain}`, '') || '_vercel',
+              value: c.value,
+            });
+          }
+        }
+        dbMessage = 'Domain added to Vercel. Please configure DNS records.';
+      } else {
+        dbMessage = 'Domain verified and active!';
+      }
+    } else if (addResponse.status === 409) {
+      // Domain already exists — need to GET its current status
+      console.log(`[verify-domain-dns] Domain already exists, checking config...`);
+
+      // Check if it's on another account entirely
+      if (addData?.error?.code === 'domain_owned_by_another_account') {
+        dbMessage = 'Domain is registered on another Vercel account. Please remove it there first or verify ownership via TXT record.';
+        instructions.push(defaultInstruction);
+        // Include TXT verification challenges if provided
+        const challenges = addData?.error?.verification || [];
+        for (const c of (Array.isArray(challenges) ? challenges : [challenges])) {
+          if (c?.type === 'TXT') {
+            instructions.push({
+              type: 'TXT',
+              name: c.domain?.replace(`.${domain}`, '') || '_vercel',
+              value: c.value,
+            });
+          }
+        }
+      } else {
+        // Domain exists in our project — GET the actual domain config to see if DNS is working
+        const getUrl = `https://api.vercel.com/v6/domains/${domain}/config${teamQuery}`;
+        console.log(`[verify-domain-dns] GET domain config: ${getUrl}`);
+
+        const configResponse = await fetch(getUrl, {
+          headers: { "Authorization": `Bearer ${vercelToken}` },
+        });
+
+        let configData: any;
+        try {
+          configData = await configResponse.json();
+        } catch {
+          configData = null;
+        }
+
+        console.log(`[verify-domain-dns] Config response ${configResponse.status}:`, JSON.stringify(configData));
+
+        // Also get the domain info from the project to check 'verified' flag
+        const domainInfoUrl = `https://api.vercel.com/v9/projects/${vercelProjectId}/domains/${domain}${teamQuery}`;
+        const domainInfoResponse = await fetch(domainInfoUrl, {
+          headers: { "Authorization": `Bearer ${vercelToken}` },
+        });
+
+        let domainInfo: any;
+        try {
+          domainInfo = await domainInfoResponse.json();
+        } catch {
+          domainInfo = null;
+        }
+
+        console.log(`[verify-domain-dns] Domain info:`, JSON.stringify(domainInfo));
+
+        // Check multiple signals for verification:
+        // 1. configData.misconfigured === false means DNS is properly configured
+        // 2. domainInfo.verified === true means domain ownership is verified
+        // 3. configData.cnames or configData.aValues being populated means DNS resolves
+
+        const dnsConfigured = configData?.misconfigured === false;
+        const ownershipVerified = domainInfo?.verified === true;
+
+        if (dnsConfigured || ownershipVerified) {
+          isVerified = true;
+          dbMessage = 'Domain verified and active!';
+          console.log(`[verify-domain-dns] Domain verified! dnsConfigured=${dnsConfigured}, ownershipVerified=${ownershipVerified}`);
+        } else {
+          // Not yet verified — provide instructions
+          instructions.push(defaultInstruction);
+
+          // Check for pending TXT verification challenges
+          const challenges = domainInfo?.verification || [];
+          if (Array.isArray(challenges)) {
+            for (const c of challenges) {
+              if (c?.type === 'TXT') {
+                instructions.push({
+                  type: 'TXT',
+                  name: c.domain?.replace(`.${domain}`, '') || '_vercel',
+                  value: c.value,
+                });
+              }
+            }
+          }
+
+          if (configData?.misconfigured === true) {
+            dbMessage = 'DNS is not yet configured correctly. Please check your DNS records.';
+          } else if (!ownershipVerified) {
+            dbMessage = 'Domain ownership verification pending. Add the TXT record shown below.';
+          } else {
+            dbMessage = 'DNS verification pending. Please check your configuration.';
+          }
+        }
+      }
+    } else {
+      // Unexpected error from Vercel
+      console.error("[verify-domain-dns] Vercel API Error:", JSON.stringify(addData));
       return new Response(
         JSON.stringify({
-          error: `Vercel API verification failed: ${vercelResponse.statusText}`,
-          details: vercelData || await vercelResponse.text()
+          verified: false,
+          error: `Vercel API error: ${addData?.error?.message || addResponse.statusText}`,
+          message: addData?.error?.message || 'Failed to verify domain with Vercel',
+          instructions: [defaultInstruction],
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log("Vercel Response:", JSON.stringify(vercelData));
-
-    // 2. Interpret Response
-    // If verified is true, great. If not, check for verification challenges.
-    let isVerified = vercelData?.verified || false;
-    let dbStatus = 'pending';
-    let dbMessage = 'Pending DNS verification';
-
-    // 3. Prepare Instructions
-    // Default to A/CNAME
-    let instructions = [];
-
-    // Detect if subdomain or root
-    const parts = domain.split('.');
-    if (parts.length > 2) {
-      instructions.push({
-        type: 'CNAME',
-        name: parts[0], // e.g. 'shop'
-        value: 'cname.vercel-dns.com'
-      });
-    } else {
-      instructions.push({
-        type: 'A',
-        name: '@',
-        value: '76.76.21.21'
-      });
-    }
-
-    // Check for Ownership Verification (TXT record needed)
-    // Vercel returns this in the 'verification' array OR inside 'error.verification' for 409s
-    let verificationChallenges = vercelData?.verification || [];
-
-    if (vercelData?.error?.verification) {
-      if (Array.isArray(vercelData.error.verification)) {
-        verificationChallenges = [...verificationChallenges, ...vercelData.error.verification];
-      } else if (typeof vercelData.error.verification === 'object') {
-        // Sometimes it's a single object
-        verificationChallenges.push(vercelData.error.verification);
-      }
-    }
-
-    if (verificationChallenges.length > 0) {
-      verificationChallenges.forEach((challenge: any) => {
-        if (challenge.type === 'TXT') {
-          instructions.push({
-            type: 'TXT',
-            name: challenge.domain.replace(`.${domain}`, ''), // usually '_vercel'
-            value: challenge.value
-          });
-        }
-      });
-    }
-    // Fallback: Check if user provided info (screenshot) matches a specific pattern response
-    // If we have a 409 and no verification array, it might be in `vercelData.error`
-    else if (vercelResponse.status === 409 && vercelData?.error?.message?.includes('TXT record')) {
-      // Try to parse message or just return a generic "Check Vercel Dashboard" 
-      // But usually the API returns the challenge. 
-      // Fallback: Check if user provided info (screenshot) matches a specific pattern response
-      // If we have a 409 and no verification array, it might be in `vercelData.error`
-    }
-
-    // NOTE: 'existing_project_domain' with 409 usually means it is ALREADY added to THIS Vercel project.
-    // In that case, we should treat it as success/verified.
-    if (vercelData?.error?.code === 'existing_project_domain') {
-      if (vercelData.error.message.includes('owned by another account')) {
-        // This means it is on a DIFFERENT Vercel account (User's private one)
-        dbMessage = 'Domain is owned by another Vercel account. Please remove it from there or verify ownership via TXT.';
-      } else {
-        // "Already in use by one of your projects" -> It's in OUR project. Success.
-        console.log("Domain already exists in project. Marking as active.");
-        isVerified = true;
-        dbStatus = 'active';
-        dbMessage = 'Domain verified and active! (Existing)';
-        // Clear instructions as we don't need them
-        instructions = [];
-      }
-    } else if (vercelData?.error?.code === 'domain_owned_by_another_account') {
-      // Explicit ownership error
-      dbMessage = 'Domain is owned by another Vercel account. Please remove it from there or verify ownership via TXT.';
-    }
-
-    // Update Supabase status
-    if (isVerified) {
-      dbStatus = 'active';
-      dbMessage = 'Domain verified and active!';
-    } else {
-      if (dbMessage === 'Pending DNS verification') { // Only set if not already set above
-        if (vercelData?.error?.code === 'existing_project_domain') {
-          // Fallback if logic above didn't catch specific message nuances
-          dbMessage = 'Domain ownership verification required (Add TXT Record)';
-        } else if (vercelData?.error) {
-          dbMessage = vercelData.error.message;
-        }
-      }
-    }
-
+    // ── Step 3: Update domain status in Supabase ──
+    const dbStatus = isVerified ? 'active' : 'pending';
     const { error: updateError } = await supabase
       .from('custom_domains')
       .update({ status: dbStatus })
       .eq('id', domain_id);
 
     if (updateError) {
-      console.error('Failed to update domain status:', updateError);
+      console.error('[verify-domain-dns] Failed to update domain status:', updateError);
     }
+
+    console.log(`[verify-domain-dns] Final status: verified=${isVerified}, dbStatus=${dbStatus}`);
 
     return new Response(
       JSON.stringify({
         verified: isVerified,
         activated: isVerified,
-        vercelStatus: vercelData,
-        instructions: instructions, // Send back instructions so frontend can display them dynamicallly
-        message: dbMessage
+        message: dbMessage,
+        instructions: isVerified ? [] : instructions,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in verify-domain-dns:', error);
+    console.error('[verify-domain-dns] Error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
