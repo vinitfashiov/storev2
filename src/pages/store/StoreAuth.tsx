@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -160,8 +161,8 @@ export default function StoreAuth({ tenantId, storeName, storeSlug }: StoreAuthP
         return;
       }
 
-      // Login with the provided credentials
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Login with the provided credentials using the ISOLATED store client
+      const { error: signInError } = await supabaseStore.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });
@@ -216,8 +217,8 @@ export default function StoreAuth({ tenantId, storeName, storeSlug }: StoreAuthP
         return;
       }
 
-      // Login with the provided credentials
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // Login with the provided credentials using the ISOLATED store client
+      const { error: signInError } = await supabaseStore.auth.signInWithPassword({
         email: data.email,
         password: data.password
       });

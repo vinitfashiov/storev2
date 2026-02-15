@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { supabaseStore } from '@/integrations/supabase/storeClient';
 
 interface Customer {
   id: string;
@@ -52,7 +53,8 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Use the isolated store client for auth state — does NOT affect admin session
+    const { data: { subscription } } = supabaseStore.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -65,7 +67,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabaseStore.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -129,9 +131,9 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
 
       let error = funcError;
 
-      // If we got a session, set it on the client
+      // If we got a session, set it on the STORE client (not the admin client)
       if (data.session) {
-        const { error: sessError } = await supabase.auth.setSession(data.session);
+        const { error: sessError } = await supabaseStore.auth.setSession(data.session);
         if (sessError) {
           console.error('Failed to set session:', sessError);
           error = sessError;
@@ -145,7 +147,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
 
       // If user already exists, try to sign in
       if (error?.message?.includes('User already registered')) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error: signInError } = await supabaseStore.auth.signInWithPassword({
           email,
           password
         });
@@ -222,7 +224,8 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         ? existingCustomer.email
         : phoneToEmail(cleanedPhone, tid);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Use the isolated store client for sign-in
+      const { data, error } = await supabaseStore.auth.signInWithPassword({
         email,
         password
       });
@@ -245,9 +248,8 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   };
 
   const signOut = async () => {
-    // Only clear store customer state — do NOT call supabase.auth.signOut()
-    // because that destroys the global Supabase session which would log out
-    // the admin owner from their dashboard if they're in the same browser.
+    // Sign out from the STORE client only (isolated from admin session)
+    await supabaseStore.auth.signOut();
     setUser(null);
     setSession(null);
     setCustomer(null);
