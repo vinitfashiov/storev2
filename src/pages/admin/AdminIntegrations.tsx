@@ -8,11 +8,66 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { CreditCard, Truck, Eye, EyeOff, Link2, Unlink, Loader2, CheckCircle2 } from 'lucide-react';
+import { CreditCard, Truck, Eye, EyeOff, Link2, Unlink, Loader2, CheckCircle2, ShoppingBag, UtensilsCrossed, Package, Zap } from 'lucide-react';
 
 interface AdminIntegrationsProps {
   tenantId: string;
   disabled?: boolean;
+}
+
+// Coming Soon integration card component
+function ComingSoonCard({ name, description, icon: Icon, color, features, logoUrl }: {
+  name: string;
+  description: string;
+  icon: React.ElementType;
+  color: string;
+  features: string[];
+  logoUrl?: string; // Optional logo URL
+}) {
+  return (
+    <Card className="relative overflow-hidden opacity-90 h-full flex flex-col">
+      <div className={`absolute top-0 left-0 w-full h-1 ${color}`} />
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <CardTitle className="flex items-center gap-3">
+            {logoUrl ? (
+              <div className="w-10 h-10 rounded-lg border bg-white p-1.5 flex items-center justify-center shadow-sm shrink-0">
+                <img src={logoUrl} alt={name} className="w-full h-full object-contain" />
+              </div>
+            ) : (
+              <div className={`w-10 h-10 rounded-lg ${color.replace('bg-', 'bg-opacity-10 ')} flex items-center justify-center shrink-0`}>
+                <Icon className={`w-5 h-5 ${color.replace('bg-', 'text-')}`} />
+              </div>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                {name}
+                <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">Coming Soon</Badge>
+              </div>
+            </div>
+          </CardTitle>
+        </div>
+        <CardDescription className="mt-2">{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/20 flex-1">
+          <p className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Planned Features</p>
+          <ul className="text-sm text-muted-foreground space-y-2">
+            {features.map((f, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${color}`} />
+                <span className="leading-tight">{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <Button className="mt-4 w-full" variant="outline" disabled>
+          <Zap className="w-4 h-4 mr-2" />
+          Notify Me
+        </Button>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrationsProps) {
@@ -113,7 +168,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
 
     try {
       const redirectUrl = window.location.href.split('?')[0]; // Current page without params
-      
+
       const { data, error } = await supabase.functions.invoke('razorpay-oauth-init', {
         body: { tenant_id: tenantId, redirect_url: redirectUrl }
       });
@@ -163,7 +218,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold">Integrations</h1>
-        <p className="text-muted-foreground">Connect payment and shipping providers</p>
+        <p className="text-muted-foreground">Connect payment, shipping, and marketplace providers</p>
       </div>
 
       <Card>
@@ -186,7 +241,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
                 Manual API Keys
               </TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="oauth" className="space-y-4">
               {oauthConnected ? (
                 <div className="space-y-4">
@@ -199,9 +254,9 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
                       )}
                     </div>
                   </div>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleDisconnectOAuth} 
+                  <Button
+                    variant="destructive"
+                    onClick={handleDisconnectOAuth}
                     disabled={disabled || disconnectingOAuth}
                   >
                     {disconnectingOAuth ? (
@@ -223,8 +278,8 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
                       <li>No manual key management</li>
                     </ul>
                   </div>
-                  <Button 
-                    onClick={handleConnectOAuth} 
+                  <Button
+                    onClick={handleConnectOAuth}
                     disabled={disabled || connectingOAuth}
                     className="w-full sm:w-auto"
                   >
@@ -240,7 +295,7 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
                 </div>
               )}
             </TabsContent>
-            
+
             <TabsContent value="manual" className="space-y-4">
               <div className="p-4 bg-muted/50 rounded-lg mb-4">
                 <p className="text-sm text-muted-foreground">
@@ -257,12 +312,12 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
               <div>
                 <Label>Key Secret</Label>
                 <div className="relative">
-                  <Input 
-                    type={showSecrets.razorpay ? 'text' : 'password'} 
-                    value={form.razorpay_key_secret} 
-                    onChange={e => setForm({ ...form, razorpay_key_secret: e.target.value })} 
-                    placeholder={hasExisting ? '••••••••' : 'Enter secret'} 
-                    disabled={disabled} 
+                  <Input
+                    type={showSecrets.razorpay ? 'text' : 'password'}
+                    value={form.razorpay_key_secret}
+                    onChange={e => setForm({ ...form, razorpay_key_secret: e.target.value })}
+                    placeholder={hasExisting ? '••••••••' : 'Enter secret'}
+                    disabled={disabled}
                   />
                   <Button type="button" variant="ghost" size="icon" className="absolute right-0 top-0" onClick={() => setShowSecrets(s => ({ ...s, razorpay: !s.razorpay }))}>
                     {showSecrets.razorpay ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -291,11 +346,11 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
           </div>
           <div>
             <Label>Pickup Location Name</Label>
-            <Input 
-              value={form.shiprocket_pickup_location} 
-              onChange={e => setForm({ ...form, shiprocket_pickup_location: e.target.value })} 
-              placeholder="e.g., Primary, Warehouse, Office" 
-              disabled={disabled} 
+            <Input
+              value={form.shiprocket_pickup_location}
+              onChange={e => setForm({ ...form, shiprocket_pickup_location: e.target.value })}
+              placeholder="e.g., Primary, Warehouse, Office"
+              disabled={disabled}
             />
             <p className="text-xs text-muted-foreground mt-1">
               Enter the exact pickup location name as configured in your Shiprocket dashboard
@@ -304,6 +359,71 @@ export default function AdminIntegrations({ tenantId, disabled }: AdminIntegrati
           <Button onClick={() => handleSave('shiprocket')} disabled={disabled || saving}>{saving ? 'Saving...' : 'Save Shiprocket'}</Button>
         </CardContent>
       </Card>
+
+      {/* Coming Soon Integrations */}
+      <div className="pt-2">
+        <h2 className="text-lg font-semibold mb-1">Marketplace & Delivery Partners</h2>
+        <p className="text-sm text-muted-foreground mb-4">Expand your reach with these upcoming integrations</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <ComingSoonCard
+          name="Blinkit"
+          description="List your products on Blinkit for quick commerce delivery"
+          icon={ShoppingBag}
+          color="bg-yellow-500"
+          logoUrl="https://logo.clearbit.com/blinkit.com"
+          features={[
+            "Sync product catalog automatically",
+            "Real-time inventory updates",
+            "Order management from dashboard",
+            "Quick commerce delivery (10–30 min)"
+          ]}
+        />
+
+        <ComingSoonCard
+          name="Zomato"
+          description="Reach millions of customers through Zomato marketplace"
+          icon={UtensilsCrossed}
+          color="bg-red-500"
+          logoUrl="https://logo.clearbit.com/zomato.com"
+          features={[
+            "Menu sync with Zomato listing",
+            "Live order tracking integration",
+            "Rating & review management",
+            "Zomato Hyperpure supply chain"
+          ]}
+        />
+
+        <ComingSoonCard
+          name="Porter"
+          description="On-demand delivery for your store orders via Porter"
+          icon={Package}
+          color="bg-blue-600"
+          logoUrl="https://logo.clearbit.com/porter.in"
+          features={[
+            "Auto-assign deliveries to Porter",
+            "Real-time tracking for customers",
+            "Multi-stop delivery support",
+            "Cash-on-delivery reconciliation"
+          ]}
+        />
+
+        <ComingSoonCard
+          name="Rapido"
+          description="Fast last-mile delivery powered by Rapido's bike fleet"
+          icon={Truck}
+          color="bg-yellow-400"
+          logoUrl="https://logo.clearbit.com/rapido.bike"
+          features={[
+            "Instant delivery assignment",
+            "Bike delivery for small packages",
+            "Live GPS tracking",
+            "Affordable last-mile rates"
+          ]}
+        />
+      </div>
     </div>
   );
 }
+
