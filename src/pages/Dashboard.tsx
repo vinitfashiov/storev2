@@ -62,14 +62,14 @@ function preloadAllAdminPages() {
   schedulePreload(() => import('./admin/AdminProducts'), 100);
   schedulePreload(() => import('./admin/AdminOrders'), 200);
   schedulePreload(() => import('./admin/AdminCategories'), 300);
-  
+
   // Priority 2: Frequently used pages (400-800ms)
   schedulePreload(() => import('./admin/AdminCustomers'), 400);
   schedulePreload(() => import('./admin/AdminSettings'), 500);
   schedulePreload(() => import('./admin/AdminAnalytics'), 600);
   schedulePreload(() => import('./admin/AdminBrands'), 700);
   schedulePreload(() => import('./admin/AdminCoupons'), 800);
-  
+
   // Priority 3: Other pages (900ms+)
   schedulePreload(() => import('./admin/AdminProductForm'), 900);
   schedulePreload(() => import('./admin/AdminOrderDetail'), 1000);
@@ -85,7 +85,7 @@ function preloadAllAdminPages() {
   schedulePreload(() => import('./admin/AdminSubscription'), 2000);
   schedulePreload(() => import('./admin/AdminDomains'), 2100);
   schedulePreload(() => import('./admin/AdminAccount'), 2200);
-  
+
   // Priority 4: Inventory & Grocery pages (2300ms+)
   schedulePreload(() => import('./admin/AdminInventory'), 2300);
   schedulePreload(() => import('./admin/AdminSuppliers'), 2400);
@@ -138,15 +138,22 @@ export default function Dashboard() {
   useEffect(() => {
     // Wait for auth to finish loading
     if (loading) return;
-    
+
     // If not logged in, redirect to auth
     if (!user) {
       navigate('/authentication', { replace: true });
       return;
     }
-    
+
+    // If user exists but has no admin profile, they are a store customer
+    // who navigated to the admin panel — redirect to auth page
+    if (!profile) {
+      navigate('/authentication', { replace: true });
+      return;
+    }
+
     // If onboarding not completed, redirect there
-    if (profile && !profile.onboarding_completed) {
+    if (!profile.onboarding_completed) {
       navigate('/onboarding', { replace: true });
     }
   }, [user, profile, loading, navigate]);
@@ -178,11 +185,11 @@ export default function Dashboard() {
         setShowTrialPopup(false);
         return;
       }
-      
+
       if (tenant.plan === 'trial') {
         const popupKey = `trial_popup_shown_${tenant.id}`;
         const hasShownThisSession = sessionStorage.getItem(popupKey);
-        
+
         if (isTrialExpired) {
           setShowTrialPopup(true);
         } else if (!hasShownThisSession) {

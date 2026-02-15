@@ -245,8 +245,9 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   };
 
   const signOut = async () => {
-    // Sign out from Supabase auth completely
-    await supabase.auth.signOut();
+    // Only clear store customer state — do NOT call supabase.auth.signOut()
+    // because that destroys the global Supabase session which would log out
+    // the admin owner from their dashboard if they're in the same browser.
     setUser(null);
     setSession(null);
     setCustomer(null);
