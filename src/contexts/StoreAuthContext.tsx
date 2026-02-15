@@ -32,7 +32,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
   const [loading, setLoading] = useState(true);
 
   const fetchCustomer = async (userId: string, tid: string) => {
-    const { data } = await supabase
+    const { data } = await supabaseStore
       .from('customers')
       .select('*')
       .eq('user_id', userId)
@@ -96,7 +96,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       }
 
       // Check if phone already exists for this tenant
-      const { data: existingCustomer } = await supabase
+      const { data: existingCustomer } = await supabaseStore
         .from('customers')
         .select('id')
         .eq('tenant_id', tid)
@@ -162,7 +162,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
         }
 
         if (signInData.user) {
-          const { error: customerError } = await supabase.from('customers').insert({
+          const { error: customerError } = await supabaseStore.from('customers').insert({
             tenant_id: tid,
             user_id: signInData.user.id,
             name,
@@ -209,7 +209,7 @@ export function StoreAuthProvider({ children, tenantId }: { children: ReactNode;
       }
 
       // Check if customer exists for this tenant
-      const { data: existingCustomer } = await supabase
+      const { data: existingCustomer } = await supabaseStore
         .from('customers')
         .select('*')
         .eq('tenant_id', tid)
