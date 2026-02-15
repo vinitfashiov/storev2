@@ -16,10 +16,12 @@ AS $$
 $$;
 
 -- Grant super admin role to the platform owner
--- Note: Update this email to your actual email address
+-- Note: Update this phone number to your actual phone number (10 digits)
 UPDATE public.profiles 
 SET role = 'super_admin' 
-WHERE email = 'vinitfashionv@gmail.com';
+WHERE id IN (
+  SELECT id FROM auth.users WHERE phone = '+91YOUR_PHONE_NUMBER_HERE'
+);
 
 -- Update RLS policies to allow super admins full access
 -- We'll add OR is_super_admin() to all SELECT policies
