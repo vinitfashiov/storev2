@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -84,12 +85,19 @@ const OrderDetailSkeleton = () => (
 );
 
 export default function StoreOrderDetail() {
-  const { slug, orderId } = useParams<{ slug: string; orderId: string }>();
+  const { slug: paramSlug, orderId } = useParams<{ slug: string; orderId: string }>();
   const { customer, loading: authLoading } = useStoreAuth();
+  const { isCustomDomain, tenant: cdTenant } = useCustomDomain();
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -117,7 +125,7 @@ export default function StoreOrderDetail() {
       ]);
 
       if (orderRes.data) {
-        const shippingAddr = typeof orderRes.data.shipping_address === 'object' && orderRes.data.shipping_address !== null 
+        const shippingAddr = typeof orderRes.data.shipping_address === 'object' && orderRes.data.shipping_address !== null
           ? orderRes.data.shipping_address as Record<string, string>
           : {};
         setOrder({ ...orderRes.data, shipping_address: shippingAddr } as Order);
@@ -142,7 +150,7 @@ export default function StoreOrderDetail() {
           <CardContent className="pt-6">
             <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">Please log in to view order details</p>
-            <Link to={`/store/${slug}/login`}>
+            <Link to={getLink('/login')}>
               <Button>Sign In</Button>
             </Link>
           </CardContent>
@@ -158,7 +166,7 @@ export default function StoreOrderDetail() {
           <CardContent className="pt-6">
             <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">Order not found</p>
-            <Link to={`/store/${slug}/account/orders`}>
+            <Link to={getLink('/account/orders')}>
               <Button variant="outline">Back to Orders</Button>
             </Link>
           </CardContent>
@@ -173,7 +181,7 @@ export default function StoreOrderDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={`/store/${slug}/account/orders`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/account/orders')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to orders
         </Link>
@@ -199,12 +207,11 @@ export default function StoreOrderDetail() {
                 {statusSteps.map((step, index) => {
                   const isCompleted = index <= currentStepIndex;
                   const isCurrent = index === currentStepIndex;
-                  
+
                   return (
                     <div key={step} className="flex flex-col items-center flex-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                      } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                        } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
                         {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                       </div>
                       <span className={`text-xs mt-2 capitalize ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>

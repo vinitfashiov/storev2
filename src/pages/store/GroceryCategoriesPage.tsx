@@ -50,10 +50,15 @@ export default function GroceryCategoriesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const customDomain = useCustomDomain();
-  
-  const slug = customDomain.isCustomDomain && customDomain.tenant 
-    ? customDomain.tenant.store_slug 
+
+  const slug = customDomain.isCustomDomain && customDomain.tenant
+    ? customDomain.tenant.store_slug
     : urlSlug;
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return customDomain.isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -67,7 +72,7 @@ export default function GroceryCategoriesPage() {
   const selectedCategorySlug = searchParams.get('category') || '';
 
   const { itemCount, addToCart, cart } = useCart(slug || '', tenant?.id || null);
-  
+
   const { isListening, isSupported, startListening, stopListening } = useVoiceSearch({
     onResult: (result) => {
       setSearchQuery(result);
@@ -98,7 +103,7 @@ export default function GroceryCategoriesPage() {
   // Filter products by search
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return products;
-    return products.filter(p => 
+    return products.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [products, searchQuery]);
@@ -151,7 +156,7 @@ export default function GroceryCategoriesPage() {
       }
 
       setProductsLoading(true);
-      
+
       const { data } = await supabase
         .from('products')
         .select('id, name, slug, price, compare_at_price, images, stock_qty, has_variants')
@@ -236,10 +241,10 @@ export default function GroceryCategoriesPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
         <div className="flex items-center gap-3 px-4 h-14">
-          <Link to={`/store/${slug}`} className="p-1">
+          <Link to={getLink('/')} className="p-1">
             <ArrowLeft className="w-5 h-5 text-neutral-700" />
           </Link>
-          
+
           {showSearch ? (
             <div className="flex-1 flex items-center gap-2">
               <div className="flex-1 relative">
@@ -251,7 +256,7 @@ export default function GroceryCategoriesPage() {
                   className="h-10 pr-10"
                 />
                 {searchQuery && (
-                  <button 
+                  <button
                     onClick={() => setSearchQuery('')}
                     className="absolute right-2 top-1/2 -translate-y-1/2"
                   >
@@ -260,7 +265,7 @@ export default function GroceryCategoriesPage() {
                 )}
               </div>
               {isSupported && (
-                <button 
+                <button
                   onClick={isListening ? stopListening : startListening}
                   className={cn(
                     "p-2 rounded-full",
@@ -305,8 +310,8 @@ export default function GroceryCategoriesPage() {
                   onClick={() => handleCategorySelect(category.slug)}
                   className={cn(
                     "w-full py-3 px-2 flex flex-col items-center gap-1.5 relative transition-colors",
-                    isSelected 
-                      ? "bg-white border-l-4 border-green-600" 
+                    isSelected
+                      ? "bg-white border-l-4 border-green-600"
                       : "hover:bg-neutral-100"
                   )}
                 >

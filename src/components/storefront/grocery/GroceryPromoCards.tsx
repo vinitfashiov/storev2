@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface GroceryPromoCardsProps {
   storeSlug: string;
@@ -29,13 +30,20 @@ const promoCards = [
 ];
 
 export function GroceryPromoCards({ storeSlug }: GroceryPromoCardsProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   return (
     <div className="mx-6 mb-6">
       <div className="grid grid-cols-3 gap-4">
         {promoCards.map((card, index) => (
           <Link
             key={index}
-            to={`/store/${storeSlug}/products`}
+            to={getLink('/products')}
             className={`relative rounded-xl overflow-hidden bg-gradient-to-br ${card.bgGradient} p-4 h-36 flex flex-col justify-between group hover:shadow-lg transition-shadow`}
           >
             <div className="relative z-10">

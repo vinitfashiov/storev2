@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface GroceryMembershipCardProps {
   storeSlug: string;
@@ -31,9 +32,16 @@ interface GroceryOrderTrackingToastProps {
 }
 
 export function GroceryOrderTrackingToast({ orderId, storeSlug, onClose }: GroceryOrderTrackingToastProps) {
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
+
   return (
-    <Link 
-      to={`/store/${storeSlug}/account/orders/${orderId}`}
+    <Link
+      to={getLink(`/account/orders/${orderId}`)}
       className="fixed bottom-20 left-4 right-4 z-40 bg-green-600 text-white rounded-2xl p-4 flex items-center justify-between shadow-xl lg:hidden"
     >
       <div className="flex items-center gap-3">

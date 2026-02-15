@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, Trash2, ArrowLeft } from 'lucide-react';
@@ -48,10 +49,17 @@ const WishlistSkeleton = () => (
 );
 
 export default function StoreWishlist() {
-  const { slug } = useParams();
+  const { slug: paramSlug } = useParams();
   const { customer, loading: authLoading } = useStoreAuth();
+  const { isCustomDomain, tenant: cdTenant } = useCustomDomain();
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,7 +82,7 @@ export default function StoreWishlist() {
       }
       setLoading(false);
     };
-    
+
     if (!authLoading) {
       fetchData();
     }
@@ -105,7 +113,7 @@ export default function StoreWishlist() {
             <Heart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Sign in to view your wishlist</h1>
             <p className="text-muted-foreground mb-6">Save your favorite products for later</p>
-            <Button asChild><Link to={`/store/${slug}/login`}>Sign In</Link></Button>
+            <Button asChild><Link to={getLink('/login')}>Sign In</Link></Button>
           </CardContent>
         </Card>
       </div>
@@ -116,7 +124,7 @@ export default function StoreWishlist() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <Button variant="ghost" asChild className="mb-6">
-          <Link to={`/store/${slug}`}><ArrowLeft className="w-4 h-4 mr-2" /> Back to shop</Link>
+          <Link to={getLink('/')}><ArrowLeft className="w-4 h-4 mr-2" /> Back to shop</Link>
         </Button>
 
         <h1 className="text-2xl font-bold mb-6">My Wishlist</h1>
@@ -127,18 +135,18 @@ export default function StoreWishlist() {
               <Heart className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">Your wishlist is empty</h2>
               <p className="text-muted-foreground mb-6">Save products you love by clicking the heart icon</p>
-              <Button asChild><Link to={`/store/${slug}`}>Start Shopping</Link></Button>
+              <Button asChild><Link to={getLink('/')}>Start Shopping</Link></Button>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {wishlist.map(item => (
               <Card key={item.id} className="overflow-hidden">
-                <Link to={`/store/${slug}/product/${item.product.slug}`}>
+                <Link to={getLink(`/product/${item.product.slug}`)}>
                   <img src={getImageUrl(item.product.images)} alt={item.product.name} className="w-full h-48 object-cover" />
                 </Link>
                 <CardContent className="p-4">
-                  <Link to={`/store/${slug}/product/${item.product.slug}`}>
+                  <Link to={getLink(`/product/${item.product.slug}`)}>
                     <h3 className="font-medium mb-2 hover:underline">{item.product.name}</h3>
                   </Link>
                   <div className="flex items-center justify-between">

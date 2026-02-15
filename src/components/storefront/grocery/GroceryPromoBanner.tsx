@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Banner {
   id: string;
@@ -19,6 +20,12 @@ interface GroceryPromoBannerProps {
 
 export function GroceryPromoBanner({ banners, storeSlug }: GroceryPromoBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isCustomDomain } = useCustomDomain();
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${storeSlug}${cleanPath}`;
+  };
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -37,8 +44,8 @@ export function GroceryPromoBanner({ banners, storeSlug }: GroceryPromoBannerPro
             <div className="text-white/80 text-xs font-medium mb-1">Discount</div>
             <div className="text-white text-4xl font-bold mb-2">30%</div>
             <div className="text-white text-sm mb-3">All Vegetables & Fruits</div>
-            <Link 
-              to={`/store/${storeSlug}/products`}
+            <Link
+              to={getLink('/products')}
               className="inline-block bg-neutral-900 text-white text-sm font-medium px-4 py-2 rounded-lg"
             >
               Shop Now
@@ -72,7 +79,7 @@ export function GroceryPromoBanner({ banners, storeSlug }: GroceryPromoBannerPro
           <div className="text-white/80 text-xs font-medium mb-1">{currentBanner.subtitle || 'Special Offer'}</div>
           <div className="text-white text-2xl md:text-3xl font-bold mb-2">{currentBanner.title}</div>
           {currentBanner.cta_text && currentBanner.cta_url && (
-            <Link 
+            <Link
               to={currentBanner.cta_url}
               className="inline-block bg-neutral-900 text-white text-sm font-medium px-4 py-2 rounded-lg w-fit"
             >
@@ -106,9 +113,8 @@ export function GroceryPromoBanner({ banners, storeSlug }: GroceryPromoBannerPro
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === currentIndex ? 'bg-white w-4' : 'bg-white/50'
-                }`}
+                className={`w-2 h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-4' : 'bg-white/50'
+                  }`}
               />
             ))}
           </div>

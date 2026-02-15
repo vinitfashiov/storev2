@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,8 +56,15 @@ const AddressesSkeleton = () => (
 );
 
 export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const { customer, loading: authLoading } = useStoreAuth();
+  const { isCustomDomain, tenant: cdTenant } = useCustomDomain();
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   // Show skeleton while auth is loading
   if (authLoading) return <AddressesSkeleton />;
@@ -93,7 +101,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
 
   const handleSave = async () => {
     if (!customer) return;
-    
+
     setSaving(true);
 
     // If setting as default, unset other defaults first
@@ -163,7 +171,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
           <CardContent className="pt-6">
             <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">Please log in to manage addresses</p>
-            <Link to={`/store/${slug}/login`}>
+            <Link to={getLink('/login')}>
               <Button>Sign In</Button>
             </Link>
           </CardContent>
@@ -175,7 +183,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={`/store/${slug}/account`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/account')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to account
         </Link>

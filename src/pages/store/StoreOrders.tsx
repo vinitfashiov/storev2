@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Package, User } from 'lucide-react';
@@ -45,10 +46,17 @@ const OrdersSkeleton = () => (
 );
 
 export default function StoreOrders() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: paramSlug } = useParams<{ slug: string }>();
   const { customer, loading: authLoading } = useStoreAuth();
+  const { isCustomDomain, tenant: cdTenant } = useCustomDomain();
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -82,7 +90,7 @@ export default function StoreOrders() {
           <CardContent className="pt-6">
             <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground mb-4">Please log in to view your orders</p>
-            <Link to={`/store/${slug}/login`}>
+            <Link to={getLink('/login')}>
               <Button>Sign In</Button>
             </Link>
           </CardContent>
@@ -105,7 +113,7 @@ export default function StoreOrders() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={`/store/${slug}/account`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+        <Link to={getLink('/account')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
           <ArrowLeft className="w-4 h-4" />
           Back to account
         </Link>
@@ -119,7 +127,7 @@ export default function StoreOrders() {
             <CardContent className="py-12 text-center">
               <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground mb-4">No orders yet</p>
-              <Link to={`/store/${slug}/products`}>
+              <Link to={getLink('/products')}>
                 <Button>Start Shopping</Button>
               </Link>
             </CardContent>
@@ -127,7 +135,7 @@ export default function StoreOrders() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <Link key={order.id} to={`/store/${slug}/account/orders/${order.id}`}>
+              <Link key={order.id} to={getLink(`/account/orders/${order.id}`)}>
                 <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between mb-2">

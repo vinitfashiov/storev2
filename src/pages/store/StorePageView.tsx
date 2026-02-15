@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { useCart } from '@/hooks/useCart';
+import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { FileText, ArrowLeft } from 'lucide-react';
 
 interface StorePage {
@@ -34,13 +35,20 @@ interface StoreSettings {
 }
 
 export default function StorePageView() {
-  const { slug, pageSlug } = useParams<{ slug: string; pageSlug: string }>();
+  const { slug: paramSlug, pageSlug } = useParams<{ slug: string; pageSlug: string }>();
+  const { isCustomDomain, tenant: cdTenant } = useCustomDomain();
+  const slug = isCustomDomain ? cdTenant?.store_slug : paramSlug;
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null);
   const [page, setPage] = useState<StorePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const getLink = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    return isCustomDomain ? cleanPath : `/store/${slug}${cleanPath}`;
+  };
 
   const { itemCount } = useCart(slug || '', tenant?.id || null);
 
@@ -132,7 +140,7 @@ export default function StorePageView() {
             <p className="text-muted-foreground mb-6">
               The page you're looking for doesn't exist or has been removed.
             </p>
-            <Link to={`/store/${slug}`}>
+            <Link to={getLink('/')}>
               <Button>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Store
@@ -158,8 +166,8 @@ export default function StorePageView() {
 
       <main className="flex-1 py-12 px-4">
         <div className="container mx-auto max-w-4xl">
-          <Link 
-            to={`/store/${slug}`}
+          <Link
+            to={getLink('/')}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
@@ -171,14 +179,16 @@ export default function StorePageView() {
           </h1>
 
           {page?.content_html ? (
-            <div 
+            <div
               className="prose prose-neutral dark:prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(page.content_html, {
-                ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 'span', 'div', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'pre', 'code'],
-                ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'target', 'rel'],
-                FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
-                FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
-              }) }}
+              dangerouslySetInnerHTML={{
+                __html: DOMPurify.sanitize(page.content_html, {
+                  ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr', 'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 'span', 'div', 'img', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'blockquote', 'pre', 'code'],
+                  ALLOWED_ATTR: ['href', 'src', 'alt', 'class', 'style', 'target', 'rel'],
+                  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+                  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+                })
+              }}
             />
           ) : (
             <Card>
