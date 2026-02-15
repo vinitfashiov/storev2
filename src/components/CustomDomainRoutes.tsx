@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 import { StoreAuthProvider } from '@/contexts/StoreAuthContext';
+import { StoreAnalyticsProvider } from '@/contexts/StoreAnalyticsContext';
+import { StoreAnalyticsTracker } from '@/components/storefront/StoreAnalyticsTracker';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Store } from 'lucide-react';
@@ -58,7 +60,10 @@ function CustomDomainStoreWrapper({ children }: { children: ReactNode }) {
 
   return (
     <StoreAuthProvider tenantId={tenant.id}>
-      {children}
+      <StoreAnalyticsProvider tenantId={tenant.id}>
+        <StoreAnalyticsTracker tenantId={tenant.id} />
+        {children}
+      </StoreAnalyticsProvider>
     </StoreAuthProvider>
   );
 }
