@@ -30,9 +30,8 @@ interface ReturnRequest {
         status: string;
     };
     profiles: {
-        full_name: string;
+        name: string;
         email: string;
-        phone_number: string;
     };
 }
 
@@ -75,7 +74,7 @@ export default function AdminReturns() {
                 .select(`
                     *,
                     orders (order_number, total, status),
-                    profiles (full_name, email, phone_number)
+                    profiles (name, email)
                 `)
                 .order('created_at', { ascending: false });
 
