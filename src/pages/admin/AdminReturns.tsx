@@ -64,7 +64,12 @@ export default function AdminReturns() {
 
     const fetchRequests = async () => {
         setLoading(true);
+        console.log("Starting fetchRequests...");
+
         try {
+            const { data: { user } } = await supabaseStore.auth.getUser();
+            console.log("Current Auth User:", user?.id, user?.email);
+
             let query = supabaseStore
                 .from('return_requests')
                 .select(`
@@ -78,17 +83,24 @@ export default function AdminReturns() {
                 query = query.eq('status', filterStatus);
             }
 
+            console.log("Executing query...");
             const { data, error } = await query;
 
             if (error) {
                 console.error('Error fetching return requests:', error);
-                toast.error('Failed to fetch return requests');
+                console.error('Error details:', JSON.stringify(error, null, 2));
+                toast.error(`Failed to fetch return requests: ${error.message || error.details || 'Unknown error'}`);
                 setRequests([]);
             } else {
+                console.log("Successfully fetched return requests:", data?.length);
+                if (data && data.length > 0) {
+                    console.log("First item sample:", data[0]);
+                }
                 setRequests(data as any || []);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Exception fetching requests:', err);
+            toast.error(`Unexpected error: ${err.message || 'Check console'}`);
             setRequests([]);
         } finally {
             setLoading(false);
