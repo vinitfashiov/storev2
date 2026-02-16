@@ -73,8 +73,8 @@ export default function AdminReturns() {
                 .from('return_requests')
                 .select(`
                     *,
-                    orders (order_number, total, status),
-                    profiles (name, email)
+                    orders!left (order_number, total, status),
+                    profiles!left (name, email)
                 `)
                 .order('created_at', { ascending: false });
 
@@ -82,18 +82,19 @@ export default function AdminReturns() {
                 query = query.eq('status', filterStatus);
             }
 
-            console.log("Executing query...");
+            console.log("Executing query with filter:", filterStatus);
             const { data, error } = await query;
+
+            console.log("Raw Supabase Response:", { data, error });
 
             if (error) {
                 console.error('Error fetching return requests:', error);
-                console.error('Error details:', JSON.stringify(error, null, 2));
-                toast.error(`Failed to fetch return requests: ${error.message || error.details || 'Unknown error'}`);
+                toast.error(`Failed to fetch return requests: ${error.message}`);
                 setRequests([]);
             } else {
-                console.log("Successfully fetched return requests:", data?.length);
-                if (data && data.length > 0) {
-                    console.log("First item sample:", data[0]);
+                console.log("Fetched count:", data?.length);
+                if (data?.length === 0) {
+                    console.log("No data found. Check RLS policies or if data exists in table.");
                 }
                 setRequests(data as any || []);
             }
