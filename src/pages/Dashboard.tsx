@@ -47,6 +47,8 @@ const AdminAccount = lazy(() => import('./admin/AdminAccount'));
 const AdminAnalytics = lazy(() => import('./admin/AdminAnalytics'));
 const SuperAdminDashboard = lazy(() => import('./admin/SuperAdminDashboard'));
 const SuperAdminDataBrowser = lazy(() => import('./admin/SuperAdminDataBrowser'));
+const AdminReturns = lazy(() => import('./admin/AdminReturns'));
+const AdminCustomerDetail = lazy(() => import('./admin/AdminCustomerDetail'));
 
 // PRELOAD ALL ADMIN CHUNKS - eliminates first-load delay on sidebar navigation
 // This runs when Dashboard mounts and loads all page modules in background
@@ -268,6 +270,8 @@ export default function Dashboard() {
             <Route path="attributes" element={<AdminAttributes tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="coupons" element={<AdminCoupons tenantId={tenant.id} disabled={isTrialExpired} />} />
             <Route path="customers" element={<AdminCustomers tenantId={tenant.id} />} />
+            <Route path="customers/:id" element={<AdminCustomerDetail />} />
+            <Route path="returns" element={<AdminReturns />} />
             <Route path="orders" element={<AdminOrders tenantId={tenant.id} />} />
             <Route path="orders/:orderId" element={<AdminOrderDetail tenantId={tenant.id} disabled={isTrialExpired} isGrocery={isGrocery} />} />
             <Route path="payment-intents" element={<AdminPaymentIntents tenantId={tenant.id} />} />

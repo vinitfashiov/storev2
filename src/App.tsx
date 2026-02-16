@@ -16,8 +16,6 @@ import Index from "./pages/Index";
 const Auth = lazy(() => import("./pages/Auth"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const AdminReturns = lazy(() => import("./pages/admin/AdminReturns"));
-const AdminCustomerDetail = lazy(() => import("./pages/admin/AdminCustomerDetail"));
 const PageBuilder = lazy(() => import("./pages/admin/PageBuilder"));
 const GrapesJSPageBuilder = lazy(() => import("./pages/admin/GrapesJSPageBuilder"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -102,13 +100,7 @@ function AuthenticatedRoutes() {
       <Routes>
         <Route path="/authentication" element={<Auth />} />
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/dashboard/*" element={<Dashboard />}>
-          {/* These are nested routes handled by the Dashboard component */}
-          {/* <Route path="orders" element={<Dashboard />} /> */}
-          <Route path="returns" element={<AdminReturns />} />
-          <Route path="customers" element={<Dashboard />} />
-          <Route path="customers/:id" element={<AdminCustomerDetail />} />
-        </Route>
+        <Route path="/dashboard/*" element={<Dashboard />} />
         <Route path="/page-builder" element={<GrapesJSPageBuilder />} />
         <Route path="/page-builder-legacy" element={<PageBuilder />} />
         <Route path="*" element={<NotFound />} />
