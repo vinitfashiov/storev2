@@ -19,7 +19,7 @@ CREATE POLICY "Admins can view all notes" ON public.customer_notes
         EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
             AND profiles.tenant_id = customer_notes.tenant_id
         ) OR 
         (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
@@ -31,7 +31,7 @@ CREATE POLICY "Admins can insert notes" ON public.customer_notes
         EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
         )
     );
 
@@ -41,7 +41,7 @@ CREATE POLICY "Admins can update notes" ON public.customer_notes
          EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
         )
     );
 
@@ -51,7 +51,7 @@ CREATE POLICY "Admins can delete notes" ON public.customer_notes
          EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
         )
     );
 
@@ -101,7 +101,7 @@ CREATE POLICY "Admins can view all return requests" ON public.return_requests
         EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
             AND profiles.tenant_id = return_requests.tenant_id
         ) OR
         (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
@@ -113,7 +113,7 @@ CREATE POLICY "Admins can update return requests" ON public.return_requests
         EXISTS (
             SELECT 1 FROM public.profiles
             WHERE profiles.id = auth.uid()
-            AND profiles.role IN ('admin', 'super_admin')
+            AND profiles.role IN ('owner', 'super_admin')
             AND profiles.tenant_id = return_requests.tenant_id
         ) OR
         (SELECT role FROM public.profiles WHERE id = auth.uid()) = 'super_admin'
