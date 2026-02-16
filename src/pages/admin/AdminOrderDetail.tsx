@@ -375,18 +375,22 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                   )}
                 </div>
               )}
-              {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                <div className="flex gap-2 flex-wrap">
-                  {statusFlow.slice(statusFlow.indexOf(order.status) + 1).map(status => (
-                    <Button key={status} variant="outline" size="sm" onClick={() => updateStatus(status)} disabled={disabled}>
-                      Mark as {status}
+              {order.status !== 'cancelled' &&
+                order.status !== 'delivered' &&
+                order.status !== 'returned' &&
+                order.status !== 'return_approved' &&
+                (!order.return_status || order.return_status === 'none') && (
+                  <div className="flex gap-2 flex-wrap">
+                    {statusFlow.slice(statusFlow.indexOf(order.status) + 1).map(status => (
+                      <Button key={status} variant="outline" size="sm" onClick={() => updateStatus(status)} disabled={disabled}>
+                        Mark as {status}
+                      </Button>
+                    ))}
+                    <Button variant="destructive" size="sm" onClick={() => updateStatus('cancelled')} disabled={disabled}>
+                      Cancel Order
                     </Button>
-                  ))}
-                  <Button variant="destructive" size="sm" onClick={() => updateStatus('cancelled')} disabled={disabled}>
-                    Cancel Order
-                  </Button>
-                </div>
-              )}
+                  </div>
+                )}
             </CardContent>
           </Card>
 
@@ -502,7 +506,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
               </div>
 
               {/* COD Payment Toggle */}
-              {isCod && (
+              {isCod && order.payment_status !== 'refunded' && (
                 <div className="pt-3 border-t">
                   <Button
                     variant={order.payment_status === 'paid' ? 'outline' : 'default'}
