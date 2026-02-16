@@ -334,7 +334,8 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
             </CardHeader>
             <CardContent>
               {/* Detailed Return/Refund Status Banners */}
-              {order.return_status && (
+              {/* Detailed Return/Refund Status Banners */}
+              {order.return_status && order.return_status !== 'none' && (
                 <div className={`mb-6 p-4 rounded-lg border flex flex-col gap-2 ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
                   order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
                     order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
@@ -364,7 +365,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                     )}
                   </div>
 
-                  {order.refund_status && (
+                  {order.refund_status && order.refund_status !== 'none' && (
                     <div className="pt-2 border-t border-black/10 flex items-center gap-2">
                       <span className="font-medium text-sm">Refund Status:</span>
                       <Badge variant="outline" className="bg-white/50 border-black/20 text-inherit capitalize">

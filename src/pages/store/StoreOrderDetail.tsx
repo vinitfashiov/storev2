@@ -201,7 +201,7 @@ export default function StoreOrderDetail() {
         </div>
 
         <div className="flex items-center gap-3 mb-6">
-          {order.status === 'delivered' && !order.return_status && (
+          {order.status === 'delivered' && (!order.return_status || order.return_status === 'none') && (
             <Button variant="outline" onClick={() => setIsReturnOpen(true)}>
               Request Return
             </Button>
@@ -213,7 +213,7 @@ export default function StoreOrderDetail() {
           )}
 
           {/* Detailed Return/Refund Status Banners */}
-          {order.return_status && (
+          {order.return_status && order.return_status !== 'none' && (
             <div className={`mb-6 p-4 rounded-lg border ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
               order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
                 order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
@@ -232,7 +232,7 @@ export default function StoreOrderDetail() {
                 {order.return_status === 'returned' && 'Your return has been processed successfully.'}
               </p>
 
-              {order.refund_status && (
+              {order.refund_status && order.refund_status !== 'none' && (
                 <div className="mt-2 pt-2 border-t border-black/10 flex items-center gap-2">
                   <span className="font-medium text-sm">Refund Status:</span>
                   <Badge variant="outline" className="bg-white/50 border-black/20 text-inherit capitalize">
@@ -263,7 +263,7 @@ export default function StoreOrderDetail() {
                 {(() => {
                   // Dynamic steps based on if it's a return flow or normal flow
                   let steps = statusSteps;
-                  if (order.return_status) {
+                  if (order.return_status && order.return_status !== 'none') {
                     // Add return steps if return is active
                     steps = [...statusSteps, 'return_requested'];
                     if (['approved', 'returned'].includes(order.return_status)) {
