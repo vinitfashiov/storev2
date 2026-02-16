@@ -10,7 +10,7 @@ CREATE POLICY "Admins can view tenant profiles" ON public.profiles
         public.get_user_role() = 'super_admin'
         OR
         (
-            public.get_user_role() IN ('owner', 'admin')
+            public.get_user_role() IN ('owner', 'super_admin')
             AND
             (
                 -- 1. Direct Tenant Match
