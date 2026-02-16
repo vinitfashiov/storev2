@@ -203,8 +203,8 @@ export default function AdminReturns() {
                                                 <div className="text-xs text-muted-foreground">₹{req.orders?.total || 0}</div>
                                             </TableCell>
                                             <TableCell>
-                                                {req.profiles?.full_name || 'Guest'}
-                                                <div className="text-xs text-muted-foreground">{req.profiles?.phone_number || '-'}</div>
+                                                {req.profiles?.name || 'Guest'}
+                                                <div className="text-xs text-muted-foreground">{req.profiles?.email || '-'}</div>
                                             </TableCell>
                                             <TableCell>{formatDate(req.created_at)}</TableCell>
                                             <TableCell className="max-w-[200px] truncate" title={req.reason}>
