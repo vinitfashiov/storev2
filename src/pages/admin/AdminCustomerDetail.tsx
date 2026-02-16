@@ -17,6 +17,7 @@ interface CustomerProfile {
     email: string;
     phone_number: string;
     created_at: string;
+    tenant_id: string;
 }
 
 interface Order {
@@ -84,7 +85,8 @@ export default function AdminCustomerDetail() {
                     full_name: customerData.name, // Map 'name' to 'full_name'
                     email: customerData.email,
                     phone_number: customerData.phone || '',
-                    created_at: customerData.created_at
+                    created_at: customerData.created_at,
+                    tenant_id: customerData.tenant_id
                 });
             }
 
@@ -167,6 +169,7 @@ export default function AdminCustomerDetail() {
             .from('customer_notes')
             .insert({
                 customer_id: id,
+                tenant_id: customer?.tenant_id,
                 note: newNote,
                 is_pinned: false
             });
