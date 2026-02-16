@@ -327,9 +327,9 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
               {/* Detailed Return/Refund Status Banners */}
               {order.return_status && (
                 <div className={`mb-6 p-4 rounded-lg border flex flex-col gap-2 ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
-                    order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
-                      order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                        'bg-orange-50 border-orange-200 text-orange-800'
+                  order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
+                    order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                      'bg-orange-50 border-orange-200 text-orange-800'
                   }`}>
                   <div className="flex justify-between items-start">
                     <div>
@@ -347,7 +347,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                       </p>
                     </div>
                     {order.return_status === 'requested' && (
-                      <Link to="/super-admin/returns">
+                      <Link to="/dashboard/returns">
                         <Button size="sm" variant="outline" className="bg-white hover:bg-white/90">
                           Process Return
                         </Button>
