@@ -211,20 +211,44 @@ export default function StoreOrderDetail() {
               Cancel Order
             </Button>
           )}
+
+          {/* Detailed Return/Refund Status Banners */}
+          {order.return_status && (
+            <div className={`mb-6 p-4 rounded-lg border ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
+                order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
+                  order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                    'bg-orange-50 border-orange-200 text-orange-800'
+              }`}>
+              <h3 className="font-semibold mb-1 capitalize">
+                {order.return_status === 'requested' && 'Return Requested'}
+                {order.return_status === 'approved' && 'Return Approved'}
+                {order.return_status === 'rejected' && 'Return Rejected'}
+                {order.return_status === 'returned' && 'Return Completed'}
+              </h3>
+              <p className="text-sm">
+                {order.return_status === 'requested' && 'We have received your return request and are reviewing it. You will be notified once it is approved.'}
+                {order.return_status === 'approved' && 'Your return request has been approved. Our delivery partner will contact you soon for pickup.'}
+                {order.return_status === 'rejected' && 'Your return request has been rejected. Please contact support for more details.'}
+                {order.return_status === 'returned' && 'Your return has been processed successfully.'}
+              </p>
+
+              {order.refund_status && (
+                <div className="mt-2 pt-2 border-t border-black/10 flex items-center gap-2">
+                  <span className="font-medium text-sm">Refund Status:</span>
+                  <Badge variant="outline" className="bg-white/50 border-black/20 text-inherit capitalize">
+                    {order.refund_status.replace('_', ' ')}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2">
-            {order.return_status && (
-              <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50">
-                Return: {order.return_status}
+            {!order.return_status && (
+              <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+                {order.status.toUpperCase()}
               </Badge>
             )}
-            {order.refund_status && (
-              <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
-                Refund: {order.refund_status}
-              </Badge>
-            )}
-            <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-              {order.status.toUpperCase()}
-            </Badge>
           </div>
         </div>
 

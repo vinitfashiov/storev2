@@ -318,24 +318,53 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Order Status</span>
-                <div className="flex gap-2">
-                  {order.return_status && (
-                    <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50">
-                      Return: {order.return_status}
-                    </Badge>
-                  )}
-                  {order.refund_status && (
-                    <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
-                      Refund: {order.refund_status}
-                    </Badge>
-                  )}
-                  <Badge className={order.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}>
-                    {order.status.toUpperCase()}
-                  </Badge>
-                </div>
+                <Badge className={order.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}>
+                  {order.status.toUpperCase()}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Detailed Return/Refund Status Banners */}
+              {order.return_status && (
+                <div className={`mb-6 p-4 rounded-lg border flex flex-col gap-2 ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
+                    order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
+                      order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                        'bg-orange-50 border-orange-200 text-orange-800'
+                  }`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold capitalize flex items-center gap-2">
+                        {order.return_status === 'requested' && 'Return Requested'}
+                        {order.return_status === 'approved' && 'Return Approved'}
+                        {order.return_status === 'rejected' && 'Return Rejected'}
+                        {order.return_status === 'returned' && 'Return Completed'}
+                      </h3>
+                      <p className="text-sm mt-1">
+                        {order.return_status === 'requested' && <span className="font-medium">Action Required: Go to Returns Dashboard to approve/reject.</span>}
+                        {order.return_status === 'approved' && 'Waiting for customer to return the item. Once received, process refund.'}
+                        {order.return_status === 'rejected' && 'Return request was rejected.'}
+                        {order.return_status === 'returned' && 'Return and Refund process completed.'}
+                      </p>
+                    </div>
+                    {order.return_status === 'requested' && (
+                      <Link to="/super-admin/returns">
+                        <Button size="sm" variant="outline" className="bg-white hover:bg-white/90">
+                          Process Return
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+
+                  {order.refund_status && (
+                    <div className="pt-2 border-t border-black/10 flex items-center gap-2">
+                      <span className="font-medium text-sm">Refund Status:</span>
+                      <Badge variant="outline" className="bg-white/50 border-black/20 text-inherit capitalize">
+                        {order.refund_status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              )}
               {order.status !== 'cancelled' && order.status !== 'delivered' && (
                 <div className="flex gap-2 flex-wrap">
                   {statusFlow.slice(statusFlow.indexOf(order.status) + 1).map(status => (
