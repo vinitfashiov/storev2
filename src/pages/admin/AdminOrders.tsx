@@ -22,6 +22,8 @@ const statusColors: Record<string, string> = {
   shipped: 'bg-indigo-100 text-indigo-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
+  return_approved: 'bg-orange-100 text-orange-800',
+  returned: 'bg-gray-100 text-gray-800',
 };
 
 const paymentColors: Record<string, string> = {
@@ -78,8 +80,8 @@ export default function AdminOrders({ tenantId }: AdminOrdersProps) {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="icon"
             onClick={() => refetch()}
             disabled={isFetching}
@@ -96,6 +98,8 @@ export default function AdminOrders({ tenantId }: AdminOrdersProps) {
               <SelectItem value="shipped">Shipped</SelectItem>
               <SelectItem value="delivered">Delivered</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="return_approved">Return Approved</SelectItem>
+              <SelectItem value="returned">Returned</SelectItem>
             </SelectContent>
           </Select>
           <Select value={paymentFilter} onValueChange={handlePaymentChange}>
@@ -163,7 +167,7 @@ export default function AdminOrders({ tenantId }: AdminOrdersProps) {
                   </TableBody>
                 </Table>
               </div>
-              
+
               {/* Pagination */}
               <div className="p-4 border-t">
                 <PaginationControls

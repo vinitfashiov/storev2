@@ -201,7 +201,7 @@ export default function StoreOrderDetail() {
         </div>
 
         <div className="flex items-center gap-3 mb-6">
-          {order.status === 'delivered' && (
+          {order.status === 'delivered' && !order.return_status && (
             <Button variant="outline" onClick={() => setIsReturnOpen(true)}>
               Request Return
             </Button>
@@ -215,9 +215,9 @@ export default function StoreOrderDetail() {
           {/* Detailed Return/Refund Status Banners */}
           {order.return_status && (
             <div className={`mb-6 p-4 rounded-lg border ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
-                order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
-                  order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                    'bg-orange-50 border-orange-200 text-orange-800'
+              order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
+                order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                  'bg-orange-50 border-orange-200 text-orange-800'
               }`}>
               <h3 className="font-semibold mb-1 capitalize">
                 {order.return_status === 'requested' && 'Return Requested'}
@@ -260,25 +260,56 @@ export default function StoreOrderDetail() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                {statusSteps.map((step, index) => {
-                  const isCompleted = index <= currentStepIndex;
-                  const isCurrent = index === currentStepIndex;
+                {(() => {
+                  // Dynamic steps based on if it's a return flow or normal flow
+                  let steps = statusSteps;
+                  if (order.return_status) {
+                    // Add return steps if return is active
+                    steps = [...statusSteps, 'return_requested'];
+                    if (['approved', 'returned'].includes(order.return_status)) {
+                      steps.push('return_approved');
+                    }
+                    if (order.return_status === 'returned') {
+                      steps.push('returned');
+                    }
+                  }
 
-                  return (
-                    <div key={step} className="flex flex-col items-center flex-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                        } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
-                        {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                  // Determine current step index
+                  let activeIndex = -1;
+
+                  // Normal flow mapping
+                  activeIndex = statusSteps.indexOf(order.status);
+
+                  // Return flow mapping (overrides normal flow if status matches)
+                  if (order.status === 'return_approved') activeIndex = steps.indexOf('return_approved');
+                  if (order.status === 'returned') activeIndex = steps.indexOf('returned');
+
+                  // If status is still 'delivered' but return is requested, highlight up to 'return_requested'
+                  if (order.status === 'delivered' && order.return_status === 'requested') {
+                    activeIndex = steps.indexOf('return_requested');
+                  }
+
+                  return steps.map((step, index) => {
+                    const isCompleted = index <= activeIndex;
+                    const isCurrent = index === activeIndex;
+
+                    return (
+                      <div key={step} className="flex flex-col items-center flex-1 relative">
+                        {index !== 0 && (
+                          <div className={`hidden md:block absolute top-4 right-1/2 w-full h-0.5 -z-10 ${isCompleted ? 'bg-primary' : 'bg-muted'}`} />
+                        )}
+
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                          } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
+                          {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                        </div>
+                        <span className={`text-xs mt-2 text-center capitalize ${isCompleted ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                          {step.replace('_', ' ')}
+                        </span>
                       </div>
-                      <span className={`text-xs mt-2 capitalize ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {step}
-                      </span>
-                      {index < statusSteps.length - 1 && (
-                        <div className={`absolute h-0.5 w-full ${isCompleted ? 'bg-primary' : 'bg-muted'}`} style={{ display: 'none' }} />
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </CardContent>
           </Card>
