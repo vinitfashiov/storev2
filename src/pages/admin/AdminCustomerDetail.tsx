@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabaseStore } from '@/integrations/supabase/storeClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -70,7 +70,7 @@ export default function AdminCustomerDetail() {
 
         try {
             // 1. Fetch Profile
-            const { data: profile, error: profileError } = await supabaseStore
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', id)
@@ -80,7 +80,7 @@ export default function AdminCustomerDetail() {
             if (profile) setCustomer(profile);
 
             // 2. Fetch Orders
-            const { data: orderData, error: orderError } = await supabaseStore
+            const { data: orderData, error: orderError } = await supabase
                 .from('orders')
                 .select('id, order_number, total, status, created_at')
                 .eq('customer_id', id)
@@ -91,7 +91,7 @@ export default function AdminCustomerDetail() {
             setOrders(validOrders);
 
             // 3. Fetch Notes
-            const { data: noteData, error: noteError } = await supabaseStore
+            const { data: noteData, error: noteError } = await supabase
                 .from('customer_notes')
                 .select('*')
                 .eq('customer_id', id)
@@ -110,7 +110,7 @@ export default function AdminCustomerDetail() {
                 // Check return count
                 let returnCount = 0;
                 try {
-                    const { count } = await supabaseStore
+                    const { count } = await supabase
                         .from('return_requests')
                         .select('*', { count: 'exact', head: true })
                         .eq('customer_id', id);
@@ -152,7 +152,7 @@ export default function AdminCustomerDetail() {
     const handleAddNote = async () => {
         if (!newNote.trim()) return;
 
-        const { error } = await supabaseStore
+        const { error } = await supabase
             .from('customer_notes')
             .insert({
                 customer_id: id,
@@ -170,7 +170,7 @@ export default function AdminCustomerDetail() {
     };
 
     const handleTogglePin = async (noteId: string, currentStatus: boolean) => {
-        const { error } = await supabaseStore
+        const { error } = await supabase
             .from('customer_notes')
             .update({ is_pinned: !currentStatus })
             .eq('id', noteId);
@@ -180,7 +180,7 @@ export default function AdminCustomerDetail() {
     };
 
     const handleDeleteNote = async (noteId: string) => {
-        const { error } = await supabaseStore
+        const { error } = await supabase
             .from('customer_notes')
             .delete()
             .eq('id', noteId);
