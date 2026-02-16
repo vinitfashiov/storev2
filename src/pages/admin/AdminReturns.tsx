@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabaseStore } from '@/integrations/supabase/storeClient';
+import { supabase } from '@/integrations/supabase/client';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -66,10 +66,10 @@ export default function AdminReturns() {
         console.log("Starting fetchRequests...");
 
         try {
-            const { data: { user } } = await supabaseStore.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             console.log("Current Auth User:", user?.id, user?.email);
 
-            let query = supabaseStore
+            let query = supabase
                 .from('return_requests')
                 .select(`
                     *,
@@ -117,7 +117,7 @@ export default function AdminReturns() {
         if (!selectedRequest) return;
         setActionLoading(true);
 
-        const { error } = await supabaseStore
+        const { error } = await supabase
             .from('return_requests')
             .update({
                 status: status,
