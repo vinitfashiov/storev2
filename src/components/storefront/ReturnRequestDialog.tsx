@@ -60,41 +60,49 @@ export default function ReturnRequestDialog({
 
         setLoading(true);
 
-        const paymentDetails = refundMethod === 'upi'
-            ? { upi_id: upiId }
-            : { ...bankDetails };
+        try {
+            // Get the current authenticated user ID directly to ensure RLS compliance
+            const { data: { user }, error: authError } = await supabaseStore.auth.getUser();
 
-        // Type assertion needed until migration is applied and types are regenerated
-        const { error } = await (supabaseStore.from as any)('return_requests')
-            .insert({
+            if (authError || !user) {
+                throw new Error("You must be logged in to submit a return request");
+            }
+
+            const paymentDetails = refundMethod === 'upi'
+                ? { upi_id: upiId }
+                : { ...bankDetails };
+
+            console.log("Submitting return request:", {
                 tenant_id: tenantId,
                 order_id: orderId,
-                customer_id: customerId,
-                status: 'requested',
-                reason: reason,
-                refund_method: refundMethod,
-                payment_details: paymentDetails
+                customer_id: user.id, // Using auth user id
+                reason,
+                refund_method: refundMethod
             });
 
-        setLoading(false);
+            // Type assertion needed until migration is applied and types are regenerated
+            const { error } = await (supabaseStore.from as any)('return_requests')
+                .insert({
+                    tenant_id: tenantId,
+                    order_id: orderId,
+                    customer_id: user.id, // Using auth user id matches RLS policy (auth.uid())
+                    status: 'requested',
+                    reason: reason,
+                    refund_method: refundMethod,
+                    payment_details: paymentDetails
+                });
 
-        if (error) {
-            console.error('Error requesting return:', error);
-            console.error('Error details:', JSON.stringify(error, null, 2));
-            console.error('Attempted insert data:', {
-                tenant_id: tenantId,
-                order_id: orderId,
-                customer_id: customerId,
-                status: 'requested',
-                reason: reason,
-                refund_method: refundMethod,
-                payment_details: paymentDetails
-            });
-            toast.error(`Failed to submit return request: ${error.message || 'Unknown error'}`);
-        } else {
+            if (error) throw error;
+
             toast.success('Return request submitted successfully');
             onOpenChange(false);
             onSuccess();
+        } catch (error: any) {
+            console.error('Error requesting return:', error);
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            toast.error(`Failed to submit return request: ${error.message || 'Unknown error'}`);
+        } finally {
+            setLoading(false);
         }
     };
 
