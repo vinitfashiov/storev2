@@ -315,4 +315,3 @@ export default function AdminCustomers({ tenantId }: AdminCustomersProps) {
     </div>
   );
 }
-```
