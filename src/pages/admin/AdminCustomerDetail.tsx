@@ -175,7 +175,8 @@ export default function AdminCustomerDetail() {
             });
 
         if (error) {
-            toast.error('Failed to add note');
+            console.error('Error adding note:', error);
+            toast.error(`Failed to add note: ${error.message}`);
         } else {
             toast.success('Note added');
             setNewNote('');
