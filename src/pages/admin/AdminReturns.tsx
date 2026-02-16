@@ -29,7 +29,7 @@ interface ReturnRequest {
         total: number;
         status: string;
     };
-    customers: {
+    profiles: {
         name: string;
         email: string;
     };
@@ -74,7 +74,7 @@ export default function AdminReturns() {
                 .select(`
                     *,
                     orders (order_number, total, status),
-                    customers (name, email)
+                    profiles (name, email)
                 `)
                 .order('created_at', { ascending: false });
 
@@ -202,8 +202,8 @@ export default function AdminReturns() {
                                                 <div className="text-xs text-muted-foreground">₹{req.orders?.total || 0}</div>
                                             </TableCell>
                                             <TableCell>
-                                                {req.customers?.name || 'Guest'}
-                                                <div className="text-xs text-muted-foreground">{req.customers?.email || '-'}</div>
+                                                {req.profiles?.name || 'Guest'}
+                                                <div className="text-xs text-muted-foreground">{req.profiles?.email || '-'}</div>
                                             </TableCell>
                                             <TableCell>{formatDate(req.created_at)}</TableCell>
                                             <TableCell className="max-w-[200px] truncate" title={req.reason}>
