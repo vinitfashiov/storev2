@@ -64,9 +64,8 @@ export default function ReturnRequestDialog({
             ? { upi_id: upiId }
             : { ...bankDetails };
 
-        // @ts-ignore - return_requests table exists but types need to be regenerated after migration
-        const { error } = await supabaseStore
-            .from('return_requests')
+        // Type assertion needed until migration is applied and types are regenerated
+        const { error } = await (supabaseStore.from as any)('return_requests')
             .insert({
                 tenant_id: tenantId,
                 order_id: orderId,
