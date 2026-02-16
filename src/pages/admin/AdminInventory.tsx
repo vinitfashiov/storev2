@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Package, AlertTriangle, Plus, Minus, Search, History, ChevronDown, ChevronRight, Layers } from 'lucide-react';
+import { Package, AlertTriangle, Plus, Minus, Search, History, ChevronDown, ChevronRight, Layers, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -68,6 +68,8 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [filter, setFilter] = useState<'all' | 'low'>('all');
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
+  const [isBulkEditMode, setIsBulkEditMode] = useState(false);
+  const [bulkEdits, setBulkEdits] = useState<Record<string, { stock_qty?: number, price?: number, low_stock_threshold?: number }>>({});
 
   useEffect(() => {
     fetchProducts();
@@ -75,7 +77,7 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
 
   async function fetchProducts() {
     setLoading(true);
-    
+
     // Fetch products with their variants
     const { data: productsData, error: productsError } = await supabase
       .from('products')
@@ -95,9 +97,9 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
 
     // Fetch variants for products that have them
     const productIds = productsData?.filter(p => p.has_variants).map(p => p.id) || [];
-    
+
     let variantsMap: Record<string, Variant[]> = {};
-    
+
     if (productIds.length > 0) {
       const { data: variantsData } = await supabase
         .from('product_variants')
@@ -120,8 +122,8 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
       ...p,
       variants: variantsMap[p.id] || [],
       // For variant products, calculate total stock from variants
-      stock_qty: p.has_variants && variantsMap[p.id] 
-        ? variantsMap[p.id].reduce((sum, v) => sum + v.stock_qty, 0) 
+      stock_qty: p.has_variants && variantsMap[p.id]
+        ? variantsMap[p.id].reduce((sum, v) => sum + v.stock_qty, 0)
         : p.stock_qty
     })) as Product[];
 
@@ -247,15 +249,61 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
       .join(', ');
   }
 
+  const handleBulkChange = (id: string, field: 'stock_qty' | 'price' | 'low_stock_threshold', value: string) => {
+    const numValue = parseInt(value);
+    if (isNaN(numValue) && value !== '') return;
+
+    setBulkEdits(prev => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value === '' ? 0 : numValue
+      }
+    }));
+  };
+
+  async function saveBulkChanges() {
+    setLoading(true);
+    const updates = Object.entries(bulkEdits);
+    let successCount = 0;
+
+    for (const [id, changes] of updates) {
+      // Determine if it's a product or variant
+      // This is a bit inefficient, but safe. 
+      // A better way would be to track type in bulkEdits, but for now we try both or rely on ID structure if UUID
+
+      const isVariant = products.some(p => p.variants?.some(v => v.id === id));
+
+      if (isVariant) {
+        const { error } = await supabase
+          .from('product_variants')
+          .update(changes)
+          .eq('id', id);
+        if (!error) successCount++;
+      } else {
+        const { error } = await supabase
+          .from('products')
+          .update(changes)
+          .eq('id', id);
+        if (!error) successCount++;
+      }
+    }
+
+    toast.success(`Updated ${successCount} items`);
+    setBulkEdits({});
+    setIsBulkEditMode(false);
+    fetchProducts();
+  }
+
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const searchLower = searchQuery.toLowerCase();
-      const matchesSearch = 
+      const matchesSearch =
         p.name.toLowerCase().includes(searchLower) ||
         (p.sku && p.sku.toLowerCase().includes(searchLower)) ||
         (p.barcode && p.barcode.includes(searchQuery)) ||
         (p.variants?.some(v => v.sku?.toLowerCase().includes(searchLower)));
-      
+
       const threshold = p.low_stock_threshold || 10;
       const isLowStock = p.stock_qty <= threshold;
       const matchesFilter = filter === 'all' || (filter === 'low' && isLowStock);
@@ -349,6 +397,29 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
         </Card>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {isBulkEditMode && (
+        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b p-4 flex justify-between items-center shadow-sm -mx-4 md:mx-0 md:rounded-lg md:border">
+          <div className="flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary animate-pulse" />
+            <span className="font-medium">Bulk Edit Mode Active</span>
+            <Badge variant="secondary">{Object.keys(bulkEdits).length} changes pending</Badge>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              setIsBulkEditMode(false);
+              setBulkEdits({});
+            }}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={saveBulkChanges} disabled={Object.keys(bulkEdits).length === 0}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Filters and Search */}
       <Card>
         <CardHeader className="pb-3 md:pb-6">
@@ -380,6 +451,15 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                 <AlertTriangle className="h-4 w-4 mr-1" />
                 Low Stock ({lowStockCount})
               </Button>
+              <div className="flex-1"></div>
+              <Button
+                variant={isBulkEditMode ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setIsBulkEditMode(!isBulkEditMode)}
+                className="whitespace-nowrap"
+              >
+                {isBulkEditMode ? 'Exit Bulk Edit' : 'Bulk Edit'}
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -389,14 +469,14 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
             {filteredProducts.map((product) => {
               const isLowStock = product.stock_qty <= (product.low_stock_threshold || 10);
               const isExpanded = expandedProducts.has(product.id);
-              
+
               return (
                 <div key={product.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         {product.has_variants && product.variants && product.variants.length > 0 && (
-                          <button 
+                          <button
                             onClick={() => toggleExpanded(product.id)}
                             className="p-1 -ml-1 hover:bg-muted rounded"
                           >
@@ -423,34 +503,42 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-lg font-bold">{product.stock_qty}</div>
-                      {isLowStock ? (
-                        <Badge variant="destructive" className="bg-orange-100 text-orange-800 text-xs">
-                          Low
-                        </Badge>
+                      {isBulkEditMode && !product.has_variants ? (
+                        <Input
+                          className="w-20 text-right h-8"
+                          type="number"
+                          value={bulkEdits[product.id]?.stock_qty ?? product.stock_qty}
+                          onChange={(e) => handleBulkChange(product.id, 'stock_qty', e.target.value)}
+                        />
                       ) : (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                          OK
-                        </Badge>
+                        <div className="text-lg font-bold">{product.stock_qty}</div>
+                      )}
+
+                      {!isBulkEditMode && (
+                        isLowStock ? (
+                          <Badge variant="destructive" className="bg-orange-100 text-orange-800 text-xs text-right block">Low</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs text-right block">OK</Badge>
+                        )
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Actions for non-variant products */}
                   {!product.has_variants && (
                     <div className="flex gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={() => openHistory(product)}
                       >
                         <History className="h-4 w-4 mr-1" />
                         History
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={() => openAdjust(product)}
                       >
@@ -478,31 +566,38 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                                 )}
                               </div>
                               <div className="text-right shrink-0">
-                                <div className="font-bold">{variant.stock_qty}</div>
-                                {variantLowStock ? (
-                                  <Badge variant="destructive" className="bg-orange-100 text-orange-800 text-xs">
-                                    Low
-                                  </Badge>
+                                {isBulkEditMode ? (
+                                  <Input
+                                    className="w-20 text-right h-8 bg-background"
+                                    type="number"
+                                    value={bulkEdits[variant.id]?.stock_qty ?? variant.stock_qty}
+                                    onChange={(e) => handleBulkChange(variant.id, 'stock_qty', e.target.value)}
+                                  />
                                 ) : (
-                                  <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                                    OK
-                                  </Badge>
+                                  <>
+                                    <div className="font-bold">{variant.stock_qty}</div>
+                                    {variantLowStock ? (
+                                      <Badge variant="destructive" className="bg-orange-100 text-orange-800 text-xs block text-right">Low</Badge>
+                                    ) : (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs block text-right">OK</Badge>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </div>
                             <div className="flex gap-2 mt-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 className="flex-1 h-8 text-xs"
                                 onClick={() => openHistory(product, variant)}
                               >
                                 <History className="h-3 w-3 mr-1" />
                                 History
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                              <Button
+                                variant="outline"
+                                size="sm"
                                 className="flex-1 h-8 text-xs"
                                 onClick={() => openAdjust(product, variant)}
                               >
@@ -544,13 +639,13 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                   const isLowStock = product.stock_qty <= (product.low_stock_threshold || 10);
                   const isExpanded = expandedProducts.has(product.id);
                   const hasVariants = product.has_variants && product.variants && product.variants.length > 0;
-                  
+
                   return (
                     <>
                       <TableRow key={product.id} className={hasVariants ? 'cursor-pointer hover:bg-muted/50' : ''}>
                         <TableCell className="w-8">
                           {hasVariants && (
-                            <button 
+                            <button
                               onClick={() => toggleExpanded(product.id)}
                               className="p-1 hover:bg-muted rounded"
                             >
@@ -575,8 +670,30 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                         </TableCell>
                         <TableCell>{product.sku || '-'}</TableCell>
                         <TableCell>{product.category?.name || '-'}</TableCell>
-                        <TableCell className="text-right font-medium">{product.stock_qty}</TableCell>
-                        <TableCell className="text-right">{product.low_stock_threshold || 10}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {isBulkEditMode && !hasVariants ? (
+                            <Input
+                              className="w-24 ml-auto h-8 text-right"
+                              type="number"
+                              value={bulkEdits[product.id]?.stock_qty ?? product.stock_qty}
+                              onChange={(e) => handleBulkChange(product.id, 'stock_qty', e.target.value)}
+                            />
+                          ) : (
+                            product.stock_qty
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isBulkEditMode && !hasVariants ? (
+                            <Input
+                              className="w-20 ml-auto h-8 text-right"
+                              type="number"
+                              value={bulkEdits[product.id]?.low_stock_threshold ?? (product.low_stock_threshold || 10)}
+                              onChange={(e) => handleBulkChange(product.id, 'low_stock_threshold', e.target.value)}
+                            />
+                          ) : (
+                            product.low_stock_threshold || 10
+                          )}
+                        </TableCell>
                         <TableCell>
                           {isLowStock ? (
                             <Badge variant="destructive" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
@@ -601,7 +718,7 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                           )}
                         </TableCell>
                       </TableRow>
-                      
+
                       {/* Expanded Variant Rows */}
                       {isExpanded && product.variants?.map((variant) => {
                         const variantLowStock = variant.stock_qty <= (product.low_stock_threshold || 10);
@@ -616,8 +733,21 @@ export default function AdminInventory({ tenantId }: AdminInventoryProps) {
                             </TableCell>
                             <TableCell className="text-sm">{variant.sku || '-'}</TableCell>
                             <TableCell>-</TableCell>
-                            <TableCell className="text-right font-medium">{variant.stock_qty}</TableCell>
-                            <TableCell className="text-right">{product.low_stock_threshold || 10}</TableCell>
+                            <TableCell className="text-right font-medium">
+                              {isBulkEditMode ? (
+                                <Input
+                                  className="w-24 ml-auto h-8 text-right"
+                                  type="number"
+                                  value={bulkEdits[variant.id]?.stock_qty ?? variant.stock_qty}
+                                  onChange={(e) => handleBulkChange(variant.id, 'stock_qty', e.target.value)}
+                                />
+                              ) : (
+                                variant.stock_qty
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {product.low_stock_threshold || 10}
+                            </TableCell>
                             <TableCell>
                               {variantLowStock ? (
                                 <Badge variant="destructive" className="bg-orange-100 text-orange-800 hover:bg-orange-100">
