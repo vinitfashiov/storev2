@@ -80,7 +80,17 @@ export default function ReturnRequestDialog({
 
         if (error) {
             console.error('Error requesting return:', error);
-            toast.error('Failed to submit return request');
+            console.error('Error details:', JSON.stringify(error, null, 2));
+            console.error('Attempted insert data:', {
+                tenant_id: tenantId,
+                order_id: orderId,
+                customer_id: customerId,
+                status: 'requested',
+                reason: reason,
+                refund_method: refundMethod,
+                payment_details: paymentDetails
+            });
+            toast.error(`Failed to submit return request: ${error.message || 'Unknown error'}`);
         } else {
             toast.success('Return request submitted successfully');
             onOpenChange(false);
