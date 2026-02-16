@@ -30,6 +30,7 @@ import {
   Calendar,
   Activity,
   Shield,
+  Undo2,
   Database
 } from 'lucide-react';
 
@@ -41,6 +42,7 @@ const baseNavItems = [
   { href: '/dashboard/brands', label: 'Brands', icon: Tag },
   { href: '/dashboard/attributes', label: 'Attributes', icon: Layers },
   { href: '/dashboard/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/dashboard/returns', label: 'Returns', icon: Undo2 },
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/coupons', label: 'Coupons', icon: Ticket },
   { href: '/dashboard/payment-intents', label: 'Payment Intents', icon: CreditCard },
@@ -142,7 +144,6 @@ export function AdminSidebar({ storeSlug, storeName, businessType, userRole }: A
           );
         })}
       </nav>
-
       <div className="p-4 border-t border-border flex-shrink-0">
         <Link
           to={`/store/${storeSlug}`}

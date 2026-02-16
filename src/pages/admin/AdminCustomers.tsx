@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +51,7 @@ export default function AdminCustomers({ tenantId }: AdminCustomersProps) {
       // Don't reset page - keep current page number
     }
   }, [tenantId]);
-  
+
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
@@ -111,8 +112,8 @@ export default function AdminCustomers({ tenantId }: AdminCustomersProps) {
             {totalItems > 0 && <span className="ml-1">({totalItems.toLocaleString()} customers)</span>}
           </p>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="icon"
           onClick={() => refetch()}
           disabled={isFetching}
@@ -272,20 +273,22 @@ export default function AdminCustomers({ tenantId }: AdminCustomersProps) {
                   <TableBody>
                     {customers.map((customer: any) => (
                       <TableRow key={customer.id}>
-                        <TableCell>
-                          <div>
-                            <span className="font-medium">{customer.name}</span>
-                            <p className="text-xs text-muted-foreground">{customer.email}</p>
-                          </div>
+                        <TableCell className="font-medium">
+                          <Link to={`/dashboard/customers/${customer.id}`} className="hover:underline">
+                            {customer.name || 'Guest'}
+                          </Link>
                         </TableCell>
+                        <TableCell>{customer.email}</TableCell>
                         <TableCell>{customer.phone || '-'}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {format(new Date(customer.created_at), 'PP')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" onClick={() => openCustomerDetail(customer)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                          <Link to={`/dashboard/customers/${customer.id}`}>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -312,3 +315,4 @@ export default function AdminCustomers({ tenantId }: AdminCustomersProps) {
     </div>
   );
 }
+```

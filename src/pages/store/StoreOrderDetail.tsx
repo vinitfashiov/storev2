@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Package, User, CheckCircle, Circle, Truck } from 'lucide-react';
 import { format } from 'date-fns';
+import ReturnRequestDialog from '@/components/storefront/ReturnRequestDialog';
+import CancelOrderDialog from '@/components/storefront/CancelOrderDialog';
 
 interface Order {
   id: string;
@@ -23,6 +25,7 @@ interface Order {
   payment_status: string;
   payment_method: string;
   created_at: string;
+  tenant_id: string;
 }
 
 interface OrderItem {
@@ -93,6 +96,8 @@ export default function StoreOrderDetail() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   const getLink = (path: string) => {
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
@@ -109,7 +114,7 @@ export default function StoreOrderDetail() {
       const [orderRes, itemsRes, shipmentRes] = await Promise.all([
         supabaseStore
           .from('orders')
-          .select('*')
+          .select('*, tenant_id') // Ensure tenant_id is selected. accessing * usually selects all but explicit is good.
           .eq('id', orderId)
           .eq('customer_id', customer.id)
           .single(),
@@ -128,7 +133,7 @@ export default function StoreOrderDetail() {
         const shippingAddr = typeof orderRes.data.shipping_address === 'object' && orderRes.data.shipping_address !== null
           ? orderRes.data.shipping_address as Record<string, string>
           : {};
-        setOrder({ ...orderRes.data, shipping_address: shippingAddr } as Order);
+        setOrder({ ...orderRes.data, shipping_address: shippingAddr } as unknown as Order);
       }
       if (itemsRes.data) setItems(itemsRes.data);
       if (shipmentRes.data) setShipment(shipmentRes.data);
@@ -191,6 +196,19 @@ export default function StoreOrderDetail() {
             <h1 className="text-2xl font-display font-bold">{order.order_number}</h1>
             <p className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 mb-6">
+          {order.status === 'delivered' && (
+            <Button variant="outline" onClick={() => setIsReturnOpen(true)}>
+              Request Return
+            </Button>
+          )}
+          {['pending', 'confirmed'].includes(order.status) && (
+            <Button variant="destructive" onClick={() => setIsCancelOpen(true)}>
+              Cancel Order
+            </Button>
+          )}
           <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
             {order.status.toUpperCase()}
           </Badge>
@@ -331,6 +349,24 @@ export default function StoreOrderDetail() {
           </Card>
         </div>
       </div>
+
+      <ReturnRequestDialog
+        orderId={orderId}
+        orderNumber={order ? order.order_number : ''}
+        isOpen={isReturnOpen}
+        onOpenChange={setIsReturnOpen}
+        onSuccess={() => window.location.reload()}
+        tenantId={order?.tenant_id || cdTenant?.id || ''}
+        customerId={customer?.id || ''}
+      />
+
+      <CancelOrderDialog
+        orderId={orderId}
+        orderNumber={order ? order.order_number : ''}
+        isOpen={isCancelOpen}
+        onOpenChange={setIsCancelOpen}
+        onSuccess={() => window.location.reload()}
+      />
     </div>
   );
 }
