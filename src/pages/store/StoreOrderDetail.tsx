@@ -26,6 +26,8 @@ interface Order {
   payment_method: string;
   created_at: string;
   tenant_id: string;
+  return_status: string | null;
+  refund_status: string | null;
 }
 
 interface OrderItem {
@@ -209,9 +211,21 @@ export default function StoreOrderDetail() {
               Cancel Order
             </Button>
           )}
-          <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-            {order.status.toUpperCase()}
-          </Badge>
+          <div className="flex gap-2">
+            {order.return_status && (
+              <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50">
+                Return: {order.return_status}
+              </Badge>
+            )}
+            {order.refund_status && (
+              <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
+                Refund: {order.refund_status}
+              </Badge>
+            )}
+            <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
+              {order.status.toUpperCase()}
+            </Badge>
+          </div>
         </div>
 
         {/* Status Timeline */}

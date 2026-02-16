@@ -30,7 +30,11 @@ interface Order {
   delivery_option: string;
   created_at: string;
   coupon_code: string | null;
+  return_status: string | null;
+  refund_status: string | null;
 }
+
+
 
 interface OrderItem {
   id: string;
@@ -88,7 +92,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
   const [loading, setLoading] = useState(true);
   const [creatingShipment, setCreatingShipment] = useState(false);
   const [updatingPayment, setUpdatingPayment] = useState(false);
-  
+
   // Delivery assignment state
   const [deliveryAssignment, setDeliveryAssignment] = useState<DeliveryAssignment | null>(null);
   const [deliveryBoys, setDeliveryBoys] = useState<DeliveryBoy[]>([]);
@@ -97,7 +101,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
-      
+
       const [orderRes, itemsRes, shipmentRes, integrationRes, storeSettingsRes] = await Promise.all([
         supabase.from('orders').select('*').eq('id', orderId).eq('tenant_id', tenantId).single(),
         supabase.from('order_items').select('*').eq('order_id', orderId),
@@ -108,16 +112,16 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
 
       if (orderRes.data) {
         const orderData = orderRes.data;
-        const shippingAddr = typeof orderData.shipping_address === 'object' && orderData.shipping_address !== null 
+        const shippingAddr = typeof orderData.shipping_address === 'object' && orderData.shipping_address !== null
           ? orderData.shipping_address as Record<string, string>
           : {};
-        setOrder({ ...orderData, shipping_address: shippingAddr } as Order);
+        setOrder({ ...orderData, shipping_address: shippingAddr } as unknown as Order);
       }
       if (itemsRes.data) setItems(itemsRes.data);
       if (shipmentRes.data) setShipment(shipmentRes.data);
       setShiprocketConfigured(!!integrationRes.data?.shiprocket_email);
       if (storeSettingsRes.data) setStoreSettings(storeSettingsRes.data);
-      
+
       // Fetch grocery-specific data
       if (isGrocery) {
         const [assignmentRes, boysRes] = await Promise.all([
@@ -127,7 +131,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
         if (assignmentRes.data) setDeliveryAssignment(assignmentRes.data as any);
         if (boysRes.data) setDeliveryBoys(boysRes.data);
       }
-      
+
       setLoading(false);
     };
 
@@ -136,7 +140,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
 
   const assignDeliveryBoy = async (deliveryBoyId: string) => {
     if (!deliveryAssignment || !order) return;
-    
+
     setAssigningDelivery(true);
     try {
       const { error } = await supabase
@@ -167,7 +171,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
         status: 'assigned',
         delivery_boys: assignedBoy ? { id: assignedBoy.id, full_name: assignedBoy.full_name } : null
       });
-      
+
       toast.success('Delivery boy assigned successfully');
     } catch (error: any) {
       toast.error(error.message || 'Failed to assign delivery boy');
@@ -178,31 +182,31 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
 
   const updateStatus = async (newStatus: string) => {
     if (!order || disabled) return;
-    
+
     const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', order.id);
     if (error) { toast.error('Failed to update status'); return; }
-    
+
     toast.success(`Order ${newStatus}`);
     setOrder({ ...order, status: newStatus });
   };
 
   const toggleCodPaymentStatus = async () => {
     if (!order || disabled || order.payment_method !== 'cod') return;
-    
+
     setUpdatingPayment(true);
     const newStatus = order.payment_status === 'paid' ? 'unpaid' : 'paid';
-    
+
     const { error } = await supabase
       .from('orders')
       .update({ payment_status: newStatus })
       .eq('id', order.id);
-    
-    if (error) { 
-      toast.error('Failed to update payment status'); 
+
+    if (error) {
+      toast.error('Failed to update payment status');
       setUpdatingPayment(false);
-      return; 
+      return;
     }
-    
+
     toast.success(`Payment marked as ${newStatus}`);
     setOrder({ ...order, payment_status: newStatus });
     setUpdatingPayment(false);
@@ -297,7 +301,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
             <p className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
           </div>
         </div>
-        <OrderInvoice 
+        <OrderInvoice
           order={order}
           items={items}
           storeName={storeSettings?.website_title || 'Store'}
@@ -314,9 +318,21 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Order Status</span>
-                <Badge className={order.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}>
-                  {order.status.toUpperCase()}
-                </Badge>
+                <div className="flex gap-2">
+                  {order.return_status && (
+                    <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-50">
+                      Return: {order.return_status}
+                    </Badge>
+                  )}
+                  {order.refund_status && (
+                    <Badge variant="outline" className="border-blue-200 text-blue-700 bg-blue-50">
+                      Refund: {order.refund_status}
+                    </Badge>
+                  )}
+                  <Badge className={order.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}>
+                    {order.status.toUpperCase()}
+                  </Badge>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -402,7 +418,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                     {deliveryAssignment.status.replace('_', ' ').toUpperCase()}
                   </Badge>
                 </div>
-                
+
                 {deliveryAssignment.delivery_boys ? (
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Assigned To</span>
@@ -445,7 +461,7 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                   {order.payment_status.toUpperCase()}
                 </Badge>
               </div>
-              
+
               {/* COD Payment Toggle */}
               {isCod && (
                 <div className="pt-3 border-t">
@@ -523,9 +539,9 @@ export default function AdminOrderDetail({ tenantId, disabled, isGrocery }: Admi
                       Configure Shiprocket in Integrations to create shipments.
                     </p>
                   )}
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
+                  <Button
+                    variant="outline"
+                    className="w-full"
                     disabled={disabled || !canCreateShipment || creatingShipment}
                     onClick={createShipment}
                   >
