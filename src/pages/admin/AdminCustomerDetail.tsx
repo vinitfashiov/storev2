@@ -69,15 +69,24 @@ export default function AdminCustomerDetail() {
         setLoading(true);
 
         try {
-            // 1. Fetch Profile
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
+            // 1. Fetch Profile (Actually Customer Record)
+            const { data: customerData, error: customerError } = await supabase
+                .from('customers')
                 .select('*')
                 .eq('id', id)
                 .single();
 
-            if (profileError) console.error('Error fetching profile:', profileError);
-            if (profile) setCustomer(profile);
+            if (customerError) console.error('Error fetching customer:', customerError);
+
+            if (customerData) {
+                setCustomer({
+                    id: customerData.id,
+                    full_name: customerData.name, // Map 'name' to 'full_name'
+                    email: customerData.email,
+                    phone_number: customerData.phone || '',
+                    created_at: customerData.created_at
+                });
+            }
 
             // 2. Fetch Orders
             const { data: orderData, error: orderError } = await supabase
@@ -110,10 +119,12 @@ export default function AdminCustomerDetail() {
                 // Check return count
                 let returnCount = 0;
                 try {
-                    const { count } = await supabase
+                    const { count, error: countError } = await supabase
                         .from('return_requests')
                         .select('*', { count: 'exact', head: true })
                         .eq('customer_id', id);
+
+                    if (countError) console.error('Error fetching return count:', countError);
                     returnCount = count || 0;
                 } catch (e) {
                     console.error('Error fetching return count', e);
