@@ -36,6 +36,15 @@ interface ReturnRequest {
     };
 }
 
+const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '-';
+    try {
+        return format(new Date(dateStr), 'MMM d, yyyy');
+    } catch (e) {
+        return '-';
+    }
+};
+
 export default function AdminReturns() {
     const [requests, setRequests] = useState<ReturnRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,28 +64,35 @@ export default function AdminReturns() {
 
     const fetchRequests = async () => {
         setLoading(true);
-        let query = supabaseStore
-            .from('return_requests')
-            .select(`
-        *,
-        orders (order_number, total, status),
-        profiles (full_name, email, phone_number)
-      `)
-            .order('created_at', { ascending: false });
+        try {
+            let query = supabaseStore
+                .from('return_requests')
+                .select(`
+                    *,
+                    orders (order_number, total, status),
+                    profiles (full_name, email, phone_number)
+                `)
+                .order('created_at', { ascending: false });
 
-        if (filterStatus !== 'all') {
-            query = query.eq('status', filterStatus);
+            if (filterStatus !== 'all') {
+                query = query.eq('status', filterStatus);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Error fetching return requests:', error);
+                toast.error('Failed to fetch return requests');
+                setRequests([]);
+            } else {
+                setRequests(data as any || []);
+            }
+        } catch (err) {
+            console.error('Exception fetching requests:', err);
+            setRequests([]);
+        } finally {
+            setLoading(false);
         }
-
-        const { data, error } = await query;
-
-        if (error) {
-            console.error('Error fetching return requests:', error);
-            toast.error('Failed to fetch return requests');
-        } else {
-            setRequests(data as any || []);
-        }
-        setLoading(false);
     };
 
     const handleOpenDetail = (req: ReturnRequest) => {
@@ -117,9 +133,13 @@ export default function AdminReturns() {
         }
     };
 
+    if (loading) {
+        return <div className="p-8 text-center text-muted-foreground">Loading specific returns...</div>;
+    }
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center flex-wrap gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Returns & Refunds</h1>
                     <p className="text-muted-foreground">Manage return requests and process refunds.</p>
@@ -143,75 +163,77 @@ export default function AdminReturns() {
 
             <Card>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Order</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Reason</TableHead>
-                                <TableHead>Refund Method</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {requests.length === 0 ? (
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                                        No return requests found.
-                                    </TableCell>
+                                    <TableHead>Order</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Reason</TableHead>
+                                    <TableHead>Refund Method</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
                                 </TableRow>
-                            ) : (
-                                requests.map((req) => (
-                                    <TableRow key={req.id}>
-                                        <TableCell className="font-medium">
-                                            {req.orders?.order_number}
-                                            <div className="text-xs text-muted-foreground">₹{req.orders?.total}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {req.profiles?.full_name || 'Guest'}
-                                            <div className="text-xs text-muted-foreground">{req.profiles?.phone_number}</div>
-                                        </TableCell>
-                                        <TableCell>{format(new Date(req.created_at), 'MMM d, yyyy')}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate" title={req.reason}>
-                                            {req.reason}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="capitalize">
-                                                {req.refund_method?.replace('_', ' ')}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className={getStatusColor(req.status)}>
-                                                {req.status.toUpperCase()}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button size="sm" variant="ghost" onClick={() => handleOpenDetail(req)}>
-                                                View Details
-                                            </Button>
+                            </TableHeader>
+                            <TableBody>
+                                {requests.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                            No return requests found.
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : (
+                                    requests.map((req) => (
+                                        <TableRow key={req.id}>
+                                            <TableCell className="font-medium">
+                                                {req.orders?.order_number || 'N/A'}
+                                                <div className="text-xs text-muted-foreground">₹{req.orders?.total || 0}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {req.profiles?.full_name || 'Guest'}
+                                                <div className="text-xs text-muted-foreground">{req.profiles?.phone_number || '-'}</div>
+                                            </TableCell>
+                                            <TableCell>{formatDate(req.created_at)}</TableCell>
+                                            <TableCell className="max-w-[200px] truncate" title={req.reason}>
+                                                {req.reason}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="capitalize">
+                                                    {(req.refund_method || '-').replace('_', ' ')}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge className={getStatusColor(req.status || 'requested')}>
+                                                    {(req.status || 'requested').toUpperCase()}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button size="sm" variant="ghost" onClick={() => handleOpenDetail(req)}>
+                                                    View Details
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
 
             {/* Detail Dialog */}
             <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
                     <DialogHeader>
                         <DialogTitle>Return Request Details</DialogTitle>
                         <DialogDescription>
-                            Order #{selectedRequest?.orders?.order_number} • {selectedRequest?.orders?.status}
+                            Order #{selectedRequest?.orders?.order_number || 'N/A'} • {selectedRequest?.orders?.status || 'Unknown'}
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedRequest && (
-                        <div className="grid grid-cols-2 gap-6 py-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                             <div className="space-y-4">
                                 <div className="bg-muted p-3 rounded-md">
                                     <h4 className="font-semibold text-sm mb-1">Reason for Return</h4>
@@ -228,21 +250,21 @@ export default function AdminReturns() {
                                         {selectedRequest.refund_method === 'upi' ? (
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">UPI ID:</span>
-                                                <span className="font-mono font-medium">{selectedRequest.payment_details?.upi_id}</span>
+                                                <span className="font-mono font-medium">{selectedRequest.payment_details?.upi_id || '-'}</span>
                                             </div>
                                         ) : (
                                             <>
                                                 <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Account No:</span>
-                                                    <span className="font-mono">{selectedRequest.payment_details?.account_no}</span>
+                                                    <span className="font-mono">{selectedRequest.payment_details?.account_no || '-'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-muted-foreground">IFSC:</span>
-                                                    <span className="font-mono">{selectedRequest.payment_details?.ifsc}</span>
+                                                    <span className="font-mono">{selectedRequest.payment_details?.ifsc || '-'}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-muted-foreground">Holder:</span>
-                                                    <span className="font-medium">{selectedRequest.payment_details?.holder_name}</span>
+                                                    <span className="font-medium">{selectedRequest.payment_details?.holder_name || '-'}</span>
                                                 </div>
                                             </>
                                         )}
@@ -262,7 +284,7 @@ export default function AdminReturns() {
                                 </div>
 
                                 <div className="pt-4 space-y-2">
-                                    {selectedRequest.status === 'requested' && (
+                                    {(selectedRequest.status === 'requested') && (
                                         <div className="grid grid-cols-2 gap-2">
                                             <Button
                                                 variant="outline"
@@ -298,6 +320,12 @@ export default function AdminReturns() {
                                     {selectedRequest.status === 'refunded' && (
                                         <div className="text-center p-2 bg-green-50 text-green-700 rounded text-sm font-medium">
                                             Refund Processed
+                                        </div>
+                                    )}
+
+                                    {selectedRequest.status === 'rejected' && (
+                                        <div className="text-center p-2 bg-red-50 text-red-700 rounded text-sm font-medium">
+                                            Return Rejected
                                         </div>
                                     )}
 

@@ -42,6 +42,15 @@ interface CustomerStats {
     segments: string[];
 }
 
+const formatDate = (dateStr: string | null | undefined, pattern: string = 'MMM d, yyyy') => {
+    if (!dateStr) return '-';
+    try {
+        return format(new Date(dateStr), pattern);
+    } catch (e) {
+        return '-';
+    }
+};
+
 export default function AdminCustomerDetail() {
     const { id } = useParams<{ id: string }>();
     const [customer, setCustomer] = useState<CustomerProfile | null>(null);
@@ -59,67 +68,85 @@ export default function AdminCustomerDetail() {
     const fetchCustomerData = async () => {
         setLoading(true);
 
-        // 1. Fetch Profile
-        const { data: profile } = await supabaseStore
-            .from('profiles')
-            .select('*')
-            .eq('id', id)
-            .single();
+        try {
+            // 1. Fetch Profile
+            const { data: profile, error: profileError } = await supabaseStore
+                .from('profiles')
+                .select('*')
+                .eq('id', id)
+                .single();
 
-        if (profile) setCustomer(profile);
+            if (profileError) console.error('Error fetching profile:', profileError);
+            if (profile) setCustomer(profile);
 
-        // 2. Fetch Orders
-        const { data: orderData } = await supabaseStore
-            .from('orders')
-            .select('id, order_number, total, status, created_at')
-            .eq('customer_id', id)
-            .order('created_at', { ascending: false });
+            // 2. Fetch Orders
+            const { data: orderData, error: orderError } = await supabaseStore
+                .from('orders')
+                .select('id, order_number, total, status, created_at')
+                .eq('customer_id', id)
+                .order('created_at', { ascending: false });
 
-        if (orderData) setOrders(orderData);
+            if (orderError) console.error('Error fetching orders:', orderError);
+            const validOrders = orderData || [];
+            setOrders(validOrders);
 
-        // 3. Fetch Notes
-        const { data: noteData } = await supabaseStore
-            .from('customer_notes')
-            .select('*')
-            .eq('customer_id', id)
-            .order('is_pinned', { ascending: false })
-            .order('created_at', { ascending: false });
+            // 3. Fetch Notes
+            const { data: noteData, error: noteError } = await supabaseStore
+                .from('customer_notes')
+                .select('*')
+                .eq('customer_id', id)
+                .order('is_pinned', { ascending: false })
+                .order('created_at', { ascending: false });
 
-        if (noteData) setNotes(noteData);
+            if (noteError) console.error('Error fetching notes:', noteError);
+            setNotes(noteData || []);
 
-        // 4. Calculate Stats & Segments
-        if (orderData) {
-            const totalSpend = orderData.reduce((sum, order) => sum + (order.status !== 'cancelled' ? order.total : 0), 0);
-            const orderCount = orderData.filter(o => o.status !== 'cancelled').length;
-            const aov = orderCount > 0 ? totalSpend / orderCount : 0;
+            // 4. Calculate Stats & Segments
+            if (validOrders) {
+                const totalSpend = validOrders.reduce((sum, order) => sum + (order.status !== 'cancelled' ? Number(order.total) : 0), 0);
+                const orderCount = validOrders.filter(o => o.status !== 'cancelled').length;
+                const aov = orderCount > 0 ? totalSpend / orderCount : 0;
 
-            // Check return count
-            const { count: returnCount } = await supabaseStore
-                .from('return_requests')
-                .select('*', { count: 'exact', head: true })
-                .eq('customer_id', id);
+                // Check return count
+                let returnCount = 0;
+                try {
+                    const { count } = await supabaseStore
+                        .from('return_requests')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('customer_id', id);
+                    returnCount = count || 0;
+                } catch (e) {
+                    console.error('Error fetching return count', e);
+                }
 
-            // Determine Segments
-            const segments = [];
-            if (totalSpend > 10000) segments.push('VIP'); // Example threshold
-            if (orderCount === 1) segments.push('New');
-            if (orderCount > 5) segments.push('loyal');
+                // Determine Segments
+                const segments = [];
+                if (totalSpend > 10000) segments.push('VIP');
+                if (orderCount === 1) segments.push('New');
+                if (orderCount > 5) segments.push('Loyal');
 
-            const lastOrderDate = orderData.length > 0 ? new Date(orderData[0].created_at) : null;
-            const daysSinceLastOrder = lastOrderDate ? (new Date().getTime() - lastOrderDate.getTime()) / (1000 * 3600 * 24) : 0;
+                try {
+                    const lastOrderDate = validOrders.length > 0 ? new Date(validOrders[0].created_at) : null;
+                    const daysSinceLastOrder = lastOrderDate && !isNaN(lastOrderDate.getTime())
+                        ? (new Date().getTime() - lastOrderDate.getTime()) / (1000 * 3600 * 24)
+                        : 0;
 
-            if (orderCount > 0 && daysSinceLastOrder > 90) segments.push('At Risk');
+                    if (orderCount > 0 && daysSinceLastOrder > 90) segments.push('At Risk');
+                } catch (e) { /* ignore date parsing error */ }
 
-            setStats({
-                totalSpend,
-                orderCount,
-                aov,
-                returnCount: returnCount || 0,
-                segments
-            });
+                setStats({
+                    totalSpend,
+                    orderCount,
+                    aov,
+                    returnCount,
+                    segments
+                });
+            }
+        } catch (err) {
+            console.error('Exception in fetchCustomerData:', err);
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     const handleAddNote = async () => {
@@ -162,29 +189,31 @@ export default function AdminCustomerDetail() {
         else fetchCustomerData();
     };
 
-    if (loading) return <div>Loading...</div>;
-    if (!customer) return <div>Customer not found</div>;
+    if (loading) return <div className="p-8 text-center text-muted-foreground">Loading customer profile...</div>;
+    if (!customer) return <div className="p-8 text-center text-muted-foreground">Customer not found or access denied.</div>;
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
                 <Link to="/dashboard/customers">
                     <Button variant="ghost" size="icon">
                         <ArrowLeft className="w-4 h-4" />
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{customer.full_name || customer.email}</h1>
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                        <Mail className="w-3 h-3" /> {customer.email}
+                    <h1 className="text-2xl font-bold tracking-tight">{customer.full_name || customer.email || 'Unknown User'}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground text-sm flex-wrap">
+                        <Mail className="w-3 h-3" /> {customer.email || 'No email'}
                         {customer.phone_number && (
                             <>
-                                <span>•</span>
-                                <Phone className="w-3 h-3" /> {customer.phone_number}
+                                <span className="hidden sm:inline">•</span>
+                                <div className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" /> {customer.phone_number}
+                                </div>
                             </>
                         )}
-                        <span>•</span>
-                        <span>Joined {format(new Date(customer.created_at), 'MMM yyyy')}</span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>Joined {formatDate(customer.created_at, 'MMM yyyy')}</span>
                     </div>
                 </div>
                 <div className="ml-auto flex gap-2">
@@ -196,7 +225,7 @@ export default function AdminCustomerDetail() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Spend</CardTitle>
@@ -254,7 +283,7 @@ export default function AdminCustomerDetail() {
                                         {notes.slice(0, 3).map(note => (
                                             <div key={note.id} className="border-b last:border-0 pb-3 last:pb-0">
                                                 <div className="flex justify-between items-start mb-1">
-                                                    <span className="text-xs text-muted-foreground">{format(new Date(note.created_at), 'MMM d, h:mm a')}</span>
+                                                    <span className="text-xs text-muted-foreground">{formatDate(note.created_at, 'MMM d, h:mm a')}</span>
                                                     {note.is_pinned && <Pin className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
                                                 </div>
                                                 <p className="text-sm">{note.note}</p>
@@ -263,7 +292,7 @@ export default function AdminCustomerDetail() {
                                         <Button variant="link" size="sm" className="px-0" onClick={() => setActiveTab('notes')}>View all notes</Button>
                                     </div>
                                 ) : (
-                                    <p className="text-sm text-muted-foreground">No notes yet.</p>
+                                    <p className="text-sm text-muted-foreground">No notes yet. Add one in the Notes tab.</p>
                                 )}
                             </CardContent>
                         </Card>
@@ -280,7 +309,7 @@ export default function AdminCustomerDetail() {
                                             <Badge variant="outline">{orders[0].status}</Badge>
                                         </div>
                                         <div className="text-2xl font-bold">₹{orders[0].total}</div>
-                                        <div className="text-sm text-muted-foreground">{format(new Date(orders[0].created_at), 'PP p')}</div>
+                                        <div className="text-sm text-muted-foreground">{formatDate(orders[0].created_at, 'PP p')}</div>
                                         <Link to={`/dashboard/orders/${orders[0].id}`}>
                                             <Button variant="outline" size="sm" className="w-full mt-4">View Order</Button>
                                         </Link>
@@ -313,7 +342,7 @@ export default function AdminCustomerDetail() {
                                     {orders.map(order => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-medium">#{order.order_number}</TableCell>
-                                            <TableCell>{format(new Date(order.created_at), 'MMM d, yyyy')}</TableCell>
+                                            <TableCell>{formatDate(order.created_at, 'MMM d, yyyy')}</TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary">{order.status}</Badge>
                                             </TableCell>
@@ -356,7 +385,7 @@ export default function AdminCustomerDetail() {
                                         <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-medium text-muted-foreground">
-                                                    {format(new Date(note.created_at), 'PP p')}
+                                                    {formatDate(note.created_at, 'PP p')}
                                                 </span>
                                                 {note.is_pinned && <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200">Pinned</Badge>}
                                             </div>
