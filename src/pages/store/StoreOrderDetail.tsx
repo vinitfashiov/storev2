@@ -45,7 +45,7 @@ interface Shipment {
   status: string | null;
 }
 
-const statusSteps = ['pending', 'confirmed', 'packed', 'shipped', 'delivered'];
+
 
 // Loading skeleton for order detail page
 const OrderDetailSkeleton = () => (
@@ -182,27 +182,39 @@ export default function StoreOrderDetail() {
     );
   }
 
-  const currentStepIndex = statusSteps.indexOf(order.status);
+
   const isCancelled = order.status === 'cancelled';
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={getLink('/account/orders')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="w-4 h-4" />
-          Back to orders
-        </Link>
+        <div className="flex items-center relative mb-6">
+          <Link to={getLink('/account/orders')} className="absolute left-0 p-2 -ml-2 text-foreground hover:bg-muted rounded-full">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="flex-1 text-center text-xl font-bold">Order Summary</h1>
+        </div>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="bg-card rounded-lg p-6 mb-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Order Number</p>
+              <p className="font-medium text-base">{order.order_number}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Total</p>
+              <p className="font-medium text-base">₹{order.total.toFixed(2)}</p>
+            </div>
+          </div>
           <div>
-            <h1 className="text-2xl font-display font-bold">{order.order_number}</h1>
-            <p className="text-muted-foreground">{format(new Date(order.created_at), 'MMM d, yyyy h:mm a')}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Placed</p>
+            <p className="font-medium text-base">{format(new Date(order.created_at), 'd MMM, yyyy')}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3 mb-6">
           {order.status === 'delivered' && (!order.return_status || order.return_status === 'none') && (
-            <Button variant="outline" onClick={() => setIsReturnOpen(true)}>
+            <Button variant="outline" className="w-full" onClick={() => setIsReturnOpen(true)}>
               Request Return
             </Button>
           )}
@@ -254,63 +266,173 @@ export default function StoreOrderDetail() {
 
         {/* Status Timeline */}
         {!isCancelled && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Order Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                {(() => {
-                  // Dynamic steps based on if it's a return flow or normal flow
-                  let steps = statusSteps;
-                  if (order.return_status && order.return_status !== 'none') {
-                    // Add return steps if return is active
-                    steps = [...statusSteps, 'return_requested'];
-                    if (['approved', 'returned'].includes(order.return_status)) {
-                      steps.push('return_approved');
+          <Card className="mb-6 border-none shadow-none bg-transparent">
+            <CardContent className="p-0">
+              <div className="bg-card rounded-lg p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">
+                      {(() => {
+                        if (order.status === 'delivered') return 'Delivered';
+                        if (order.status === 'shipped') return 'On the way';
+                        if (order.status === 'packed') return 'Ready to ship';
+                        if (order.status === 'confirmed') return 'Order Confirmed';
+                        return 'Order Placed';
+                      })()}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      {order.status === 'delivered' ? 'Your order has been delivered' :
+                        'Estimated Delivery Date: ' + format(new Date(new Date(order.created_at).setDate(new Date(order.created_at).getDate() + 5)), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative pl-2">
+                  {(() => {
+                    // Logic for 3-step sliding window
+                    // Nodes: Placed -> [Middle] -> Delivered
+                    // Middle options: Confirmed, Packed, Shipped
+
+                    const steps = [
+                      { key: 'placed', label: 'Order Placed', date: order.created_at },
+                      { key: 'middle', label: 'Order Confirmed', date: null },
+                      { key: 'delivered', label: 'Delivered', date: null }
+                    ];
+
+                    let activeStepIndex = 0; // 0: Placed, 1: Middle, 2: Delivered
+
+                    // Determine Middle Node Label and Active State
+                    if (order.status === 'pending') {
+                      steps[1].label = 'Order Confirmed';
+                      activeStepIndex = 0; // Only Placed is done
+                    } else if (order.status === 'confirmed') {
+                      steps[1].label = 'Order Confirmed';
+                      activeStepIndex = 1;
+                    } else if (order.status === 'packed') {
+                      steps[1].label = 'Packed';
+                      activeStepIndex = 1;
+                    } else if (order.status === 'shipped') {
+                      steps[1].label = 'Shipped';
+                      activeStepIndex = 1;
+                    } else if (order.status === 'delivered') {
+                      steps[1].label = 'Shipped'; // History state
+                      activeStepIndex = 2; // All done
                     }
-                    if (order.return_status === 'returned') {
-                      steps.push('returned');
-                    }
-                  }
 
-                  // Determine current step index
-                  let activeIndex = -1;
+                    return steps.map((step, index) => {
+                      const isCompleted = index <= activeStepIndex;
+                      const isLast = index === steps.length - 1;
 
-                  // Normal flow mapping
-                  activeIndex = statusSteps.indexOf(order.status);
+                      return (
+                        <div key={step.key} className="flex gap-4 pb-8 last:pb-0 relative">
+                          {/* Vertical Line */}
+                          {!isLast && (
+                            <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${index < activeStepIndex ? 'bg-green-600' : 'bg-muted'
+                              }`} />
+                          )}
 
-                  // Return flow mapping (overrides normal flow if status matches)
-                  if (order.status === 'return_approved') activeIndex = steps.indexOf('return_approved');
-                  if (order.status === 'returned') activeIndex = steps.indexOf('returned');
+                          {/* Icon */}
+                          <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isCompleted ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'
+                            }`}>
+                            {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                          </div>
 
-                  // If status is still 'delivered' but return is requested, highlight up to 'return_requested'
-                  if (order.status === 'delivered' && order.return_status === 'requested') {
-                    activeIndex = steps.indexOf('return_requested');
-                  }
-
-                  return steps.map((step, index) => {
-                    const isCompleted = index <= activeIndex;
-                    const isCurrent = index === activeIndex;
-
-                    return (
-                      <div key={step} className="flex flex-col items-center flex-1 relative">
-                        {index !== 0 && (
-                          <div className={`hidden md:block absolute top-4 right-1/2 w-full h-0.5 -z-10 ${isCompleted ? 'bg-primary' : 'bg-muted'}`} />
-                        )}
-
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                          } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}>
-                          {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
+                          {/* Content */}
+                          <div className="-mt-1">
+                            <h4 className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {step.label}
+                            </h4>
+                            {step.date && isCompleted && (
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(step.date), 'MMM d, yyyy')}
+                              </p>
+                            )}
+                            {!isCompleted && step.key === 'middle' && (
+                              <p className="text-sm text-muted-foreground">Not Yet</p>
+                            )}
+                            {!isCompleted && step.key === 'delivered' && (
+                              <p className="text-sm text-muted-foreground">Not Yet</p>
+                            )}
+                          </div>
                         </div>
-                        <span className={`text-xs mt-2 text-center capitalize ${isCompleted ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-                          {step.replace('_', ' ')}
-                        </span>
-                      </div>
-                    );
-                  });
-                })()}
+                      );
+                    });
+                  })()}
+                </div>
               </div>
+
+              {/* Return Tracking Section */}
+              {order.return_status && order.return_status !== 'none' && (
+                <div className="bg-red-50/50 rounded-lg p-6 border border-red-100">
+                  <h3 className="font-semibold mb-6 text-red-900">Return Status</h3>
+                  <div className="relative pl-2">
+                    {(() => {
+                      const returnSteps = [
+                        { key: 'requested', label: 'Return Requested' },
+                        { key: 'approved', label: 'Request Approved' }, // or Rejected
+                        { key: 'returned', label: 'Picked Up' },
+                        { key: 'refunded', label: 'Refund Processed' }
+                      ];
+
+                      // Determine Refund/Return Logic
+                      // If rejected, maybe logic differs? User said "accepted or rejected".
+                      // Assuming standard positive flow for timeline, and maybe red cross for rejection?
+                      // Let's stick to the requested flow: Requested -> Approved -> Refunded
+
+                      let activeIndex = 0;
+                      if (order.return_status === 'requested') activeIndex = 0;
+                      if (order.return_status === 'approved') activeIndex = 1;
+                      if (order.return_status === 'rejected') {
+                        // Special case for rejection
+                        returnSteps[1].label = 'Request Rejected';
+                        activeIndex = 1;
+                      }
+                      if (order.return_status === 'returned') activeIndex = 2;
+                      // 'refunded' status usually comes from refund_status field, but user said "ye sab 4th wale me hi dikhega"
+                      // checking refund_status
+                      if (order.refund_status === 'succeeded' || order.refund_status === 'processed') activeIndex = 3;
+
+                      return returnSteps.map((step, index) => {
+                        // If rejected, stop progress after rejection
+                        if (order.return_status === 'rejected' && index > 1) return null;
+
+                        const isCompleted = index <= activeIndex;
+                        const isLast = index === returnSteps.length - 1;
+                        if (order.return_status === 'rejected' && index === 1) isLast === true; // visual fix
+
+                        const isRejected = order.return_status === 'rejected' && index === 1;
+
+                        return (
+                          <div key={step.key} className="flex gap-4 pb-8 last:pb-0 relative">
+                            {/* Vertical Line */}
+                            {!isLast && !(order.return_status === 'rejected' && index === 1) && (
+                              <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${index < activeIndex ? 'bg-red-500' : 'bg-red-200'
+                                }`} />
+                            )}
+
+                            {/* Icon */}
+                            <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isRejected ? 'bg-red-600 text-white' :
+                              isCompleted ? 'bg-red-500 text-white' : 'bg-red-200 text-red-400'
+                              }`}>
+                              {isRejected ? <span className="text-xs">✕</span> :
+                                isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />
+                              }
+                            </div>
+
+                            {/* Content */}
+                            <div className="-mt-1">
+                              <h4 className={`font-medium ${isCompleted || isRejected ? 'text-red-900' : 'text-red-300'}`}>
+                                {step.label}
+                              </h4>
+                              {/* Timestamps could be added here if available in future schemas */}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
