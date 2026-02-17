@@ -289,22 +289,21 @@ export default function StoreOrderDetail() {
 
                 <div className="relative pl-2">
                   {(() => {
-                    // Logic for 3-step sliding window
-                    // Nodes: Placed -> [Middle] -> Delivered
-                    // Middle options: Confirmed, Packed, Shipped
+                    // Logic for 3-step sliding window + Optional 4th Step for Returns
+                    // Nodes: Placed -> [Middle] -> Delivered -> [Return Status]
 
                     const steps = [
-                      { key: 'placed', label: 'Order Placed', date: order.created_at },
-                      { key: 'middle', label: 'Order Confirmed', date: null },
-                      { key: 'delivered', label: 'Delivered', date: null }
+                      { key: 'placed', label: 'Order Placed', date: order.created_at, color: 'green' },
+                      { key: 'middle', label: 'Order Confirmed', date: null, color: 'green' },
+                      { key: 'delivered', label: 'Delivered', date: null, color: 'green' }
                     ];
 
-                    let activeStepIndex = 0; // 0: Placed, 1: Middle, 2: Delivered
+                    let activeStepIndex = 0; // 0: Placed, 1: Middle, 2: Delivered, 3: Return Status
 
-                    // Determine Middle Node Label and Active State
+                    // Determine Middle Node Label and Active State for Order Flow
                     if (order.status === 'pending') {
                       steps[1].label = 'Order Confirmed';
-                      activeStepIndex = 0; // Only Placed is done
+                      activeStepIndex = 0;
                     } else if (order.status === 'confirmed') {
                       steps[1].label = 'Order Confirmed';
                       activeStepIndex = 1;
@@ -319,27 +318,97 @@ export default function StoreOrderDetail() {
                       activeStepIndex = 2; // All done
                     }
 
+                    // Check for Return Status - Adds 4th Step
+                    if (order.return_status && order.return_status !== 'none') {
+                      // If return is active, assume Order Flow is complete (all 3 steps active/green)
+                      // Unless it's a weird state where return requested before delivery?
+                      // Safe assumption: Return implies delivery happened or is irrelevant now.
+                      steps[1].label = 'Shipped';
+                      activeStepIndex = 3; // Focus on Return Step
+
+                      let returnLabel = 'Return Requested';
+                      // let returnDate = null; // We don't have explicit date field in this view for return yet, can use updated_at if available
+
+                      if (order.return_status === 'requested') {
+                        returnLabel = 'Return Requested';
+                      } else if (order.return_status === 'approved') {
+                        returnLabel = 'Return Approved';
+                      } else if (order.return_status === 'rejected') {
+                        returnLabel = 'Return Rejected';
+                      } else if (order.return_status === 'returned') {
+                        returnLabel = 'Returned';
+                      }
+
+                      if (order.refund_status === 'succeeded' || order.refund_status === 'processed') {
+                        returnLabel = 'Refunded';
+                      }
+
+                      steps.push({
+                        key: 'return',
+                        label: returnLabel,
+                        date: null,
+                        color: 'red'
+                      });
+                    }
+
                     return steps.map((step, index) => {
                       const isCompleted = index <= activeStepIndex;
                       const isLast = index === steps.length - 1;
+
+                      // For return step (index 3), it's always "active" if it exists in this logic
+                      // But we want to distinguish "completed" vs "pending" if we had more granularity.
+                      // With current requirement: "4th one will be red color".
+
+                      const isReturnStep = step.key === 'return';
+                      // const isReturnActive = isReturnStep; // It's always active if present
+
+                      // Special visual logic:
+                      // If Return Step exists:
+                      // - Steps 0, 1, 2 should be GREEN and COMPLETED.
+                      // - Step 3 should be RED and ACTIVE.
+
+                      let stepColorClass = 'bg-muted text-muted-foreground';
+                      let lineColorClass = 'bg-muted';
+
+                      if (isCompleted) {
+                        if (isReturnStep) {
+                          stepColorClass = 'bg-red-500 text-white'; // Return step is RED
+                        } else {
+                          stepColorClass = 'bg-green-600 text-white'; // Normal steps are GREEN
+                        }
+                      }
+
+                      // Line color logic
+                      if (index < activeStepIndex) {
+                        // If current line goes TO a return step, it connects Green -> Red?
+                        // User: "extended 4th one will be red color"
+                        // Usually the line leading TO the red step might be green (completed flow) or red (entering return).
+                        // Let's make it Green since 'Delivered' was Green.
+
+                        if (steps[index + 1]?.key === 'return') {
+                          lineColorClass = 'bg-green-600'; // Connection to return is green (flow complete)
+                        } else {
+                          lineColorClass = 'bg-green-600';
+                        }
+                      }
+
+                      // Special check for connection FROM red step? (None, it's last)
 
                       return (
                         <div key={step.key} className="flex gap-4 pb-8 last:pb-0 relative">
                           {/* Vertical Line */}
                           {!isLast && (
-                            <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${index < activeStepIndex ? 'bg-green-600' : 'bg-muted'
-                              }`} />
+                            <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${lineColorClass}`} />
                           )}
 
                           {/* Icon */}
-                          <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isCompleted ? 'bg-green-600 text-white' : 'bg-muted text-muted-foreground'
-                            }`}>
+                          <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${stepColorClass}`}>
                             {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                           </div>
 
                           {/* Content */}
                           <div className="-mt-1">
-                            <h4 className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            <h4 className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'} ${isReturnStep ? 'text-red-900' : ''}`}>
                               {step.label}
                             </h4>
                             {step.date && isCompleted && (
@@ -361,78 +430,7 @@ export default function StoreOrderDetail() {
                 </div>
               </div>
 
-              {/* Return Tracking Section */}
-              {order.return_status && order.return_status !== 'none' && (
-                <div className="bg-red-50/50 rounded-lg p-6 border border-red-100">
-                  <h3 className="font-semibold mb-6 text-red-900">Return Status</h3>
-                  <div className="relative pl-2">
-                    {(() => {
-                      const returnSteps = [
-                        { key: 'requested', label: 'Return Requested' },
-                        { key: 'approved', label: 'Request Approved' }, // or Rejected
-                        { key: 'returned', label: 'Picked Up' },
-                        { key: 'refunded', label: 'Refund Processed' }
-                      ];
-
-                      // Determine Refund/Return Logic
-                      // If rejected, maybe logic differs? User said "accepted or rejected".
-                      // Assuming standard positive flow for timeline, and maybe red cross for rejection?
-                      // Let's stick to the requested flow: Requested -> Approved -> Refunded
-
-                      let activeIndex = 0;
-                      if (order.return_status === 'requested') activeIndex = 0;
-                      if (order.return_status === 'approved') activeIndex = 1;
-                      if (order.return_status === 'rejected') {
-                        // Special case for rejection
-                        returnSteps[1].label = 'Request Rejected';
-                        activeIndex = 1;
-                      }
-                      if (order.return_status === 'returned') activeIndex = 2;
-                      // 'refunded' status usually comes from refund_status field, but user said "ye sab 4th wale me hi dikhega"
-                      // checking refund_status
-                      if (order.refund_status === 'succeeded' || order.refund_status === 'processed') activeIndex = 3;
-
-                      return returnSteps.map((step, index) => {
-                        // If rejected, stop progress after rejection
-                        if (order.return_status === 'rejected' && index > 1) return null;
-
-                        const isCompleted = index <= activeIndex;
-                        const isLast = index === returnSteps.length - 1;
-                        if (order.return_status === 'rejected' && index === 1) isLast === true; // visual fix
-
-                        const isRejected = order.return_status === 'rejected' && index === 1;
-
-                        return (
-                          <div key={step.key} className="flex gap-4 pb-8 last:pb-0 relative">
-                            {/* Vertical Line */}
-                            {!isLast && !(order.return_status === 'rejected' && index === 1) && (
-                              <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${index < activeIndex ? 'bg-red-500' : 'bg-red-200'
-                                }`} />
-                            )}
-
-                            {/* Icon */}
-                            <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isRejected ? 'bg-red-600 text-white' :
-                              isCompleted ? 'bg-red-500 text-white' : 'bg-red-200 text-red-400'
-                              }`}>
-                              {isRejected ? <span className="text-xs">✕</span> :
-                                isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />
-                              }
-                            </div>
-
-                            {/* Content */}
-                            <div className="-mt-1">
-                              <h4 className={`font-medium ${isCompleted || isRejected ? 'text-red-900' : 'text-red-300'}`}>
-                                {step.label}
-                              </h4>
-                              {/* Timestamps could be added here if available in future schemas */}
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              )}
+              {/* Removed Separate Return Tracking Section */}
             </CardContent>
           </Card>
         )}
