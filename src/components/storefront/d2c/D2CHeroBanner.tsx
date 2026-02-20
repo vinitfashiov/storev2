@@ -27,8 +27,9 @@ function D2CBannerSlider({
   storeSlug,
   storeName,
   storeDescription,
-  className
-}: D2CHeroBannerProps & { className?: string }) {
+  className,
+  isMobile
+}: D2CHeroBannerProps & { className?: string, isMobile?: boolean }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -64,25 +65,27 @@ function D2CBannerSlider({
   // Fallback hero when no banners
   if (banners.length === 0) {
     return (
-      <section className={cn("relative h-[60vh] md:h-[80vh] lg:h-[90vh] bg-neutral-100 overflow-hidden", className)}>
-        <div className="absolute inset-0 bg-gradient-to-b from-neutral-100 to-neutral-200" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center max-w-3xl px-6">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light tracking-[0.1em] text-neutral-900 mb-6 animate-fade-in">
-              {storeName.toUpperCase()}
-            </h1>
-            {storeDescription && (
-              <p className="text-lg md:text-xl font-light text-neutral-600 mb-10 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                {storeDescription}
-              </p>
-            )}
-            <Link
-              to={`/store/${storeSlug}/products`}
-              className="inline-block px-10 py-4 bg-neutral-900 text-white text-sm tracking-[0.2em] font-medium hover:bg-neutral-800 transition-colors animate-fade-in"
-              style={{ animationDelay: '0.4s' }}
-            >
-              SHOP NOW
-            </Link>
+      <section className={cn("relative overflow-hidden", className)}>
+        <div className={cn("relative w-full", isMobile ? "aspect-[2/3]" : "aspect-[3.2/1]")}>
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-100 to-neutral-200" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center max-w-3xl px-6">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-light tracking-[0.1em] text-neutral-900 mb-6 animate-fade-in">
+                {storeName.toUpperCase()}
+              </h1>
+              {storeDescription && (
+                <p className="text-lg md:text-xl font-light text-neutral-600 mb-10 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  {storeDescription}
+                </p>
+              )}
+              <Link
+                to={`/store/${storeSlug}/products`}
+                className="inline-block px-10 py-4 bg-neutral-900 text-white text-sm tracking-[0.2em] font-medium hover:bg-neutral-800 transition-colors animate-fade-in"
+                style={{ animationDelay: '0.4s' }}
+              >
+                SHOP NOW
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -92,60 +95,62 @@ function D2CBannerSlider({
   const currentBanner = banners[currentSlide];
 
   return (
-    <section className={cn("relative h-[60vh] md:h-[70vh] lg:h-[85vh] overflow-hidden", className)}>
-      {/* Slides */}
-      {banners.map((banner, index) => (
-        <div
-          key={banner.id}
-          className={cn(
-            "absolute inset-0 transition-opacity duration-700",
-            index === currentSlide ? "opacity-100" : "opacity-0"
-          )}
-        >
-          <img
-            src={getImageUrl(banner.image_path)}
-            alt={banner.title || 'Banner'}
-            className="w-full h-full object-cover"
-          />
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-black/20" />
-        </div>
-      ))}
+    <section className={cn("relative overflow-hidden", className)}>
+      <div className={cn("relative w-full", isMobile ? "aspect-[2/3]" : "aspect-[3.2/1]")}>
+        {/* Slides */}
+        {banners.map((banner, index) => (
+          <div
+            key={banner.id}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-700",
+              index === currentSlide ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <img
+              src={getImageUrl(banner.image_path)}
+              alt={banner.title || 'Banner'}
+              className="w-full h-full object-cover"
+            />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        ))}
 
-      {/* Content */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center max-w-3xl px-6">
-          {currentBanner.subtitle && (
-            <p
-              className={cn(
-                "text-sm tracking-[0.3em] text-white/90 mb-4 transition-all duration-500",
-                isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-              )}
-            >
-              {currentBanner.subtitle.toUpperCase()}
-            </p>
-          )}
-          {currentBanner.title && (
-            <h2
-              className={cn(
-                "text-4xl md:text-6xl lg:text-7xl font-light text-white mb-8 transition-all duration-500 delay-100",
-                isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-              )}
-            >
-              {currentBanner.title}
-            </h2>
-          )}
-          {(currentBanner.link_url || currentBanner.cta_url) && (
-            <Link
-              to={currentBanner.link_url || currentBanner.cta_url || '#'}
-              className={cn(
-                "inline-block px-10 py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-medium hover:bg-neutral-100 transition-all duration-500 delay-200",
-                isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-              )}
-            >
-              {currentBanner.cta_text || 'SHOP NOW'}
-            </Link>
-          )}
+        {/* Content */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center max-w-3xl px-6">
+            {currentBanner.subtitle && (
+              <p
+                className={cn(
+                  "text-sm tracking-[0.3em] text-white/90 mb-4 transition-all duration-500",
+                  isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+                )}
+              >
+                {currentBanner.subtitle.toUpperCase()}
+              </p>
+            )}
+            {currentBanner.title && (
+              <h2
+                className={cn(
+                  "text-4xl md:text-6xl lg:text-7xl font-light text-white mb-8 transition-all duration-500 delay-100",
+                  isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+                )}
+              >
+                {currentBanner.title}
+              </h2>
+            )}
+            {(currentBanner.link_url || currentBanner.cta_url) && (
+              <Link
+                to={currentBanner.link_url || currentBanner.cta_url || '#'}
+                className={cn(
+                  "inline-block px-10 py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-medium hover:bg-neutral-100 transition-all duration-500 delay-200",
+                  isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
+                )}
+              >
+                {currentBanner.cta_text || 'SHOP NOW'}
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
@@ -196,7 +201,7 @@ export function D2CHeroBanner(props: D2CHeroBannerProps) {
         <D2CBannerSlider {...props} banners={desktopBanners} />
       </div>
       <div className="md:hidden">
-        <D2CBannerSlider {...props} banners={mobileBanners} />
+        <D2CBannerSlider {...props} banners={mobileBanners} isMobile={true} />
       </div>
     </>
   );

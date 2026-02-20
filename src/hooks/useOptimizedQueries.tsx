@@ -76,7 +76,7 @@ export function useStoreBanners(tenantId: string | undefined) {
 
       const { data, error } = await supabase
         .from('store_banners')
-        .select('id, title, subtitle, image_path, cta_text, cta_url')
+        .select('id, title, subtitle, image_path, cta_text, cta_url, device_type')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .order('position', { ascending: true });

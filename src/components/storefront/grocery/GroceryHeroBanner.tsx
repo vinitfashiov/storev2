@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { cn } from '@/lib/utils';
 
 interface Banner {
   id: string;
@@ -18,7 +19,7 @@ interface GroceryHeroBannerProps {
   storeSlug: string;
 }
 
-function GroceryBannerSlider({ banners, storeSlug, className }: GroceryHeroBannerProps & { className?: string }) {
+function GroceryBannerSlider({ banners, storeSlug, className, isMobile }: GroceryHeroBannerProps & { className?: string, isMobile?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isCustomDomain } = useCustomDomain();
 
@@ -72,7 +73,7 @@ function GroceryBannerSlider({ banners, storeSlug, className }: GroceryHeroBanne
   return (
     <div className={className}>
       <div className="mx-6 my-4">
-        <div className="relative rounded-2xl overflow-hidden h-48 bg-gradient-to-r from-emerald-700 to-emerald-500">
+        <div className={cn("relative rounded-2xl overflow-hidden bg-gradient-to-r from-emerald-700 to-emerald-500", isMobile ? "aspect-[2/3]" : "h-[300px] lg:h-[400px]")}>
           <img
             src={getImageUrl(currentBanner.image_path)}
             alt={currentBanner.title}
@@ -125,7 +126,7 @@ export function GroceryHeroBanner(props: GroceryHeroBannerProps) {
         <GroceryBannerSlider {...props} banners={desktopBanners} />
       </div>
       <div className="md:hidden">
-        <GroceryBannerSlider {...props} banners={mobileBanners} />
+        <GroceryBannerSlider {...props} banners={mobileBanners} isMobile={true} />
       </div>
     </>
   );

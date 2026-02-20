@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { cn } from '@/lib/utils';
 
 interface Banner {
   id: string;
@@ -19,7 +20,8 @@ interface GroceryPromoBannerProps {
   storeSlug: string;
 }
 
-function GroceryPromoSlider({ banners, storeSlug, className }: GroceryPromoBannerProps & { className?: string }) {
+// Internal reusable slider component
+function GroceryPromoSlider({ banners, storeSlug, className, isMobile }: GroceryPromoBannerProps & { className?: string, isMobile?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isCustomDomain } = useCustomDomain();
 
@@ -72,7 +74,8 @@ function GroceryPromoSlider({ banners, storeSlug, className }: GroceryPromoBanne
   return (
     <div className={className}>
       <div className="mx-4 my-4">
-        <div className="relative rounded-2xl overflow-hidden aspect-[2/1] bg-gradient-to-r from-green-500 to-green-600">
+        {/* Adjusted aspect ratio for different devices */}
+        <div className={cn("relative rounded-2xl overflow-hidden bg-gradient-to-r from-green-500 to-green-600", isMobile ? "aspect-[2/3]" : "aspect-[3/1] lg:aspect-[4/1] h-[250px] lg:h-[300px]")}>
           <img
             src={getImageUrl(currentBanner.image_path)}
             alt={currentBanner.title}
@@ -97,15 +100,17 @@ function GroceryPromoSlider({ banners, storeSlug, className }: GroceryPromoBanne
             <>
               <button
                 onClick={() => setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length)}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
+                aria-label="Previous slide"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5 text-neutral-800" />
               </button>
               <button
                 onClick={() => setCurrentIndex((prev) => (prev + 1) % banners.length)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 flex items-center justify-center hover:bg-white transition-colors"
+                aria-label="Next slide"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-5 h-5 text-neutral-800" />
               </button>
             </>
           )}
@@ -117,8 +122,11 @@ function GroceryPromoSlider({ banners, storeSlug, className }: GroceryPromoBanne
                 <button
                   key={idx}
                   onClick={() => setCurrentIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${idx === currentIndex ? 'bg-white w-4' : 'bg-white/50'
-                    }`}
+                  className={cn(
+                    "w-2 h-2 rounded-full transition-all",
+                    idx === currentIndex ? "bg-white w-4" : "bg-white/50 hover:bg-white/70"
+                  )}
+                  aria-label={`Go to slide ${idx + 1}`}
                 />
               ))}
             </div>
@@ -139,7 +147,7 @@ export function GroceryPromoBanner(props: GroceryPromoBannerProps) {
         <GroceryPromoSlider {...props} banners={desktopBanners} />
       </div>
       <div className="md:hidden">
-        <GroceryPromoSlider {...props} banners={mobileBanners} />
+        <GroceryPromoSlider {...props} banners={mobileBanners} isMobile={true} />
       </div>
     </>
   );

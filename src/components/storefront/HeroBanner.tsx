@@ -23,7 +23,7 @@ interface HeroBannerProps {
 }
 
 // Internal reusable slider component
-function BannerSlider({ banners, storeSlug, storeName, storeDescription, className }: HeroBannerProps & { className?: string }) {
+function BannerSlider({ banners, storeSlug, storeName, storeDescription, className, isMobile }: HeroBannerProps & { className?: string, isMobile?: boolean }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isCustomDomain } = useCustomDomain();
 
@@ -87,7 +87,8 @@ function BannerSlider({ banners, storeSlug, storeName, storeDescription, classNa
                 : "opacity-0 absolute inset-0 pointer-events-none"
             )}
           >
-            <div className="relative h-[400px] md:h-[500px] lg:h-[600px]">
+            {/* Adjusted container for aspect ratio */}
+            <div className={cn("relative w-full", isMobile ? "aspect-[2/3]" : "aspect-[3.2/1] md:h-[500px] lg:h-auto")}>
               <img
                 src={banner.image_path}
                 alt={banner.title}
@@ -187,7 +188,7 @@ export function HeroBanner(props: HeroBannerProps) {
         <BannerSlider {...props} banners={desktopBanners} />
       </div>
       <div className="md:hidden">
-        <BannerSlider {...props} banners={mobileBanners} />
+        <BannerSlider {...props} banners={mobileBanners} isMobile={true} />
       </div>
     </>
   );
