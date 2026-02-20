@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
+import { cn } from '@/lib/utils';
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  image_url?: string | null;
+  image_path?: string | null;
 }
 
 interface UnifiedCategoryGridProps {
@@ -34,10 +35,10 @@ const categoryIcons = [
 export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'primary' }: UnifiedCategoryGridProps) {
   if (categories.length === 0) return null;
 
-  const getImageUrl = (imageUrl: string | null | undefined) => {
-    if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    return supabase.storage.from('store-assets').getPublicUrl(imageUrl).data.publicUrl;
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    return supabase.storage.from('store-assets').getPublicUrl(imagePath).data.publicUrl;
   };
 
   const { isCustomDomain } = useCustomDomain();
@@ -48,36 +49,39 @@ export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'prim
   };
 
   return (
-    <section className="py-6">
-      <h2 className="text-lg lg:text-xl font-bold text-neutral-900 px-4 lg:px-6 mb-4">
-        Shop by Category
+    <section className="py-8">
+      <h2 className="text-lg lg:text-xl font-bold text-neutral-900 px-4 lg:px-6 mb-6 text-center">
+        Shop Categories
       </h2>
 
       {/* Mobile: Horizontal scroll */}
       <div className="lg:hidden">
-        <div className="flex gap-4 overflow-x-auto px-4 pb-2 scrollbar-hide">
+        <div className="flex gap-4 overflow-x-auto px-4 pb-4 scrollbar-hide justify-start">
           {categories.map((category, index) => {
-            const imageUrl = getImageUrl(category.image_url);
+            const imageUrl = getImageUrl(category.image_path);
             const iconData = categoryIcons[index % categoryIcons.length];
 
             return (
               <Link
                 key={category.id}
                 to={`${getLink('/products')}?category=${category.slug}`}
-                className="flex flex-col items-center shrink-0"
+                className="flex flex-col items-center shrink-0 w-20"
               >
-                <div className={`w-16 h-16 rounded-2xl ${iconData.bg} flex items-center justify-center overflow-hidden`}>
+                <div className={cn(
+                  "w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border border-neutral-100 shadow-sm transition-transform active:scale-95",
+                  !imageUrl && iconData.bg
+                )}>
                   {imageUrl ? (
                     <img
                       src={imageUrl}
                       alt={category.name}
-                      className="w-12 h-12 object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <span className="text-2xl">{iconData.emoji}</span>
                   )}
                 </div>
-                <span className="text-xs text-center text-neutral-700 font-medium mt-2 max-w-[64px] line-clamp-2">
+                <span className="text-xs text-center text-neutral-800 font-medium mt-2 leading-tight line-clamp-2 w-full break-words">
                   {category.name}
                 </span>
               </Link>
@@ -90,27 +94,30 @@ export function UnifiedCategoryGrid({ categories, storeSlug, accentColor = 'prim
       <div className="hidden lg:block px-6">
         <div className="flex flex-wrap justify-center gap-8">
           {categories.slice(0, 12).map((category, index) => {
-            const imageUrl = getImageUrl(category.image_url);
+            const imageUrl = getImageUrl(category.image_path);
             const iconData = categoryIcons[index % categoryIcons.length];
 
             return (
               <Link
                 key={category.id}
                 to={`${getLink('/products')}?category=${category.slug}`}
-                className="flex flex-col items-center group"
+                className="flex flex-col items-center group w-24"
               >
-                <div className={`w-24 h-24 rounded-full ${iconData.bg} flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform`}>
+                <div className={cn(
+                  "w-20 h-20 rounded-full flex items-center justify-center overflow-hidden border border-neutral-100 shadow-sm group-hover:shadow-md transition-all group-hover:scale-105",
+                  !imageUrl && iconData.bg
+                )}>
                   {imageUrl ? (
                     <img
                       src={imageUrl}
                       alt={category.name}
-                      className="w-16 h-16 object-contain"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl">{iconData.emoji}</span>
+                    <span className="text-3xl">{iconData.emoji}</span>
                   )}
                 </div>
-                <span className="text-sm text-center text-neutral-700 font-medium mt-2 max-w-[96px]">
+                <span className="text-sm text-center text-neutral-800 font-medium mt-3 max-w-[96px] leading-tight group-hover:text-primary transition-colors">
                   {category.name}
                 </span>
               </Link>

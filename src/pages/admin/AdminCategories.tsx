@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, FolderTree, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderTree, ChevronRight, Upload, X, Loader2 } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -18,6 +18,7 @@ interface Category {
   slug: string;
   is_active: boolean;
   parent_id: string | null;
+  image_path: string | null;
   created_at: string;
 }
 
@@ -31,7 +32,8 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: '', slug: '', is_active: true, parent_id: '' });
+  const [form, setForm] = useState({ name: '', slug: '', is_active: true, parent_id: '', image_path: '' });
+  const [uploading, setUploading] = useState(false);
 
   const fetchCategories = async () => {
     const { data } = await supabase
@@ -40,7 +42,7 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
       .eq('tenant_id', tenantId)
       .order('parent_id', { ascending: true, nullsFirst: true })
       .order('name', { ascending: true });
-    setCategories(data || []);
+    setCategories((data as unknown as Category[]) || []);
     setLoading(false);
   };
 
@@ -54,16 +56,52 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
     setForm({ ...form, name, slug: editingCategory ? form.slug : generateSlug(name) });
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    setUploading(true);
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `category-images/${fileName}`;
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('store-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      setForm({ ...form, image_path: filePath });
+      toast.success('Image uploaded successfully');
+    } catch (error: any) {
+      toast.error('Error uploading image: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = () => {
+    setForm({ ...form, image_path: '' });
+  };
+
+  const getImageUrl = (path: string) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return supabase.storage.from('store-assets').getPublicUrl(path).data.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled) return;
 
-    const categoryData = { 
-      tenant_id: tenantId, 
-      name: form.name, 
-      slug: form.slug, 
+    const categoryData = {
+      tenant_id: tenantId,
+      name: form.name,
+      slug: form.slug,
       is_active: form.is_active,
-      parent_id: form.parent_id || null
+      parent_id: form.parent_id || null,
+      image_path: form.image_path || null
     };
 
     if (editingCategory) {
@@ -78,17 +116,18 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
 
     setDialogOpen(false);
     setEditingCategory(null);
-    setForm({ name: '', slug: '', is_active: true, parent_id: '' });
+    setForm({ name: '', slug: '', is_active: true, parent_id: '', image_path: '' });
     fetchCategories();
   };
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    setForm({ 
-      name: category.name, 
-      slug: category.slug, 
+    setForm({
+      name: category.name,
+      slug: category.slug,
       is_active: category.is_active,
-      parent_id: category.parent_id || ''
+      parent_id: category.parent_id || '',
+      image_path: category.image_path || ''
     });
     setDialogOpen(true);
   };
@@ -103,13 +142,13 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setForm({ name: '', slug: '', is_active: true, parent_id: '' });
+    setForm({ name: '', slug: '', is_active: true, parent_id: '', image_path: '' });
     setDialogOpen(true);
   };
 
   // Get parent categories (those without parent_id)
   const parentCategories = categories.filter(c => !c.parent_id);
-  
+
   // Get subcategories for a parent
   const getSubcategories = (parentId: string) => categories.filter(c => c.parent_id === parentId);
 
@@ -129,20 +168,23 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
               <Plus className="w-4 h-4 mr-2" /> Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Name *</Label>
-                <Input value={form.name} onChange={e => handleNameChange(e.target.value)} required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name *</Label>
+                  <Input value={form.name} onChange={e => handleNameChange(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slug *</Label>
+                  <Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required />
+                </div>
               </div>
-              <div>
-                <Label>Slug *</Label>
-                <Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required />
-              </div>
-              <div>
+
+              <div className="space-y-2">
                 <Label>Parent Category</Label>
                 <Select value={form.parent_id || 'none'} onValueChange={v => setForm({ ...form, parent_id: v === 'none' ? '' : v })}>
                   <SelectTrigger>
@@ -155,16 +197,62 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Leave empty for a main category, or select a parent to create a subcategory
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <Label>Category Image</Label>
+                <div className="flex items-center gap-4">
+                  {form.image_path ? (
+                    <div className="relative w-20 h-20 rounded-lg border overflow-hidden group">
+                      <img
+                        src={getImageUrl(form.image_path)!}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-6 h-6 text-white" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 rounded-lg border border-dashed flex items-center justify-center bg-muted/50">
+                      <Upload className="w-8 h-8 text-muted-foreground/50" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {uploading ? 'Uploading...' : 'Recommended: Square image (1:1), 500x500px'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
                 <Switch checked={form.is_active} onCheckedChange={v => setForm({ ...form, is_active: v })} />
                 <Label>Active</Label>
               </div>
-              <Button type="submit" className="w-full" disabled={disabled}>
-                {editingCategory ? 'Update' : 'Create'} Category
+
+              <Button type="submit" className="w-full" disabled={disabled || uploading}>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading...
+                  </>
+                ) : (
+                  editingCategory ? 'Update Category' : 'Create Category'
+                )}
               </Button>
             </form>
           </DialogContent>
@@ -186,6 +274,7 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[80px]">Image</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Slug</TableHead>
                   <TableHead>Type</TableHead>
@@ -197,6 +286,15 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
                 {parentCategories.map(cat => (
                   <>
                     <TableRow key={cat.id}>
+                      <TableCell>
+                        <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center overflow-hidden">
+                          {cat.image_path ? (
+                            <img src={getImageUrl(cat.image_path)!} alt={cat.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <FolderTree className="w-5 h-5 text-muted-foreground/50" />
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="font-medium">{cat.name}</TableCell>
                       <TableCell className="text-muted-foreground">{cat.slug}</TableCell>
                       <TableCell><Badge variant="outline">Main</Badge></TableCell>
@@ -216,9 +314,17 @@ export default function AdminCategories({ tenantId, disabled }: AdminCategoriesP
                     </TableRow>
                     {getSubcategories(cat.id).map(sub => (
                       <TableRow key={sub.id} className="bg-muted/30">
-                        <TableCell className="font-medium pl-8">
+                        <TableCell className="pl-6">
+                          <div className="w-8 h-8 rounded-md bg-white/50 flex items-center justify-center overflow-hidden">
+                            {sub.image_path ? (
+                              <img src={getImageUrl(sub.image_path)!} alt={sub.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
                           <span className="flex items-center gap-2">
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
                             {sub.name}
                           </span>
                         </TableCell>

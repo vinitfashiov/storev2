@@ -6,7 +6,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  image_url?: string | null;
+  image_path?: string | null;
 }
 
 interface GroceryCategoryGridProps {
@@ -28,18 +28,18 @@ export function GroceryCategoryGrid({ categories, storeSlug, title = "Top catego
 
   if (categories.length === 0) return null;
 
-  const getImageUrl = (imageUrl: string | null | undefined) => {
-    if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    return supabase.storage.from('store-assets').getPublicUrl(imageUrl).data.publicUrl;
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    return supabase.storage.from('store-assets').getPublicUrl(imagePath).data.publicUrl;
   };
 
   return (
-    <section className="px-4 py-4">
+    <section className="px-4 py-6">
       <h2 className="text-lg font-bold text-neutral-900 mb-4">{title}</h2>
       <div className="grid grid-cols-4 gap-3">
         {categories.map((category, index) => {
-          const imageUrl = getImageUrl(category.image_url);
+          const imageUrl = getImageUrl(category.image_path);
           const emoji = categoryEmojis[index % categoryEmojis.length];
 
           return (
@@ -48,12 +48,12 @@ export function GroceryCategoryGrid({ categories, storeSlug, title = "Top catego
               to={`${getLink('/products')}?category=${category.slug}`}
               className="flex flex-col items-center group"
             >
-              <div className="w-full aspect-square rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden group-hover:bg-neutral-200 transition-colors mb-2">
+              <div className="w-full aspect-square rounded-full bg-neutral-100 flex items-center justify-center overflow-hidden border border-neutral-200 group-hover:border-emerald-500 transition-colors mb-2">
                 {imageUrl ? (
                   <img
                     src={imageUrl}
                     alt={category.name}
-                    className="w-3/4 h-3/4 object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <span className="text-3xl">{emoji}</span>
