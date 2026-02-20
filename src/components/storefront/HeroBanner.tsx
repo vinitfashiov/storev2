@@ -12,6 +12,7 @@ interface Banner {
   image_path: string;
   cta_text: string | null;
   cta_url: string | null;
+  device_type?: 'desktop' | 'mobile' | 'all';
 }
 
 interface HeroBannerProps {
@@ -21,7 +22,8 @@ interface HeroBannerProps {
   storeDescription?: string | null;
 }
 
-export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: HeroBannerProps) {
+// Internal reusable slider component
+function BannerSlider({ banners, storeSlug, storeName, storeDescription, className }: HeroBannerProps & { className?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isCustomDomain } = useCustomDomain();
 
@@ -44,7 +46,7 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
   // Default hero if no banners
   if (banners.length === 0) {
     return (
-      <section className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-hidden">
+      <section className={cn("relative bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-hidden", className)}>
         <div className="container mx-auto px-4 py-16 md:py-24 lg:py-32">
           <div className="max-w-2xl">
             <p className="text-amber-700 font-medium mb-4 tracking-wide text-sm">WELCOME TO OUR STORE</p>
@@ -72,7 +74,7 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
   }
 
   return (
-    <section className="relative overflow-hidden">
+    <section className={cn("relative overflow-hidden", className)}>
       {/* Slides */}
       <div className="relative">
         {banners.map((banner, index) => (
@@ -167,5 +169,26 @@ export function HeroBanner({ banners, storeSlug, storeName, storeDescription }: 
         </div>
       )}
     </section>
+  );
+}
+
+export function HeroBanner(props: HeroBannerProps) {
+  const desktopBanners = props.banners.filter(b => !b.device_type || b.device_type === 'desktop' || b.device_type === 'all');
+  const mobileBanners = props.banners.filter(b => !b.device_type || b.device_type === 'mobile' || b.device_type === 'all');
+
+  // If no banners at all, show default in both (HeroBanner handles empty state)
+  // If we have banners but none for specific device, we might want to fall back or show nothing?
+  // Current logic: if desktopBanners is empty, it shows default. If mobileBanners empty, it shows default.
+  // We can pass empty array and let BannerSlider handle default state.
+
+  return (
+    <>
+      <div className="hidden md:block">
+        <BannerSlider {...props} banners={desktopBanners} />
+      </div>
+      <div className="md:hidden">
+        <BannerSlider {...props} banners={mobileBanners} />
+      </div>
+    </>
   );
 }

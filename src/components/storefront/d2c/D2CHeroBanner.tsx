@@ -12,6 +12,7 @@ interface Banner {
   link_url?: string | null;
   cta_url?: string | null;
   cta_text: string | null;
+  device_type?: 'desktop' | 'mobile' | 'all';
 }
 
 interface D2CHeroBannerProps {
@@ -21,12 +22,13 @@ interface D2CHeroBannerProps {
   storeDescription?: string | null;
 }
 
-export function D2CHeroBanner({ 
-  banners, 
-  storeSlug, 
+function D2CBannerSlider({
+  banners,
+  storeSlug,
   storeName,
-  storeDescription 
-}: D2CHeroBannerProps) {
+  storeDescription,
+  className
+}: D2CHeroBannerProps & { className?: string }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
@@ -37,11 +39,11 @@ export function D2CHeroBanner({
 
   useEffect(() => {
     if (banners.length <= 1) return;
-    
+
     const interval = setInterval(() => {
       nextSlide();
     }, 6000);
-    
+
     return () => clearInterval(interval);
   }, [currentSlide, banners.length]);
 
@@ -62,7 +64,7 @@ export function D2CHeroBanner({
   // Fallback hero when no banners
   if (banners.length === 0) {
     return (
-      <section className="relative h-[80vh] lg:h-[90vh] bg-neutral-100 overflow-hidden">
+      <section className={cn("relative h-[60vh] md:h-[80vh] lg:h-[90vh] bg-neutral-100 overflow-hidden", className)}>
         <div className="absolute inset-0 bg-gradient-to-b from-neutral-100 to-neutral-200" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-3xl px-6">
@@ -74,7 +76,7 @@ export function D2CHeroBanner({
                 {storeDescription}
               </p>
             )}
-            <Link 
+            <Link
               to={`/store/${storeSlug}/products`}
               className="inline-block px-10 py-4 bg-neutral-900 text-white text-sm tracking-[0.2em] font-medium hover:bg-neutral-800 transition-colors animate-fade-in"
               style={{ animationDelay: '0.4s' }}
@@ -90,7 +92,7 @@ export function D2CHeroBanner({
   const currentBanner = banners[currentSlide];
 
   return (
-    <section className="relative h-[70vh] lg:h-[85vh] overflow-hidden">
+    <section className={cn("relative h-[60vh] md:h-[70vh] lg:h-[85vh] overflow-hidden", className)}>
       {/* Slides */}
       {banners.map((banner, index) => (
         <div
@@ -114,7 +116,7 @@ export function D2CHeroBanner({
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center max-w-3xl px-6">
           {currentBanner.subtitle && (
-            <p 
+            <p
               className={cn(
                 "text-sm tracking-[0.3em] text-white/90 mb-4 transition-all duration-500",
                 isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
@@ -124,7 +126,7 @@ export function D2CHeroBanner({
             </p>
           )}
           {currentBanner.title && (
-            <h2 
+            <h2
               className={cn(
                 "text-4xl md:text-6xl lg:text-7xl font-light text-white mb-8 transition-all duration-500 delay-100",
                 isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
@@ -134,7 +136,7 @@ export function D2CHeroBanner({
             </h2>
           )}
           {(currentBanner.link_url || currentBanner.cta_url) && (
-            <Link 
+            <Link
               to={currentBanner.link_url || currentBanner.cta_url || '#'}
               className={cn(
                 "inline-block px-10 py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-medium hover:bg-neutral-100 transition-all duration-500 delay-200",
@@ -181,5 +183,21 @@ export function D2CHeroBanner({
         </div>
       )}
     </section>
+  );
+}
+
+export function D2CHeroBanner(props: D2CHeroBannerProps) {
+  const desktopBanners = props.banners.filter(b => !b.device_type || b.device_type === 'desktop' || b.device_type === 'all');
+  const mobileBanners = props.banners.filter(b => !b.device_type || b.device_type === 'mobile' || b.device_type === 'all');
+
+  return (
+    <>
+      <div className="hidden md:block">
+        <D2CBannerSlider {...props} banners={desktopBanners} />
+      </div>
+      <div className="md:hidden">
+        <D2CBannerSlider {...props} banners={mobileBanners} />
+      </div>
+    </>
   );
 }

@@ -9,7 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, Upload, Loader2, Image, GripVertical } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Loader2, Image, GripVertical, Monitor, Smartphone, Layers } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface Banner {
   id: string;
@@ -22,6 +23,7 @@ interface Banner {
   position: number;
   starts_at: string | null;
   ends_at: string | null;
+  device_type: 'desktop' | 'mobile' | 'all';
 }
 
 interface AdminStoreBannersProps {
@@ -39,6 +41,7 @@ const emptyBanner: Omit<Banner, 'id'> = {
   position: 0,
   starts_at: null,
   ends_at: null,
+  device_type: 'all',
 };
 
 export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBannersProps) {
@@ -65,7 +68,7 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
       console.error('Error fetching banners:', error);
       toast.error('Failed to load banners');
     } else {
-      setBanners(data || []);
+      setBanners((data as any) || []);
     }
     setLoading(false);
   };
@@ -94,10 +97,11 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
   };
 
   const handleSubmit = async () => {
-    if (!form.title.trim()) {
-      toast.error('Title is required');
-      return;
-    }
+    // Title is now optional
+    // if (!form.title.trim()) {
+    //   toast.error('Title is required');
+    //   return;
+    // }
     if (!form.image_path) {
       toast.error('Please upload an image');
       return;
@@ -149,6 +153,7 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
       position: banner.position,
       starts_at: banner.starts_at,
       ends_at: banner.ends_at,
+      device_type: banner.device_type || 'all',
     });
     setDialogOpen(true);
   };
@@ -221,6 +226,7 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Preview</TableHead>
                   <TableHead>Title</TableHead>
+                  <TableHead>Device</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>CTA</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -233,8 +239,8 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
                       <GripVertical className="w-4 h-4 text-muted-foreground" />
                     </TableCell>
                     <TableCell>
-                      <img 
-                        src={banner.image_path} 
+                      <img
+                        src={banner.image_path}
                         alt={banner.title}
                         className="w-24 h-14 object-cover rounded"
                       />
@@ -298,13 +304,54 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
             <DialogTitle>{editingBanner ? 'Edit Banner' : 'Add Banner'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Device Type Selection */}
+            <div className="space-y-3">
+              <Label>Device Target</Label>
+              <RadioGroup
+                value={form.device_type}
+                onValueChange={(value) => setForm(prev => ({ ...prev, device_type: value as any }))}
+                className="grid grid-cols-3 gap-4"
+              >
+                <div>
+                  <RadioGroupItem value="all" id="all" className="peer sr-only" />
+                  <Label
+                    htmlFor="all"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <Layers className="mb-2 h-6 w-6" />
+                    All Devices
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="desktop" id="desktop" className="peer sr-only" />
+                  <Label
+                    htmlFor="desktop"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <Monitor className="mb-2 h-6 w-6" />
+                    Desktop
+                  </Label>
+                </div>
+                <div>
+                  <RadioGroupItem value="mobile" id="mobile" className="peer sr-only" />
+                  <Label
+                    htmlFor="mobile"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  >
+                    <Smartphone className="mb-2 h-6 w-6" />
+                    Mobile
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             {/* Image Upload */}
             <div className="space-y-2">
               <Label>Banner Image *</Label>
               <div className="flex flex-col gap-4">
                 {form.image_path ? (
-                  <img 
-                    src={form.image_path} 
+                  <img
+                    src={form.image_path}
                     alt="Preview"
                     className="w-full h-40 object-cover rounded-lg border"
                   />
@@ -337,13 +384,17 @@ export default function AdminStoreBanners({ tenantId, disabled }: AdminStoreBann
                     {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                     {form.image_path ? 'Change Image' : 'Upload Image'}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-1">Recommended: 1920x600px</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {form.device_type === 'mobile'
+                      ? 'Recommended: 800x1200px (Portrait)'
+                      : 'Recommended: 1920x600px (Landscape)'}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">Title <span className="text-muted-foreground font-normal">(Optional)</span></Label>
               <Input
                 id="title"
                 value={form.title}
