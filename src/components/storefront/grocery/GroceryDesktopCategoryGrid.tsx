@@ -6,7 +6,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-  image_url?: string | null;
+  image_path?: string | null;
 }
 
 interface GroceryDesktopCategoryGridProps {
@@ -44,10 +44,10 @@ export function GroceryDesktopCategoryGrid({ categories, storeSlug }: GroceryDes
 
   if (categories.length === 0) return null;
 
-  const getImageUrl = (imageUrl: string | null | undefined) => {
-    if (!imageUrl) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    return supabase.storage.from('store-assets').getPublicUrl(imageUrl).data.publicUrl;
+  const getImageUrl = (imagePath: string | null | undefined) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith('http')) return imagePath;
+    return supabase.storage.from('store-assets').getPublicUrl(imagePath).data.publicUrl;
   };
 
   // Split into 2 rows for Blinkit style
@@ -55,7 +55,7 @@ export function GroceryDesktopCategoryGrid({ categories, storeSlug }: GroceryDes
   const secondRow = categories.slice(8, 16);
 
   const renderCategory = (category: Category, index: number) => {
-    const imageUrl = getImageUrl(category.image_url);
+    const imageUrl = getImageUrl(category.image_path);
     const iconData = categoryIcons[index % categoryIcons.length];
 
     return (

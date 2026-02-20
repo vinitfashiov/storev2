@@ -98,7 +98,7 @@ export function useStoreCategories(tenantId: string | undefined, limit = 12) {
 
       const { data, error } = await supabase
         .from('categories')
-        .select('id, name, slug')
+        .select('id, name, slug, image_path')
         .eq('tenant_id', tenantId)
         .eq('is_active', true)
         .limit(limit);

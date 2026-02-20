@@ -46,66 +46,38 @@ export function D2CCategorySection({
   ];
 
   return (
-    <section className="py-16 lg:py-24 bg-neutral-50">
+    <section className="py-8 lg:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <div className="text-center mb-10 lg:mb-14">
-          <h2 className="text-2xl lg:text-3xl font-light tracking-wide text-neutral-900">
+        <div className="text-center mb-8 lg:mb-12">
+          <h2 className="text-xl lg:text-3xl font-light tracking-wide text-neutral-900">
             SHOP BY CATEGORY
           </h2>
         </div>
 
-        {variant === 'scroll' ? (
-          <div className="flex gap-4 lg:gap-6 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
-            {categories.slice(0, 6).map((category, index) => {
-              const imageUrl = getImageUrl(category.image_path) || placeholderImages[index % placeholderImages.length];
+        <div className="flex gap-4 lg:gap-8 overflow-x-auto pb-6 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap lg:justify-center">
+          {categories.map((category, index) => {
+            const imageUrl = getImageUrl(category.image_path) || placeholderImages[index % placeholderImages.length];
 
-              return (
-                <Link
-                  key={category.id}
-                  to={`${getLink('/products')}?category=${category.slug}`}
-                  className="group flex-shrink-0 w-40 lg:w-56"
-                >
-                  <div className="aspect-[3/4] overflow-hidden bg-neutral-200">
-                    <img
-                      src={imageUrl}
-                      alt={category.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  </div>
-                  <h3 className="mt-4 text-center text-sm tracking-wide font-medium text-neutral-900">
-                    {category.name.toUpperCase()}
-                  </h3>
-                </Link>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            {categories.slice(0, 4).map((category, index) => {
-              const imageUrl = getImageUrl(category.image_path) || placeholderImages[index % placeholderImages.length];
-
-              return (
-                <Link
-                  key={category.id}
-                  to={`${getLink('/products')}?category=${category.slug}`}
-                  className="group relative aspect-[3/4] overflow-hidden"
-                >
+            return (
+              <Link
+                key={category.id}
+                to={`${getLink('/products')}?category=${category.slug}`}
+                className="group flex flex-col items-center flex-shrink-0 w-[80px] lg:w-[120px]"
+              >
+                <div className="w-[80px] h-[80px] lg:w-[120px] lg:h-[120px] rounded-full overflow-hidden border border-neutral-100 shadow-sm group-hover:shadow-md transition-all group-hover:scale-105 mb-3 bg-neutral-50 flex items-center justify-center">
                   <img
                     src={imageUrl}
                     alt={category.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-                  <div className="absolute inset-0 flex items-end p-6">
-                    <h3 className="text-white text-lg lg:text-xl font-light tracking-wide">
-                      {category.name.toUpperCase()}
-                    </h3>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
+                </div>
+                <h3 className="text-center text-[11px] lg:text-sm tracking-wide font-medium text-neutral-800 line-clamp-2 w-full px-1">
+                  {category.name.toUpperCase()}
+                </h3>
+              </Link>
+            )
+          })}
+        </div>
       </div>
     </section>
   );
