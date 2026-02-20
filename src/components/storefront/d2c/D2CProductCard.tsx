@@ -76,149 +76,155 @@ export function D2CProductCard({
   };
 
   return (
-    <Link
-      to={getLink(`/product/${product.slug}`)}
-      className="group block"
+    <div
+      className="group block bg-white border border-neutral-100 rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 flex flex-col h-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Image Container */}
-      <div className={cn(
-        "relative overflow-hidden bg-neutral-100",
-        variant === 'featured' ? 'aspect-[3/4]' : 'aspect-square',
-        "rounded-none"
-      )}>
-        {/* Image */}
-        {product.images && product.images[0] ? (
-          <>
-            <img
-              src={getImageUrl(product.images[0])}
-              alt={product.name}
-              onLoad={() => setImageLoaded(true)}
-              className={cn(
-                "w-full h-full object-cover transition-all duration-700 ease-out",
-                isHovered ? "scale-105" : "scale-100",
-                imageLoaded ? "opacity-100" : "opacity-0"
-              )}
-            />
-            {/* Second image on hover if available */}
-            {product.images[1] && (
+      <Link to={getLink(`/product/${product.slug}`)} className="flex-1 flex flex-col">
+        {/* Image Container */}
+        <div className={cn(
+          "relative overflow-hidden bg-neutral-50 shrink-0",
+          variant === 'featured' ? 'aspect-[3/4]' : 'aspect-[4/5]'
+        )}>
+          {/* Image */}
+          {product.images && product.images[0] ? (
+            <>
               <img
-                src={getImageUrl(product.images[1])}
+                src={getImageUrl(product.images[0])}
                 alt={product.name}
+                onLoad={() => setImageLoaded(true)}
                 className={cn(
-                  "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
-                  isHovered ? "opacity-100" : "opacity-0"
+                  "w-full h-full object-cover transition-transform duration-700 ease-out",
+                  isHovered ? "scale-105" : "scale-100",
+                  imageLoaded ? "opacity-100" : "opacity-0"
                 )}
               />
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Package className="w-16 h-16 text-neutral-300" />
-          </div>
-        )}
-
-        {/* Overlay Actions */}
-        <div className={cn(
-          "absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300"
-        )}>
-          {/* Wishlist Button */}
-          {onToggleWishlist && (
-            <button
-              onClick={handleWishlist}
-              className={cn(
-                "absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                isWishlisted
-                  ? "bg-white text-red-500"
-                  : "bg-white/80 text-neutral-600 hover:bg-white hover:text-red-500",
-                "opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0"
+              {/* Second image on hover if available */}
+              {product.images[1] && (
+                <img
+                  src={getImageUrl(product.images[1])}
+                  alt={product.name}
+                  className={cn(
+                    "absolute inset-0 w-full h-full object-cover transition-opacity duration-500",
+                    isHovered ? "opacity-100" : "opacity-0"
+                  )}
+                />
               )}
-            >
-              <Heart className={cn("w-5 h-5", isWishlisted && "fill-current")} />
-            </button>
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-neutral-50">
+              <Package className="w-12 h-12 text-neutral-300" />
+            </div>
           )}
 
-          {/* Quick Add Button */}
+          {/* Overlay Actions */}
+          <div className="absolute inset-x-0 top-0 p-3 flex justify-between items-start pointer-events-none">
+            {/* Badges */}
+            <div className="flex flex-col gap-1.5 pointer-events-auto">
+              {discount > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm shadow-sm">
+                  {discount}% OFF
+                </span>
+              )}
+              {isOutOfStock && (
+                <span className="bg-neutral-900 text-white text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm shadow-sm">
+                  SOLD OUT
+                </span>
+              )}
+            </div>
+
+            {/* Wishlist Button */}
+            {onToggleWishlist && (
+              <button
+                onClick={handleWishlist}
+                className={cn(
+                  "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm pointer-events-auto",
+                  isWishlisted
+                    ? "bg-white text-red-500"
+                    : "bg-white/90 text-neutral-400 hover:bg-white hover:text-red-500 hover:scale-105",
+                )}
+              >
+                <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Product Info */}
+        <div className="p-4 flex flex-col flex-1">
+          {/* Brand */}
+          {product.brand && (
+            <p className="text-[10px] font-bold tracking-[0.1em] text-neutral-400 uppercase mb-1.5">
+              {product.brand.name}
+            </p>
+          )}
+
+          {/* Name */}
+          <h3 className={cn(
+            "font-medium text-neutral-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors mb-2 flex-1",
+            variant === 'minimal' ? 'text-xs' : 'text-sm'
+          )}>
+            {product.name}
+          </h3>
+
+          {/* Rating Placeholder */}
+          {variant === 'featured' && (
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className="w-3 h-3 fill-yellow-400 text-yellow-400 flex-shrink-0"
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-neutral-500 font-medium">(4.8)</span>
+            </div>
+          )}
+
+          {/* Price */}
+          <div className="flex items-baseline gap-2 mb-4">
+            <span className={cn(
+              "font-bold text-neutral-900",
+              variant === 'minimal' ? 'text-sm' : 'text-lg'
+            )}>
+              ₹{product.price.toLocaleString('en-IN')}
+            </span>
+            {product.compare_at_price && (
+              <span className="text-xs font-medium text-neutral-400 line-through">
+                ₹{product.compare_at_price.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+
+          {/* Quick Add Button underneath */}
           {!isOutOfStock && onAddToCart && (
             <button
               onClick={handleAddToCart}
               disabled={isAdding}
               className={cn(
-                "absolute bottom-4 left-4 right-4 py-3 bg-neutral-900 text-white text-sm font-medium tracking-wide",
-                "opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0",
-                "transition-all duration-300 hover:bg-neutral-800",
-                "flex items-center justify-center gap-2"
+                "w-full py-2.5 rounded-xl border-2 text-[11px] font-bold tracking-[0.1em] transition-all duration-300 flex items-center justify-center gap-2 mt-auto",
+                isAdding
+                  ? "bg-neutral-100 border-neutral-100 text-neutral-500"
+                  : "bg-white border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white"
               )}
             >
-              <ShoppingBag className="w-4 h-4" />
-              {isAdding ? 'ADDING...' : 'ADD TO BAG'}
+              <ShoppingBag className="w-3.5 h-3.5" />
+              {isAdding ? 'ADDING...' : 'ADD TO CART'}
+            </button>
+          )}
+
+          {isOutOfStock && onAddToCart && (
+            <button
+              disabled
+              className="w-full py-2.5 rounded-xl bg-neutral-100 border-2 border-neutral-100 text-neutral-400 text-[11px] font-bold tracking-[0.1em] cursor-not-allowed mt-auto"
+            >
+              OUT OF STOCK
             </button>
           )}
         </div>
-
-        {/* Badges */}
-        <div className="absolute top-4 left-4 flex flex-col gap-2">
-          {discount > 0 && (
-            <span className="bg-neutral-900 text-white text-xs font-medium tracking-wider px-3 py-1.5">
-              -{discount}%
-            </span>
-          )}
-          {isOutOfStock && (
-            <span className="bg-white text-neutral-900 text-xs font-medium tracking-wider px-3 py-1.5 border border-neutral-200">
-              SOLD OUT
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Product Info */}
-      <div className="pt-4 space-y-1">
-        {/* Brand */}
-        {product.brand && (
-          <p className="text-[11px] font-medium tracking-[0.2em] text-neutral-500 uppercase">
-            {product.brand.name}
-          </p>
-        )}
-
-        {/* Name */}
-        <h3 className={cn(
-          "font-normal text-neutral-900 group-hover:text-neutral-600 transition-colors",
-          variant === 'minimal' ? 'text-sm' : 'text-base'
-        )}>
-          {product.name}
-        </h3>
-
-        {/* Price */}
-        <div className="flex items-center gap-2 pt-1">
-          <span className={cn(
-            "font-medium text-neutral-900",
-            variant === 'minimal' ? 'text-sm' : 'text-base'
-          )}>
-            ₹{product.price.toLocaleString('en-IN')}
-          </span>
-          {product.compare_at_price && (
-            <span className="text-sm text-neutral-400 line-through">
-              ₹{product.compare_at_price.toLocaleString('en-IN')}
-            </span>
-          )}
-        </div>
-
-        {/* Rating Placeholder */}
-        {variant === 'featured' && (
-          <div className="flex items-center gap-1.5 pt-1">
-            <div className="flex">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className="w-3 h-3 fill-neutral-900 text-neutral-900"
-                />
-              ))}
-            </div>
-            <span className="text-xs text-neutral-500">(128)</span>
-          </div>
-        )}
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

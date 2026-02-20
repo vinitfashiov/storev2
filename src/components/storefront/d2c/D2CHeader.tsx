@@ -55,9 +55,9 @@ export function D2CHeader({
   return (
     <>
       {/* Announcement Bar */}
-      <div className="bg-neutral-900 text-white text-center py-2.5 px-4">
-        <p className="text-xs tracking-[0.15em] font-light">
-          FREE SHIPPING ON ORDERS ABOVE ₹999 • USE CODE: <span className="font-medium">FIRST10</span>
+      <div className="bg-neutral-900 text-white text-center py-2 px-4 shadow-sm relative z-[60]">
+        <p className="text-[11px] tracking-[0.2em] font-medium uppercase animate-fade-in">
+          Free Shipping on all orders above ₹999 <span className="mx-2 opacity-50">•</span> Use Code <span className="font-bold underline underline-offset-2">FIRST10</span>
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export function D2CHeader({
             <nav className="flex items-center gap-8">
               <Link
                 to={getLink('/products')}
-                className="text-sm font-medium tracking-wide text-neutral-600 hover:text-neutral-900 transition-colors"
+                className="text-sm font-medium tracking-wide text-neutral-600 hover:text-neutral-900 hover:underline underline-offset-4 decoration-2 transition-all"
               >
                 SHOP
               </Link>
@@ -78,7 +78,7 @@ export function D2CHeader({
                 <Link
                   key={cat.id}
                   to={`${getLink('/products')}?category=${cat.slug}`}
-                  className="text-sm font-medium tracking-wide text-neutral-600 hover:text-neutral-900 transition-colors"
+                  className="text-sm font-medium tracking-wide text-neutral-600 hover:text-neutral-900 hover:underline underline-offset-4 decoration-2 transition-all"
                 >
                   {cat.name.toUpperCase()}
                 </Link>
@@ -88,41 +88,45 @@ export function D2CHeader({
             {/* Center - Logo */}
             <Link to={getLink('/')} className="absolute left-1/2 -translate-x-1/2">
               {logoPath ? (
-                <img src={getLogoUrl(logoPath)} alt={storeName} className="h-8 w-auto" />
+                <img src={getLogoUrl(logoPath)} alt={storeName} className="h-8 w-auto object-contain" />
               ) : (
-                <h1 className="text-2xl font-light tracking-[0.15em] text-neutral-900">
+                <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
                   {storeName.toUpperCase()}
                 </h1>
               )}
             </Link>
 
             {/* Right - Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-5">
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+                className="text-neutral-600 hover:text-neutral-900 transition-colors"
+                aria-label="Search"
               >
                 <Search className="w-5 h-5" />
               </button>
               <Link
                 to={getLink('/account')}
-                className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+                className="text-neutral-600 hover:text-neutral-900 transition-colors"
+                aria-label="Account"
               >
                 <User className="w-5 h-5" />
               </Link>
               <Link
                 to={getLink('/wishlist')}
-                className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+                className="text-neutral-600 hover:text-neutral-900 transition-colors"
+                aria-label="Wishlist"
               >
                 <Heart className="w-5 h-5" />
               </Link>
               <Link
                 to={getLink('/cart')}
-                className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors relative"
+                className="text-neutral-600 hover:text-neutral-900 transition-colors relative"
+                aria-label="Cart"
               >
                 <ShoppingBag className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-neutral-900 text-white text-[10px] rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-2 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white">
                     {cartCount}
                   </span>
                 )}
@@ -194,9 +198,9 @@ export function D2CHeader({
 
             <Link to={getLink('/')}>
               {logoPath ? (
-                <img src={getLogoUrl(logoPath)} alt={storeName} className="h-6 w-auto" />
+                <img src={getLogoUrl(logoPath)} alt={storeName} className="h-7 w-auto object-contain" />
               ) : (
-                <h1 className="text-lg font-light tracking-[0.1em]">
+                <h1 className="text-xl font-bold tracking-tight text-neutral-900">
                   {storeName.toUpperCase()}
                 </h1>
               )}
@@ -205,14 +209,15 @@ export function D2CHeader({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="p-2"
+                className="p-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+                aria-label="Search"
               >
                 <Search className="w-5 h-5" />
               </button>
-              <Link to={getLink('/cart')} className="p-2 relative">
+              <Link to={getLink('/cart')} className="p-2 relative text-neutral-600 hover:text-neutral-900 transition-colors" aria-label="Cart">
                 <ShoppingBag className="w-5 h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-neutral-900 text-white text-[10px] rounded-full flex items-center justify-center">
+                  <span className="absolute top-1 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border border-white">
                     {cartCount}
                   </span>
                 )}

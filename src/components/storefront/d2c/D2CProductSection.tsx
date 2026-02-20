@@ -52,25 +52,27 @@ export function D2CProductSection({
     <section className="py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-10 lg:mb-14">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-8 lg:mb-12">
           <div>
-            <h2 className="text-2xl lg:text-3xl font-light tracking-wide text-neutral-900">
+            <h2 className="text-2xl lg:text-4xl font-bold tracking-tight text-neutral-900 uppercase">
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-3 text-neutral-500 font-light max-w-lg">
+              <p className="mt-2 text-neutral-500 text-sm lg:text-base max-w-2xl">
                 {subtitle}
               </p>
             )}
           </div>
-          
+
           {viewAllLink && (
-            <Link 
+            <Link
               to={viewAllLink}
-              className="hidden lg:inline-flex items-center gap-2 text-sm tracking-wide text-neutral-600 hover:text-neutral-900 transition-colors mt-4 lg:mt-0"
+              className="hidden lg:inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-900 hover:text-primary transition-colors group mt-4 lg:mt-0"
             >
-              VIEW ALL
-              <ArrowRight className="w-4 h-4" />
+              <span className="border-b-2 border-transparent group-hover:border-primary transition-colors">
+                VIEW ALL
+              </span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
           )}
         </div>
@@ -92,7 +94,7 @@ export function D2CProductSection({
         {/* Mobile View All */}
         {viewAllLink && (
           <div className="lg:hidden text-center mt-10">
-            <Link 
+            <Link
               to={viewAllLink}
               className="inline-flex items-center gap-2 px-8 py-3 border border-neutral-900 text-sm tracking-wide hover:bg-neutral-900 hover:text-white transition-colors"
             >

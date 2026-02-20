@@ -49,7 +49,7 @@ export function D2CCategorySection({
     <section className="py-8 lg:py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         <div className="text-center mb-8 lg:mb-12">
-          <h2 className="text-xl lg:text-3xl font-light tracking-wide text-neutral-900">
+          <h2 className="text-2xl lg:text-4xl font-bold tracking-tight text-neutral-900 uppercase">
             SHOP BY CATEGORY
           </h2>
         </div>

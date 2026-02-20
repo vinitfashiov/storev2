@@ -65,8 +65,8 @@ function D2CBannerSlider({
   // Fallback hero when no banners
   if (banners.length === 0) {
     return (
-      <section className={cn("relative overflow-hidden", className)}>
-        <div className={cn("relative w-full", isMobile ? "aspect-[2/3]" : "aspect-[3.2/1]")}>
+      <section className={cn("relative overflow-hidden group", className)}>
+        <div className={cn("relative w-full", isMobile ? "aspect-[4/5]" : "aspect-[2.5/1]")}>
           <div className="absolute inset-0 bg-gradient-to-b from-neutral-100 to-neutral-200" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center max-w-3xl px-6">
@@ -95,15 +95,15 @@ function D2CBannerSlider({
   const currentBanner = banners[currentSlide];
 
   return (
-    <section className={cn("relative overflow-hidden", className)}>
-      <div className={cn("relative w-full", isMobile ? "aspect-[2/3]" : "aspect-[3.2/1]")}>
+    <section className={cn("relative overflow-hidden group", className)}>
+      <div className={cn("relative w-full", isMobile ? "aspect-[4/5]" : "aspect-[2.5/1]")}>
         {/* Slides */}
         {banners.map((banner, index) => (
           <div
             key={banner.id}
             className={cn(
-              "absolute inset-0 transition-opacity duration-700",
-              index === currentSlide ? "opacity-100" : "opacity-0"
+              "absolute inset-0 transition-opacity duration-1000",
+              index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
             )}
           >
             <img
@@ -111,18 +111,18 @@ function D2CBannerSlider({
               alt={banner.title || 'Banner'}
               className="w-full h-full object-cover"
             />
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-black/20" />
+            {/* Overlay Gradient for readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
           </div>
         ))}
 
         {/* Content */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center max-w-3xl px-6">
+        <div className="absolute inset-0 flex items-end justify-center pb-16 md:pb-24 z-20">
+          <div className="text-center max-w-4xl px-4 w-full">
             {currentBanner.subtitle && (
               <p
                 className={cn(
-                  "text-sm tracking-[0.3em] text-white/90 mb-4 transition-all duration-500",
+                  "text-xs md:text-sm tracking-[0.3em] font-medium text-white mb-3 transition-all duration-700",
                   isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
                 )}
               >
@@ -132,7 +132,7 @@ function D2CBannerSlider({
             {currentBanner.title && (
               <h2
                 className={cn(
-                  "text-4xl md:text-6xl lg:text-7xl font-light text-white mb-8 transition-all duration-500 delay-100",
+                  "text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 md:mb-10 leading-tight transition-all duration-700 delay-100",
                   isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
                 )}
               >
@@ -143,7 +143,7 @@ function D2CBannerSlider({
               <Link
                 to={currentBanner.link_url || currentBanner.cta_url || '#'}
                 className={cn(
-                  "inline-block px-10 py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-medium hover:bg-neutral-100 transition-all duration-500 delay-200",
+                  "inline-block px-8 py-4 md:px-12 md:py-4 bg-white text-neutral-900 text-sm tracking-[0.2em] font-bold hover:bg-neutral-900 hover:text-white transition-all duration-500 delay-200 uppercase",
                   isAnimating ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
                 )}
               >
