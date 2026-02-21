@@ -46,15 +46,15 @@ export function D2CCategorySection({
   ];
 
   return (
-    <section className="py-8 lg:py-16 bg-white">
+    <section className="py-6 lg:py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <div className="text-center mb-8 lg:mb-12">
+        <div className="text-center mb-6 lg:mb-10">
           <h2 className="text-xl lg:text-2xl font-serif font-medium tracking-wide text-neutral-900">
             Shop Categories
           </h2>
         </div>
 
-        <div className="flex gap-4 lg:gap-8 overflow-x-auto pb-6 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap lg:justify-center">
+        <div className="flex gap-3 lg:gap-8 overflow-x-auto pb-6 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap lg:justify-center">
           {categories.map((category, index) => {
             const imageUrl = getImageUrl(category.image_path) || placeholderImages[index % placeholderImages.length];
 
@@ -62,9 +62,9 @@ export function D2CCategorySection({
               <Link
                 key={category.id}
                 to={`${getLink('/products')}?category=${category.slug}`}
-                className="group flex flex-col items-center flex-shrink-0 w-[80px] lg:w-[120px]"
+                className="group flex flex-col items-center flex-shrink-0 w-[72px] lg:w-[120px]"
               >
-                <div className="w-[80px] h-[80px] lg:w-[120px] lg:h-[120px] rounded-full overflow-hidden transition-transform group-hover:scale-105 mb-3 flex items-center justify-center relative bg-neutral-50/50">
+                <div className="w-[72px] h-[72px] lg:w-[120px] lg:h-[120px] rounded-full overflow-hidden transition-transform group-hover:scale-105 mb-2 lg:mb-3 flex items-center justify-center relative bg-neutral-50/50">
                   <img
                     src={imageUrl}
                     alt={category.name}

@@ -17,6 +17,7 @@ import { D2CHeader } from '@/components/storefront/d2c/D2CHeader';
 import { D2CHeroBanner } from '@/components/storefront/d2c/D2CHeroBanner';
 import { D2CProductSection } from '@/components/storefront/d2c/D2CProductSection';
 import { D2CCategorySection } from '@/components/storefront/d2c/D2CCategorySection';
+import { D2CBrandSection } from '@/components/storefront/d2c/D2CBrandSection';
 import { D2CFooter } from '@/components/storefront/d2c/D2CFooter';
 import { D2CProductCard } from '@/components/storefront/d2c/D2CProductCard';
 import { GroceryHeader } from '@/components/storefront/grocery/GroceryHeader';
@@ -474,6 +475,12 @@ export default function StoreHome() {
             storeDescription={storeSettings?.website_description}
           />
 
+          <D2CCategorySection
+            categories={categories}
+            storeSlug={tenant.store_slug}
+            variant="grid"
+          />
+
           <D2CProductSection
             title="NEW ARRIVALS"
             subtitle="Fresh additions to elevate your everyday"
@@ -486,19 +493,11 @@ export default function StoreHome() {
             variant="featured"
           />
 
-          <D2CCategorySection
-            categories={categories}
-            storeSlug={tenant.store_slug}
-            variant="grid"
-          />
-
           {brands && brands.length > 0 && (
-            <div className="py-8 lg:py-16 bg-neutral-50/50">
-              <BrandSection
-                brands={brands}
-                storeSlug={tenant.store_slug}
-              />
-            </div>
+            <D2CBrandSection
+              brands={brands}
+              storeSlug={tenant.store_slug}
+            />
           )}
 
           <D2CProductSection
