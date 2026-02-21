@@ -49,10 +49,9 @@ export function D2CProductSection({
   };
 
   return (
-    <section className="py-8 lg:py-16">
+    <section className="py-4 lg:py-8">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-8 lg:mb-12 flex flex-col items-center">
+        <div className="text-center mb-6 lg:mb-10 flex flex-col items-center">
           <h2 className="text-2xl lg:text-3xl font-serif font-medium tracking-wide text-neutral-900 uppercase">
             {title}
           </h2>
@@ -79,7 +78,7 @@ export function D2CProductSection({
 
         {/* View All */}
         {viewAllLink && (
-          <div className="text-center mt-8 lg:mt-12">
+          <div className="text-center mt-6 lg:mt-10">
             <Link
               to={viewAllLink}
               className="inline-flex items-center justify-center px-10 py-3.5 border border-neutral-300 text-xs font-bold tracking-[0.1em] text-neutral-900 uppercase hover:border-neutral-900 transition-colors"
