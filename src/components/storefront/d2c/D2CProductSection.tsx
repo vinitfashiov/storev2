@@ -52,33 +52,19 @@ export function D2CProductSection({
     <section className="py-16 lg:py-24">
       <div className="max-w-7xl mx-auto px-4 lg:px-8">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-8 lg:mb-12">
-          <div>
-            <h2 className="text-2xl lg:text-4xl font-bold tracking-tight text-neutral-900 uppercase">
-              {title}
-            </h2>
-            {subtitle && (
-              <p className="mt-2 text-neutral-500 text-sm lg:text-base max-w-2xl">
-                {subtitle}
-              </p>
-            )}
-          </div>
-
-          {viewAllLink && (
-            <Link
-              to={viewAllLink}
-              className="hidden lg:inline-flex items-center gap-2 text-sm font-semibold tracking-wide text-neutral-900 hover:text-primary transition-colors group mt-4 lg:mt-0"
-            >
-              <span className="border-b-2 border-transparent group-hover:border-primary transition-colors">
-                VIEW ALL
-              </span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+        <div className="text-center mb-10 lg:mb-14 flex flex-col items-center">
+          <h2 className="text-2xl lg:text-3xl font-serif font-medium tracking-wide text-neutral-900 uppercase">
+            {title}
+          </h2>
+          {subtitle && (
+            <p className="mt-3 text-neutral-600 text-sm lg:text-base max-w-2xl font-light">
+              {subtitle}
+            </p>
           )}
         </div>
 
         {/* Products Grid */}
-        <div className={`grid ${gridCols[columns]} gap-4 lg:gap-6`}>
+        <div className={`grid ${gridCols[columns]} gap-4 lg:gap-8`}>
           {products.map((product) => (
             <D2CProductCard
               key={product.id}
@@ -91,15 +77,14 @@ export function D2CProductSection({
           ))}
         </div>
 
-        {/* Mobile View All */}
+        {/* View All */}
         {viewAllLink && (
-          <div className="lg:hidden text-center mt-10">
+          <div className="text-center mt-10 lg:mt-14">
             <Link
               to={viewAllLink}
-              className="inline-flex items-center gap-2 px-8 py-3 border border-neutral-900 text-sm tracking-wide hover:bg-neutral-900 hover:text-white transition-colors"
+              className="inline-flex items-center justify-center px-10 py-3.5 border border-neutral-300 text-xs font-bold tracking-[0.1em] text-neutral-900 uppercase hover:border-neutral-900 transition-colors"
             >
               VIEW ALL
-              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         )}

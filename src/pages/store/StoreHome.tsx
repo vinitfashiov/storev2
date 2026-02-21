@@ -492,6 +492,15 @@ export default function StoreHome() {
             variant="grid"
           />
 
+          {brands && brands.length > 0 && (
+            <div className="py-8 lg:py-16 bg-neutral-50/50">
+              <BrandSection
+                brands={brands}
+                storeSlug={tenant.store_slug}
+              />
+            </div>
+          )}
+
           <D2CProductSection
             title="BEST SELLERS"
             subtitle="Our most-loved pieces, tried and trusted by our community"

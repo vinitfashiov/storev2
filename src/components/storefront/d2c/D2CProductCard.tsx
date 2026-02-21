@@ -77,14 +77,14 @@ export function D2CProductCard({
 
   return (
     <div
-      className="group block bg-white border border-neutral-100 rounded-2xl overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 flex flex-col h-full"
+      className="group block transition-all duration-300 flex flex-col h-full"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <Link to={getLink(`/product/${product.slug}`)} className="flex-1 flex flex-col">
         {/* Image Container */}
         <div className={cn(
-          "relative overflow-hidden bg-neutral-50 shrink-0",
+          "relative overflow-hidden bg-neutral-50 shrink-0 rounded-md",
           variant === 'featured' ? 'aspect-[3/4]' : 'aspect-[4/5]'
         )}>
           {/* Image */}
@@ -122,11 +122,6 @@ export function D2CProductCard({
           <div className="absolute inset-x-0 top-0 p-3 flex justify-between items-start pointer-events-none">
             {/* Badges */}
             <div className="flex flex-col gap-1.5 pointer-events-auto">
-              {discount > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm shadow-sm">
-                  {discount}% OFF
-                </span>
-              )}
               {isOutOfStock && (
                 <span className="bg-neutral-900 text-white text-[10px] font-bold tracking-wider px-2 py-1 rounded-sm shadow-sm">
                   SOLD OUT
@@ -142,87 +137,53 @@ export function D2CProductCard({
                   "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm pointer-events-auto",
                   isWishlisted
                     ? "bg-white text-red-500"
-                    : "bg-white/90 text-neutral-400 hover:bg-white hover:text-red-500 hover:scale-105",
+                    : "bg-white text-neutral-600 hover:text-red-500 hover:scale-105",
                 )}
               >
-                <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
+                <Heart className={cn("w-[15px] h-[15px]", isWishlisted && "fill-current")} />
               </button>
             )}
           </div>
         </div>
 
         {/* Product Info */}
-        <div className="p-4 flex flex-col flex-1">
+        <div className="pt-3 pb-2 flex flex-col flex-1">
           {/* Brand */}
           {product.brand && (
-            <p className="text-[10px] font-bold tracking-[0.1em] text-neutral-400 uppercase mb-1.5">
-              {product.brand.name}
+            <p className="text-xs font-bold text-neutral-900 uppercase mb-1">
+              {product.brand.name}®
             </p>
           )}
 
           {/* Name */}
           <h3 className={cn(
-            "font-medium text-neutral-900 line-clamp-2 leading-snug group-hover:text-primary transition-colors mb-2 flex-1",
+            "font-normal text-neutral-800 line-clamp-2 leading-snug group-hover:text-neutral-500 transition-colors mb-2 flex-1",
             variant === 'minimal' ? 'text-xs' : 'text-sm'
           )}>
             {product.name}
           </h3>
 
-          {/* Rating Placeholder */}
-          {variant === 'featured' && (
-            <div className="flex items-center gap-1.5 mb-2.5">
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className="w-3 h-3 fill-yellow-400 text-yellow-400 flex-shrink-0"
-                  />
-                ))}
-              </div>
-              <span className="text-[10px] text-neutral-500 font-medium">(4.8)</span>
-            </div>
-          )}
-
           {/* Price */}
-          <div className="flex items-baseline gap-2 mb-4">
+          <div className="flex items-center flex-wrap gap-1.5 mt-auto">
             <span className={cn(
               "font-bold text-neutral-900",
-              variant === 'minimal' ? 'text-sm' : 'text-lg'
+              variant === 'minimal' ? 'text-sm' : 'text-base'
             )}>
-              ₹{product.price.toLocaleString('en-IN')}
+              ₹{product.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             {product.compare_at_price && (
-              <span className="text-xs font-medium text-neutral-400 line-through">
-                ₹{product.compare_at_price.toLocaleString('en-IN')}
-              </span>
+              <>
+                <span className="text-xs font-medium text-neutral-400 line-through">
+                  ₹{product.compare_at_price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                {discount > 0 && (
+                  <span className="text-xs font-bold text-green-600 ml-1">
+                    ({discount}% OFF)
+                  </span>
+                )}
+              </>
             )}
           </div>
-
-          {/* Quick Add Button underneath */}
-          {!isOutOfStock && onAddToCart && (
-            <button
-              onClick={handleAddToCart}
-              disabled={isAdding}
-              className={cn(
-                "w-full py-2.5 rounded-xl border-2 text-[11px] font-bold tracking-[0.1em] transition-all duration-300 flex items-center justify-center gap-2 mt-auto",
-                isAdding
-                  ? "bg-neutral-100 border-neutral-100 text-neutral-500"
-                  : "bg-white border-neutral-900 text-neutral-900 hover:bg-neutral-900 hover:text-white"
-              )}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              {isAdding ? 'ADDING...' : 'ADD TO CART'}
-            </button>
-          )}
-
-          {isOutOfStock && onAddToCart && (
-            <button
-              disabled
-              className="w-full py-2.5 rounded-xl bg-neutral-100 border-2 border-neutral-100 text-neutral-400 text-[11px] font-bold tracking-[0.1em] cursor-not-allowed mt-auto"
-            >
-              OUT OF STOCK
-            </button>
-          )}
         </div>
       </Link>
     </div>
