@@ -54,12 +54,6 @@ export function D2CHeader({
 
   return (
     <>
-      {/* Announcement Bar */}
-      <div className="bg-neutral-900 text-white text-center py-2 px-4 shadow-sm relative z-[60]">
-        <p className="text-[11px] tracking-[0.2em] font-medium uppercase animate-fade-in">
-          Free Shipping on all orders above ₹999 <span className="mx-2 opacity-50">•</span> Use Code <span className="font-bold underline underline-offset-2">FIRST10</span>
-        </p>
-      </div>
 
       {/* Main Header */}
       <header className="bg-white sticky top-0 z-50 border-b border-neutral-100">
