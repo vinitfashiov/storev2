@@ -186,356 +186,295 @@ export default function StoreOrderDetail() {
   const isCancelled = order.status === 'cancelled';
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <div className="flex items-center relative mb-6">
-          <Link to={getLink('/account/orders')} className="absolute left-0 p-2 -ml-2 text-foreground hover:bg-muted rounded-full">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-white flex flex-col">
+      <div className="container mx-auto px-4 py-8 lg:py-12 max-w-3xl flex-1">
+        <div className="mb-8">
+          <Link to={getLink('/account/orders')} className="flex items-center gap-2 text-neutral-500 hover:text-black transition-colors w-fit mb-6">
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium uppercase tracking-widest">Back to orders</span>
           </Link>
-          <h1 className="flex-1 text-center text-xl font-bold">Order Summary</h1>
+          <h1 className="text-3xl font-serif text-neutral-900 tracking-tight">Order #{order.order_number}</h1>
         </div>
 
-        <div className="bg-card rounded-lg p-6 mb-6">
-          <div className="flex justify-between items-start mb-4">
+        <div className="bg-neutral-50 p-6 md:p-8 mb-8 border border-neutral-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Order Number</p>
-              <p className="font-medium text-base">{order.order_number}</p>
+              <p className="text-xs text-neutral-500 uppercase tracking-widest font-semibold mb-1">Placed On</p>
+              <p className="font-medium text-neutral-900 text-lg">{format(new Date(order.created_at), 'MMM d, yyyy')}</p>
             </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Total</p>
-              <p className="font-medium text-base">₹{order.total.toFixed(2)}</p>
+            <div className="sm:text-right">
+              <p className="text-xs text-neutral-500 uppercase tracking-widest font-semibold mb-1">Total Amount</p>
+              <p className="font-medium text-neutral-900 text-lg">₹{order.total.toFixed(2)}</p>
             </div>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Placed</p>
-            <p className="font-medium text-base">{format(new Date(order.created_at), 'd MMM, yyyy')}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
           {order.status === 'delivered' && (!order.return_status || order.return_status === 'none') && (
-            <Button variant="outline" className="w-full" onClick={() => setIsReturnOpen(true)}>
+            <Button variant="outline" className="rounded-none border-neutral-200 text-neutral-600 hover:text-black hover:border-black transition-colors uppercase tracking-widest text-xs font-semibold py-6 px-6 h-auto" onClick={() => setIsReturnOpen(true)}>
               Request Return
             </Button>
           )}
           {['pending', 'confirmed'].includes(order.status) && (
-            <Button variant="destructive" onClick={() => setIsCancelOpen(true)}>
+            <Button variant="outline" className="rounded-none border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors uppercase tracking-widest text-xs font-semibold py-6 px-6 h-auto" onClick={() => setIsCancelOpen(true)}>
               Cancel Order
             </Button>
           )}
 
-          {/* Detailed Return/Refund Status Banners */}
-          {order.return_status && order.return_status !== 'none' && (
-            <div className={`mb-6 p-4 rounded-lg border ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
-              order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
-                order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                  'bg-orange-50 border-orange-200 text-orange-800'
-              }`}>
-              <h3 className="font-semibold mb-1 capitalize">
-                {order.return_status === 'requested' && 'Return Requested'}
-                {order.return_status === 'approved' && 'Return Approved'}
-                {order.return_status === 'rejected' && 'Return Rejected'}
-                {order.return_status === 'returned' && 'Return Completed'}
-              </h3>
-              <p className="text-sm">
-                {order.return_status === 'requested' && 'We have received your return request and are reviewing it. You will be notified once it is approved.'}
-                {order.return_status === 'approved' && 'Your return request has been approved. Our delivery partner will contact you soon for pickup.'}
-                {order.return_status === 'rejected' && 'Your return request has been rejected. Please contact support for more details.'}
-                {order.return_status === 'returned' && 'Your return has been processed successfully.'}
-              </p>
-
-              {order.refund_status && order.refund_status !== 'none' && (
-                <div className="mt-2 pt-2 border-t border-black/10 flex items-center gap-2">
-                  <span className="font-medium text-sm">Refund Status:</span>
-                  <Badge variant="outline" className="bg-white/50 border-black/20 text-inherit capitalize">
-                    {order.refund_status.replace('_', ' ')}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             {!order.return_status && (
-              <Badge className={isCancelled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-                {order.status.toUpperCase()}
-              </Badge>
+              <span className={`px-4 py-2.5 text-xs font-bold uppercase tracking-widest border ${isCancelled ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                {order.status}
+              </span>
             )}
           </div>
         </div>
 
+        {/* Detailed Return/Refund Status Banners */}
+        {order.return_status && order.return_status !== 'none' && (
+          <div className={`mb-12 p-6 md:p-8 border ${order.return_status === 'rejected' ? 'bg-red-50 border-red-200 text-red-800' :
+            order.return_status === 'returned' ? 'bg-green-50 border-green-200 text-green-800' :
+              order.return_status === 'approved' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                'bg-orange-50 border-orange-200 text-orange-800'
+            }`}>
+            <h3 className="font-serif text-xl mb-3 capitalize">
+              {order.return_status === 'requested' && 'Return Requested'}
+              {order.return_status === 'approved' && 'Return Approved'}
+              {order.return_status === 'rejected' && 'Return Rejected'}
+              {order.return_status === 'returned' && 'Return Completed'}
+            </h3>
+            <p className="text-sm opacity-90 leading-relaxed max-w-lg">
+              {order.return_status === 'requested' && 'We have received your return request and are reviewing it. You will be notified once it is approved.'}
+              {order.return_status === 'approved' && 'Your return request has been approved. Our delivery partner will contact you soon for pickup.'}
+              {order.return_status === 'rejected' && 'Your return request has been rejected. Please contact support for more details.'}
+              {order.return_status === 'returned' && 'Your return has been processed successfully.'}
+            </p>
+
+            {order.refund_status && order.refund_status !== 'none' && (
+              <div className="mt-6 pt-6 border-t border-current/10 flex items-center gap-4">
+                <span className="text-xs uppercase tracking-widest font-semibold opacity-70">Refund Status</span>
+                <span className="text-sm font-medium capitalize py-1.5 px-4 border border-current/20 bg-white/50">
+                  {order.refund_status.replace('_', ' ')}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Status Timeline */}
         {!isCancelled && (
-          <Card className="mb-6 border-none shadow-none bg-transparent">
-            <CardContent className="p-0">
-              <div className="bg-card rounded-lg p-6 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      {(() => {
-                        if (order.status === 'delivered') return 'Delivered';
-                        if (order.status === 'shipped') return 'On the way';
-                        if (order.status === 'packed') return 'Ready to ship';
-                        if (order.status === 'confirmed') return 'Order Confirmed';
-                        return 'Order Placed';
-                      })()}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {order.status === 'delivered' ? 'Your order has been delivered' :
-                        'Estimated Delivery Date: ' + format(new Date(new Date(order.created_at).setDate(new Date(order.created_at).getDate() + 5)), 'MMM d, yyyy')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="relative pl-2">
+          <div className="mb-12">
+            <h2 className="font-serif text-xl text-neutral-900 mb-6">Tracking Details</h2>
+            <div className="border border-neutral-200 p-6 md:p-8">
+              <div className="mb-8">
+                <h3 className="font-medium text-lg text-neutral-900 mb-1">
                   {(() => {
-                    // Logic for 3-step sliding window + Optional 4th Step for Returns
-                    // Nodes: Placed -> [Middle] -> Delivered -> [Return Status]
-
-                    const steps = [
-                      { key: 'placed', label: 'Order Placed', date: order.created_at, color: 'green' },
-                      { key: 'middle', label: 'Order Confirmed', date: null, color: 'green' },
-                      { key: 'delivered', label: 'Delivered', date: null, color: 'green' }
-                    ];
-
-                    let activeStepIndex = 0; // 0: Placed, 1: Middle, 2: Delivered, 3: Return Status
-
-                    // Determine Middle Node Label and Active State for Order Flow
-                    if (order.status === 'pending') {
-                      steps[1].label = 'Order Confirmed';
-                      activeStepIndex = 0;
-                    } else if (order.status === 'confirmed') {
-                      steps[1].label = 'Order Confirmed';
-                      activeStepIndex = 1;
-                    } else if (order.status === 'packed') {
-                      steps[1].label = 'Packed';
-                      activeStepIndex = 1;
-                    } else if (order.status === 'shipped') {
-                      steps[1].label = 'Shipped';
-                      activeStepIndex = 1;
-                    } else if (order.status === 'delivered') {
-                      steps[1].label = 'Shipped'; // History state
-                      activeStepIndex = 2; // All done
-                    }
-
-                    // Check for Return Status - Adds 4th Step
-                    if (order.return_status && order.return_status !== 'none') {
-                      // If return is active, assume Order Flow is complete (all 3 steps active/green)
-                      // Unless it's a weird state where return requested before delivery?
-                      // Safe assumption: Return implies delivery happened or is irrelevant now.
-                      steps[1].label = 'Shipped';
-                      activeStepIndex = 3; // Focus on Return Step
-
-                      let returnLabel = 'Return Requested';
-                      // let returnDate = null; // We don't have explicit date field in this view for return yet, can use updated_at if available
-
-                      if (order.return_status === 'requested') {
-                        returnLabel = 'Return Requested';
-                      } else if (order.return_status === 'approved') {
-                        returnLabel = 'Return Approved';
-                      } else if (order.return_status === 'rejected') {
-                        returnLabel = 'Return Rejected';
-                      } else if (order.return_status === 'returned') {
-                        returnLabel = 'Returned';
-                      }
-
-                      if (order.refund_status === 'succeeded' || order.refund_status === 'processed') {
-                        returnLabel = 'Refunded';
-                      }
-
-                      steps.push({
-                        key: 'return',
-                        label: returnLabel,
-                        date: null,
-                        color: 'red'
-                      });
-                    }
-
-                    return steps.map((step, index) => {
-                      const isCompleted = index <= activeStepIndex;
-                      const isLast = index === steps.length - 1;
-
-                      // For return step (index 3), it's always "active" if it exists in this logic
-                      // But we want to distinguish "completed" vs "pending" if we had more granularity.
-                      // With current requirement: "4th one will be red color".
-
-                      const isReturnStep = step.key === 'return';
-                      // const isReturnActive = isReturnStep; // It's always active if present
-
-                      // Special visual logic:
-                      // If Return Step exists:
-                      // - Steps 0, 1, 2 should be GREEN and COMPLETED.
-                      // - Step 3 should be RED and ACTIVE.
-
-                      let stepColorClass = 'bg-muted text-muted-foreground';
-                      let lineColorClass = 'bg-muted';
-
-                      if (isCompleted) {
-                        if (isReturnStep) {
-                          stepColorClass = 'bg-red-500 text-white'; // Return step is RED
-                        } else {
-                          stepColorClass = 'bg-green-600 text-white'; // Normal steps are GREEN
-                        }
-                      }
-
-                      // Line color logic
-                      if (index < activeStepIndex) {
-                        // If current line goes TO a return step, it connects Green -> Red?
-                        // User: "extended 4th one will be red color"
-                        // Usually the line leading TO the red step might be green (completed flow) or red (entering return).
-                        // Let's make it Green since 'Delivered' was Green.
-
-                        if (steps[index + 1]?.key === 'return') {
-                          lineColorClass = 'bg-green-600'; // Connection to return is green (flow complete)
-                        } else {
-                          lineColorClass = 'bg-green-600';
-                        }
-                      }
-
-                      // Special check for connection FROM red step? (None, it's last)
-
-                      return (
-                        <div key={step.key} className="flex gap-4 pb-8 last:pb-0 relative">
-                          {/* Vertical Line */}
-                          {!isLast && (
-                            <div className={`absolute left-[11px] top-8 bottom-0 w-0.5 ${lineColorClass}`} />
-                          )}
-
-                          {/* Icon */}
-                          <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${stepColorClass}`}>
-                            {isCompleted ? <CheckCircle className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                          </div>
-
-                          {/* Content */}
-                          <div className="-mt-1">
-                            <h4 className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'} ${isReturnStep ? 'text-red-900' : ''}`}>
-                              {step.label}
-                            </h4>
-                            {step.date && isCompleted && (
-                              <p className="text-sm text-muted-foreground">
-                                {format(new Date(step.date), 'MMM d, yyyy')}
-                              </p>
-                            )}
-                            {!isCompleted && step.key === 'middle' && (
-                              <p className="text-sm text-muted-foreground">Not Yet</p>
-                            )}
-                            {!isCompleted && step.key === 'delivered' && (
-                              <p className="text-sm text-muted-foreground">Not Yet</p>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    });
+                    if (order.status === 'delivered') return 'Delivered';
+                    if (order.status === 'shipped') return 'On the way';
+                    if (order.status === 'packed') return 'Ready to ship';
+                    if (order.status === 'confirmed') return 'Order Confirmed';
+                    return 'Order Placed';
                   })()}
-                </div>
+                </h3>
+                <p className="text-sm text-neutral-500">
+                  {order.status === 'delivered' ? 'Your order has been delivered' :
+                    'Estimated Delivery: ' + format(new Date(new Date(order.created_at).setDate(new Date(order.created_at).getDate() + 5)), 'MMM d, yyyy')}
+                </p>
               </div>
 
-              {/* Removed Separate Return Tracking Section */}
-            </CardContent>
-          </Card>
+              <div className="relative pl-2 mt-8">
+                {(() => {
+                  const steps = [
+                    { key: 'placed', label: 'Order Placed', date: order.created_at, color: 'green' },
+                    { key: 'middle', label: 'Order Confirmed', date: null, color: 'green' },
+                    { key: 'delivered', label: 'Delivered', date: null, color: 'green' }
+                  ];
+
+                  let activeStepIndex = 0;
+
+                  if (order.status === 'pending') {
+                    steps[1].label = 'Order Confirmed';
+                    activeStepIndex = 0;
+                  } else if (order.status === 'confirmed') {
+                    steps[1].label = 'Order Confirmed';
+                    activeStepIndex = 1;
+                  } else if (order.status === 'packed') {
+                    steps[1].label = 'Packed';
+                    activeStepIndex = 1;
+                  } else if (order.status === 'shipped') {
+                    steps[1].label = 'Shipped';
+                    activeStepIndex = 1;
+                  } else if (order.status === 'delivered') {
+                    steps[1].label = 'Shipped';
+                    activeStepIndex = 2;
+                  }
+
+                  if (order.return_status && order.return_status !== 'none') {
+                    steps[1].label = 'Shipped';
+                    activeStepIndex = 3;
+
+                    let returnLabel = 'Return Requested';
+                    if (order.return_status === 'requested') returnLabel = 'Return Requested';
+                    else if (order.return_status === 'approved') returnLabel = 'Return Approved';
+                    else if (order.return_status === 'rejected') returnLabel = 'Return Rejected';
+                    else if (order.return_status === 'returned') returnLabel = 'Returned';
+
+                    if (order.refund_status === 'succeeded' || order.refund_status === 'processed') {
+                      returnLabel = 'Refunded';
+                    }
+
+                    steps.push({ key: 'return', label: returnLabel, date: null, color: 'red' });
+                  }
+
+                  return steps.map((step, index) => {
+                    const isCompleted = index <= activeStepIndex;
+                    const isLast = index === steps.length - 1;
+                    const isReturnStep = step.key === 'return';
+
+                    let stepColorClass = 'bg-neutral-100 text-neutral-400 border-neutral-300';
+                    let lineColorClass = 'bg-neutral-200';
+
+                    if (isCompleted) {
+                      if (isReturnStep) {
+                        stepColorClass = 'bg-red-600 text-white border-red-600';
+                      } else {
+                        stepColorClass = 'bg-black text-white border-black';
+                      }
+                    }
+
+                    if (index < activeStepIndex) {
+                      lineColorClass = 'bg-black';
+                    }
+
+                    return (
+                      <div key={step.key} className="flex gap-6 pb-12 last:pb-0 relative">
+                        {!isLast && (
+                          <div className={`absolute left-[11px] top-7 bottom-[-8px] w-px ${lineColorClass}`} />
+                        )}
+
+                        <div className={`relative z-10 w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 mt-0.5 ${stepColorClass}`}>
+                          {isCompleted ? (
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          ) : null}
+                        </div>
+
+                        <div>
+                          <h4 className={`font-medium ${isCompleted ? 'text-neutral-900' : 'text-neutral-400'} ${isReturnStep ? 'text-red-600' : ''}`}>
+                            {step.label}
+                          </h4>
+                          {step.date && isCompleted && (
+                            <p className="text-sm text-neutral-500 mt-1">
+                              {format(new Date(step.date), 'MMMM d, yyyy, h:mm a')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Shipment Info */}
         {shipment && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="w-5 h-5" />
-                Tracking Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+          <div className="mb-12">
+            <h2 className="font-serif text-xl text-neutral-900 mb-6">Courier Details</h2>
+            <div className="border border-neutral-200 p-6 md:p-8 space-y-4">
               {shipment.courier_name && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Courier</span>
-                  <span className="font-medium">{shipment.courier_name}</span>
+                <div className="flex justify-between items-center py-2 border-b border-neutral-100 last:border-0">
+                  <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">Courier</span>
+                  <span className="font-medium text-neutral-900">{shipment.courier_name}</span>
                 </div>
               )}
               {shipment.awb_code && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">AWB Code</span>
-                  <span className="font-mono">{shipment.awb_code}</span>
+                <div className="flex justify-between items-center py-2 border-b border-neutral-100 last:border-0">
+                  <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">AWB Code</span>
+                  <span className="font-mono text-neutral-900">{shipment.awb_code}</span>
                 </div>
               )}
               {shipment.status && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipment Status</span>
-                  <Badge variant="outline">{shipment.status}</Badge>
+                <div className="flex justify-between items-center py-2 border-b border-neutral-100 last:border-0">
+                  <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">Status</span>
+                  <span className="px-3 py-1 text-xs font-bold uppercase tracking-widest border border-neutral-200 text-neutral-700 bg-neutral-50">
+                    {shipment.status}
+                  </span>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Items */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Items</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                    <Package className="w-5 h-5 text-muted-foreground" />
+        <div className="mb-12">
+          <h2 className="font-serif text-xl text-neutral-900 mb-6 flex items-center gap-3">
+            <Package className="w-5 h-5 text-neutral-400" />
+            Order Items
+          </h2>
+          <div className="border border-neutral-200">
+            <div className="px-6 md:px-8 py-2">
+              {items.map((item) => (
+                <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 border-b border-neutral-100 last:border-0">
+                  <div className="flex-1">
+                    <p className="font-medium text-neutral-900 mb-1">{item.name}</p>
+                    <p className="text-sm text-neutral-500">Qty: {item.qty} × ₹{item.unit_price.toFixed(2)}</p>
                   </div>
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">Qty: {item.qty} × ₹{item.unit_price.toFixed(2)}</p>
-                  </div>
+                  <p className="font-medium text-neutral-900">₹{item.line_total.toFixed(2)}</p>
                 </div>
-                <p className="font-medium">₹{item.line_total.toFixed(2)}</p>
-              </div>
-            ))}
-            <Separator />
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+              ))}
+            </div>
+
+            <div className="bg-neutral-50 p-6 md:p-8 space-y-3 text-sm border-t border-neutral-200">
+              <div className="flex justify-between text-neutral-600">
                 <span>Subtotal</span>
                 <span>₹{order.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Delivery</span>
-                <span>₹{order.delivery_fee.toFixed(2)}</span>
+              <div className="flex justify-between text-neutral-600">
+                <span>Shipping</span>
+                <span>{order.delivery_fee === 0 ? 'FREE' : `₹${order.delivery_fee.toFixed(2)}`}</span>
               </div>
-              <div className="flex justify-between font-bold text-lg pt-2 border-t">
+              <div className="flex justify-between font-medium text-lg pt-4 border-t border-neutral-200 text-neutral-900 mt-4">
                 <span>Total</span>
                 <span>₹{order.total.toFixed(2)}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Payment & Shipping */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Method</span>
-                <Badge variant="outline">{order.payment_method.toUpperCase()}</Badge>
+        <div className="grid md:grid-cols-2 gap-8 mb-12">
+          <div>
+            <h2 className="font-serif text-xl text-neutral-900 mb-6">Payment</h2>
+            <div className="border border-neutral-200 p-6 md:p-8 h-[calc(100%-3rem)] flex flex-col justify-center space-y-6">
+              <div className="flex justify-between items-center pb-4 border-b border-neutral-100">
+                <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">Method</span>
+                <span className="font-medium text-neutral-900 uppercase tracking-widest text-xs">{order.payment_method}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Status</span>
-                <Badge className={order.payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}>
-                  {order.payment_status.toUpperCase()}
-                </Badge>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold">Status</span>
+                <span className={`px-3 py-1 text-xs font-bold uppercase tracking-widest border ${order.payment_status === 'paid'
+                    ? 'bg-green-50 text-green-700 border-green-200'
+                    : 'bg-orange-50 text-orange-700 border-orange-200'
+                  }`}>
+                  {order.payment_status}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Address</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <div>
+            <h2 className="font-serif text-xl text-neutral-900 mb-6">Shipping Address</h2>
+            <div className="border border-neutral-200 p-6 md:p-8 h-[calc(100%-3rem)] bg-neutral-50 text-neutral-700 text-sm leading-relaxed">
+              <p className="font-medium text-neutral-900 text-base mb-2">{customer.name}</p>
               <p>{order.shipping_address.line1}</p>
               {order.shipping_address.line2 && <p>{order.shipping_address.line2}</p>}
-              <p>{order.shipping_address.city}, {order.shipping_address.state}</p>
-              <p>{order.shipping_address.pincode}</p>
-            </CardContent>
-          </Card>
+              <p>{order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.pincode}</p>
+              <p className="mt-4 pt-4 border-t border-neutral-200/60 font-medium text-neutral-900">
+                Phone: {customer.phone}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -343,36 +343,34 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
     );
   }
 
-  // E-commerce Layout (Original)
+  // E-commerce Layout (Refined D2C)
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={getLink('/')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8 lg:py-12 max-w-2xl">
+        <Link to={getLink('/')} className="flex items-center gap-2 text-neutral-500 hover:text-black mb-8 transition-colors w-fit">
           <ArrowLeft className="w-4 h-4" />
-          Back to store
+          <span className="text-sm font-medium uppercase tracking-widest">Back to store</span>
         </Link>
 
-        <h1 className="text-2xl font-display font-bold mb-6">My Account</h1>
+        <h1 className="text-3xl font-serif text-neutral-900 tracking-tight mb-8">My Account</h1>
 
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Name</span>
-                <span className="font-medium">{customer.name}</span>
+        <div className="space-y-8">
+          <div className="bg-neutral-50 p-6 md:p-8">
+            <h2 className="font-serif text-xl text-neutral-900 mb-6 flex items-center gap-3">
+              <User className="w-5 h-5 text-neutral-400" />
+              Profile Details
+            </h2>
+            <div className="space-y-4 text-sm">
+              <div className="flex justify-between items-center border-b border-neutral-200 pb-4">
+                <span className="text-neutral-500 uppercase tracking-widest text-xs font-semibold">Name</span>
+                <span className="font-medium text-neutral-900">{customer.name}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Phone</span>
-                <span className="font-medium">{customer.phone || '-'}</span>
+              <div className="flex justify-between items-center border-b border-neutral-200 pb-4">
+                <span className="text-neutral-500 uppercase tracking-widest text-xs font-semibold">Phone</span>
+                <span className="font-medium text-neutral-900">{customer.phone || '-'}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Email</span>
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-neutral-500 uppercase tracking-widest text-xs font-semibold">Email</span>
                 {editingEmail ? (
                   <div className="flex items-center gap-2">
                     <Input
@@ -380,71 +378,71 @@ export default function StoreAccount({ storeName }: StoreAccountProps) {
                       value={emailValue}
                       onChange={(e) => setEmailValue(e.target.value)}
                       placeholder="you@example.com"
-                      className="h-8 text-sm w-48"
+                      className="h-8 text-sm w-48 rounded-none border-neutral-300 focus-visible:ring-0 focus-visible:border-black"
                       autoFocus
                     />
                     <button
                       onClick={handleSaveEmail}
                       disabled={savingEmail}
-                      className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20"
+                      className="p-1.5 rounded bg-black text-white hover:bg-neutral-800"
                     >
-                      {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                      {savingEmail ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
                     </button>
                     <button
                       onClick={handleCancelEditEmail}
                       disabled={savingEmail}
-                      className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-muted/80"
+                      className="p-1.5 rounded bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     {getDisplayEmail() ? (
-                      <span className="font-medium">{getDisplayEmail()}</span>
+                      <span className="font-medium text-neutral-900">{getDisplayEmail()}</span>
                     ) : (
-                      <span className="text-muted-foreground italic text-sm">Not set</span>
+                      <span className="text-neutral-400 italic">Not set</span>
                     )}
                     <button
                       onClick={handleStartEditEmail}
-                      className="p-1 rounded-full hover:bg-muted"
+                      className="text-neutral-400 hover:text-black transition-colors"
                     >
-                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Link to={getLink('/account/orders')}>
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5 text-primary" />
-                  <span className="font-medium">My Orders</span>
+          <div className="space-y-2">
+            <Link to={getLink('/account/orders')} className="group flex items-center justify-between py-6 border-b border-neutral-200 hover:border-black transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center group-hover:bg-neutral-100 transition-colors">
+                  <Package className="w-5 h-5 text-neutral-600" />
                 </div>
-                <ArrowLeft className="w-4 h-4 rotate-180" />
-              </CardContent>
-            </Card>
-          </Link>
+                <span className="font-medium text-neutral-900 text-lg">My Orders</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-black transition-colors" />
+            </Link>
 
-          <Link to={getLink('/account/addresses')}>
-            <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <span className="font-medium">Saved Addresses</span>
+            <Link to={getLink('/account/addresses')} className="group flex items-center justify-between py-6 border-b border-neutral-200 hover:border-black transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-neutral-50 flex items-center justify-center group-hover:bg-neutral-100 transition-colors">
+                  <MapPin className="w-5 h-5 text-neutral-600" />
                 </div>
-                <ArrowLeft className="w-4 h-4 rotate-180" />
-              </CardContent>
-            </Card>
-          </Link>
+                <span className="font-medium text-neutral-900 text-lg">Saved Addresses</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-neutral-400 group-hover:text-black transition-colors" />
+            </Link>
+          </div>
 
-          <Button variant="outline" className="w-full" onClick={handleSignOut}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="pt-8">
+            <Button variant="outline" className="w-full rounded-none h-14 border-neutral-200 text-neutral-600 hover:bg-neutral-50 hover:text-red-600 hover:border-red-200 transition-colors tracking-widest uppercase font-semibold text-sm" onClick={handleSignOut}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
     </div>

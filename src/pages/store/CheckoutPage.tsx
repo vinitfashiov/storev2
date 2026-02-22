@@ -1155,9 +1155,9 @@ export default function CheckoutPage() {
     );
   }
 
-  // E-commerce Checkout (Original - kept for non-grocery stores)
+  // E-commerce Checkout (Refined D2C)
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white flex flex-col">
       <StoreHeader
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -1166,80 +1166,120 @@ export default function CheckoutPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-2xl font-display font-bold mb-6">Checkout</h1>
-        <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-6">
+      <main className="flex-1 container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
+        <h1 className="text-2xl lg:text-3xl font-serif text-neutral-900 tracking-tight mb-8">Checkout</h1>
+        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+          <div className="flex-1 space-y-12">
+
             {/* Contact Details */}
-            <div className="bg-white p-6 rounded-xl border">
-              <h2 className="font-bold text-lg mb-4">Contact Details</h2>
-              <div className="space-y-4">
-                <div><Label>Full Name *</Label><Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                <div><Label>Phone *</Label><Input required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-                <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+            <section>
+              <h2 className="font-serif text-xl mb-6 text-neutral-900">Contact Details</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Full Name *</Label>
+                  <Input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" placeholder="Enter your full name" />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Phone *</Label>
+                  <Input required value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" placeholder="10-digit number" />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Email (optional)</Label>
+                  <Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" placeholder="For order updates" />
+                </div>
               </div>
-            </div>
+            </section>
 
             {/* Delivery Address */}
-            <div className="bg-white p-6 rounded-xl border">
-              <h2 className="font-bold text-lg mb-4">Delivery Address</h2>
-              <div className="space-y-4">
-                <div><Label>Address Line 1 *</Label><Input required value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} /></div>
-                <div><Label>Address Line 2</Label><Input value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><Label>City *</Label><Input required value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} /></div>
-                  <div><Label>State *</Label><Input required value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} /></div>
+            <section>
+              <h2 className="font-serif text-xl mb-6 text-neutral-900">Delivery Address</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Address Line 1 *</Label>
+                  <Input required value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" placeholder="House/Flat No., Building" />
                 </div>
-                <div><Label>Pincode *</Label><Input required value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} maxLength={6} /></div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Address Line 2 (optional)</Label>
+                  <Input value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" placeholder="Street, Area, Landmark" />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">City *</Label>
+                  <Input required value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">State *</Label>
+                  <Input required value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Pincode *</Label>
+                  <Input required value={form.pincode} onChange={e => setForm({ ...form, pincode: e.target.value })} maxLength={6} className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors w-full md:w-1/2" placeholder="6-digit pincode" />
+                </div>
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="space-y-6">
             {/* Payment Method */}
-            <div className="bg-white p-6 rounded-xl border">
-              <h2 className="font-bold text-lg mb-4">Payment Method</h2>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                  <RadioGroupItem value="cod" id="cod" />
-                  <Label htmlFor="cod" className="flex items-center gap-2 cursor-pointer">
-                    <Truck className="w-4 h-4" /> Cash on Delivery
-                  </Label>
+            <section>
+              <h2 className="font-serif text-xl mb-6 text-neutral-900">Payment Method</h2>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+                <div className={`p-5 border ${paymentMethod === 'cod' ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'} transition-all cursor-pointer`} onClick={() => setPaymentMethod('cod')}>
+                  <div className="flex items-center space-x-4">
+                    <RadioGroupItem value="cod" id="cod-ecom" className={paymentMethod === 'cod' ? 'border-black text-black' : ''} />
+                    <Label htmlFor="cod-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full">
+                      <Truck className="w-5 h-5 text-neutral-600" /> Cash on Delivery
+                    </Label>
+                  </div>
                 </div>
-                <div className={`flex items-center space-x-2 p-3 border rounded-lg mt-2 ${!razorpayConfigured ? 'opacity-50' : ''}`}>
-                  <RadioGroupItem value="razorpay" id="razorpay" disabled={!razorpayConfigured} />
-                  <Label htmlFor="razorpay" className="flex items-center gap-2 cursor-pointer">
-                    <CreditCard className="w-4 h-4" /> Pay Online
-                  </Label>
+                <div className={`p-5 border ${!razorpayConfigured ? 'opacity-50' : paymentMethod === 'razorpay' ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'} transition-all cursor-pointer`} onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}>
+                  <div className="flex items-center space-x-4">
+                    <RadioGroupItem value="razorpay" id="razorpay-ecom" disabled={!razorpayConfigured} className={paymentMethod === 'razorpay' ? 'border-black text-black' : ''} />
+                    <Label htmlFor="razorpay-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full">
+                      <CreditCard className="w-5 h-5 text-neutral-600" /> Pay Online {!razorpayConfigured && <span className="text-xs text-neutral-400 font-normal ml-auto">(Not available)</span>}
+                    </Label>
+                  </div>
                 </div>
               </RadioGroup>
-            </div>
+            </section>
+          </div>
 
-            {/* Order Summary */}
-            <div className="bg-white p-6 rounded-xl border">
-              <h2 className="font-bold text-lg mb-4">Order Summary</h2>
-              <div className="space-y-2 text-sm mb-4">
+          {/* Right Column - Order Summary */}
+          <div className="w-full lg:w-[420px] shrink-0">
+            <div className="bg-neutral-50 p-8 sticky top-24">
+              <h3 className="font-serif tracking-tight text-xl mb-6 text-neutral-900">Order Summary</h3>
+
+              <div className="space-y-4 border-b border-neutral-200 pb-6 mb-6">
                 {cart.items.map(item => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>{item.product?.name} x{item.qty}</span>
-                    <span>₹{(item.unit_price * item.qty).toFixed(2)}</span>
+                  <div key={item.id} className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <span className="font-medium text-neutral-800 line-clamp-2 md:line-clamp-none">{item.product?.name}</span>
+                      <span className="text-sm text-neutral-500 block mt-1">Qty: {item.qty}</span>
+                    </div>
+                    <span className="font-medium text-neutral-900">₹{(item.unit_price * item.qty).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
-              <div className="border-t pt-4 space-y-2">
-                <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold text-lg border-t pt-2">
-                  <span>Total</span><span>₹{total.toFixed(2)}</span>
+
+              <div className="space-y-4 text-neutral-600 mb-6 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Delivery</span>
+                  <span>Calculated at checkout</span>
                 </div>
               </div>
-            </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={submitting || cart.items.length === 0}>
-              {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : paymentMethod === 'razorpay' ? `Pay ₹${total.toFixed(2)}` : 'Place Order'}
-            </Button>
+              <div className="border-t border-neutral-200 pt-4 flex justify-between font-medium text-xl mb-8 text-neutral-900">
+                <span>Total</span>
+                <span>₹{total.toFixed(2)}</span>
+              </div>
+              <Button type="submit" className="w-full rounded-none py-6 tracking-widest uppercase bg-black text-white hover:bg-neutral-800 h-14" disabled={submitting || cart.items.length === 0}>
+                {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : paymentMethod === 'razorpay' ? `Pay ₹${total.toFixed(2)}` : 'Place Order'}
+              </Button>
+            </div>
           </div>
         </form>
-      </div>
+      </main>
       <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={null} phone={null} />
     </div>
   );

@@ -332,9 +332,9 @@ export default function CartPage() {
 
 
 
-  // E-commerce Layout (Original)
+  // E-commerce Layout (Refined D2C)
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <StoreHeader
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -344,79 +344,100 @@ export default function CartPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-display font-bold mb-6">Shopping Cart</h1>
+      <main className="flex-1 container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
+        <h1 className="text-2xl lg:text-3xl font-serif text-neutral-900 tracking-tight mb-8">Shopping Cart</h1>
 
         {!cart || cart.items.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="font-medium mb-2">Your cart is empty</h3>
-              <p className="text-sm text-muted-foreground mb-4">Add some products to get started!</p>
-              <Link to={getLink('/products')}>
-                <Button>Browse Products</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="py-16 flex flex-col items-center justify-center text-center bg-neutral-50 p-6">
+            <ShoppingCart className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+            <h3 className="font-medium text-lg text-neutral-900 mb-2">Your cart is empty</h3>
+            <p className="text-neutral-500 mb-6">Discover our latest collections to get started.</p>
+            <Link to={getLink('/products')}>
+              <Button className="rounded-none px-8 py-6 text-sm tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
+                Continue Shopping
+              </Button>
+            </Link>
+          </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
+          <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+            <div className="flex-1 space-y-0">
               {cart.items.map((item) => {
                 const imageUrl = getImageUrl(item.product?.images);
                 return (
-                  <Card key={item.id}>
-                    <CardContent className="p-4 flex gap-4">
-                      <div className="w-20 h-20 bg-muted rounded-lg shrink-0 overflow-hidden flex items-center justify-center">
+                  <div key={item.id} className="py-6 border-b border-neutral-100 flex gap-6 group first:pt-0">
+                    <Link to={getLink(`/product/${item.product?.slug || ''}`)} className="block shrink-0">
+                      <div className="w-24 h-32 md:w-32 md:h-40 bg-neutral-50 overflow-hidden relative">
                         {imageUrl ? (
                           <img
                             src={imageUrl}
                             alt={item.product?.name || 'Product'}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           />
                         ) : (
-                          <Package className="w-8 h-8 text-muted-foreground/30" />
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="w-8 h-8 text-neutral-300" />
+                          </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{item.product?.name || 'Product'}</h3>
-                        <p className="text-primary font-bold">₹{item.unit_price.toFixed(2)}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty - 1)}>
+                    </Link>
+                    <div className="flex-1 flex flex-col justify-between py-1">
+                      <div className="flex justify-between items-start gap-4">
+                        <div>
+                          <Link to={getLink(`/product/${item.product?.slug || ''}`)}>
+                            <h3 className="font-serif text-lg text-neutral-900 hover:text-neutral-600 transition-colors line-clamp-2">
+                              {item.product?.name || 'Product'}
+                            </h3>
+                          </Link>
+                          <p className="text-neutral-500 mt-1">₹{item.unit_price.toFixed(2)}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-black hover:bg-transparent -mt-2 -mr-2" onClick={() => removeItem(item.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="flex items-center border border-neutral-200">
+                          <button className="px-3 py-1 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
                             <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-8 text-center">{item.qty}</span>
-                          <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => updateQuantity(item.id, item.qty + 1)}>
+                          </button>
+                          <span className="w-10 text-center text-sm">{item.qty}</span>
+                          <button className="px-3 py-1 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
                             <Plus className="w-3 h-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 ml-2 text-destructive" onClick={() => removeItem(item.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </button>
+                        </div>
+                        <div className="font-medium text-lg text-neutral-900">
+                          ₹{(item.unit_price * item.qty).toFixed(2)}
                         </div>
                       </div>
-                      <div className="text-right font-bold">₹{(item.unit_price * item.qty).toFixed(2)}</div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
 
-            <Card className="h-fit">
-              <CardContent className="p-6">
-                <h3 className="font-display font-bold mb-4">Order Summary</h3>
-                <div className="space-y-2 text-sm mb-4">
-                  <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between"><span>Delivery</span><span>Calculated at checkout</span></div>
+            <div className="w-full lg:w-[380px] shrink-0">
+              <div className="bg-neutral-50 p-8 sticky top-24">
+                <h3 className="font-serif tracking-tight text-xl mb-6">Order Summary</h3>
+                <div className="space-y-4 text-neutral-600 mb-6">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Shipping</span>
+                    <span>Calculated at checkout</span>
+                  </div>
                 </div>
-                <div className="border-t pt-4 flex justify-between font-bold text-lg mb-4">
-                  <span>Total</span><span>₹{subtotal.toFixed(2)}</span>
+                <div className="border-t border-neutral-200 pt-4 flex justify-between font-medium text-lg mb-8 text-neutral-900">
+                  <span>Total</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <Link to={getLink('/checkout')}>
-                  <Button className="w-full" size="lg">
-                    Checkout <ArrowRight className="w-4 h-4 ml-2" />
+                  <Button className="w-full rounded-none py-6 tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
+                    Proceed to Checkout
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         )}
       </main>

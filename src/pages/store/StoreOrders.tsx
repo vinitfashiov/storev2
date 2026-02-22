@@ -85,78 +85,88 @@ export default function StoreOrders() {
 
   if (!customer) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6">
-            <User className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground mb-4">Please log in to view your orders</p>
-            <Link to={getLink('/login')}>
-              <Button>Sign In</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-white flex flex-col pt-20 items-center px-4">
+        <User className="w-12 h-12 mb-6 text-neutral-300" />
+        <h2 className="text-2xl font-serif text-neutral-900 tracking-tight mb-2">Please log in</h2>
+        <p className="text-neutral-500 mb-8 text-center">You need to log in to view your orders.</p>
+        <Link to={getLink('/login')}>
+          <Button className="rounded-none px-8 py-6 text-sm tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
+            Sign In
+          </Button>
+        </Link>
       </div>
     );
   }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'shipped': return 'bg-blue-100 text-blue-800';
+      case 'delivered': return 'bg-green-50 text-green-700 border-green-200';
+      case 'cancelled': return 'bg-red-50 text-red-700 border-red-200';
+      case 'shipped': return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'confirmed':
-      case 'packed': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'packed': return 'bg-yellow-50 text-yellow-800 border-yellow-200';
+      default: return 'bg-neutral-50 text-neutral-700 border-neutral-200';
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link to={getLink('/account')} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6">
+    <div className="min-h-screen bg-white flex flex-col">
+      <div className="container mx-auto px-4 py-8 lg:py-12 max-w-3xl flex-1">
+        <Link to={getLink('/account')} className="flex items-center gap-2 text-neutral-500 hover:text-black mb-8 transition-colors w-fit">
           <ArrowLeft className="w-4 h-4" />
-          Back to account
+          <span className="text-sm font-medium uppercase tracking-widest">Back to account</span>
         </Link>
 
-        <h1 className="text-2xl font-display font-bold mb-6">My Orders</h1>
+        <h1 className="text-3xl font-serif text-neutral-900 tracking-tight mb-8">My Orders</h1>
 
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          <div className="py-20 flex justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-neutral-300 border-t-black animate-spin" />
+          </div>
         ) : orders.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Package className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground mb-4">No orders yet</p>
-              <Link to={getLink('/products')}>
-                <Button>Start Shopping</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="py-20 flex flex-col items-center justify-center text-center bg-neutral-50 p-6 border border-neutral-100">
+            <Package className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+            <h3 className="font-medium text-lg text-neutral-900 mb-2">No orders yet</h3>
+            <p className="text-neutral-500 mb-6">Discover our latest collections and place your first order.</p>
+            <Link to={getLink('/products')}>
+              <Button className="rounded-none px-8 py-6 text-sm tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
+                Start Shopping
+              </Button>
+            </Link>
+          </div>
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (
-              <Link key={order.id} to={getLink(`/account/orders/${order.id}`)}>
-                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                  <CardContent className="py-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-sm">{order.order_number}</span>
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status.toUpperCase()}
-                      </Badge>
+              <Link key={order.id} to={getLink(`/account/orders/${order.id}`)} className="block group">
+                <div className="border border-neutral-200 p-6 hover:border-black transition-colors bg-white">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                    <div>
+                      <span className="text-sm text-neutral-500 uppercase tracking-widest font-semibold block mb-1">Order Number</span>
+                      <span className="font-medium text-neutral-900">#{order.order_number}</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {format(new Date(order.created_at), 'MMM d, yyyy')}
-                      </span>
-                      <span className="font-medium">₹{order.total.toFixed(2)}</span>
+                    <span className={`px-3 py-1 text-xs font-bold uppercase tracking-widest border ${getStatusColor(order.status)} w-fit`}>
+                      {order.status}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-end pt-4 border-t border-neutral-100">
+                    <div>
+                      <p className="text-xs text-neutral-500 uppercase tracking-widest font-semibold mb-1">Placed On</p>
+                      <p className="font-medium text-neutral-900">{format(new Date(order.created_at), 'MMMM d, yyyy')}</p>
                     </div>
-                    {order.payment_status === 'unpaid' && (
-                      <Badge variant="outline" className="mt-2 text-orange-600 border-orange-300">
+                    <div className="text-right">
+                      <p className="text-xs text-neutral-500 uppercase tracking-widest font-semibold mb-1">Total Amount</p>
+                      <p className="font-medium text-neutral-900 text-lg">₹{order.total.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  {order.payment_status === 'unpaid' && (
+                    <div className="mt-4 pt-4 border-t border-neutral-100">
+                      <span className="text-xs text-red-600 font-semibold uppercase tracking-widest">
                         Payment Pending
-                      </Badge>
-                    )}
-                  </CardContent>
-                </Card>
+                      </span>
+                    </div>
+                  )}
+                </div>
               </Link>
             ))}
           </div>
