@@ -31,7 +31,8 @@ import {
   Truck,
   IndianRupee,
   Gift,
-  Tag
+  Tag,
+  ChevronRight
 } from 'lucide-react';
 
 interface Tenant {
@@ -93,6 +94,14 @@ export default function ProductDetail() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(false);
 
+  // Phase 5: Functional Coupons and Shiprocket Checker
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [hasShiprocket, setHasShiprocket] = useState(false);
+  const [deliveryPincode, setDeliveryPincode] = useState('');
+  const [deliveryStatus, setDeliveryStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [deliveryData, setDeliveryData] = useState<any>(null);
+  const [deliveryError, setDeliveryError] = useState('');
+
   // Use either the URL slug or the custom domain tenant slug
   const effectiveSlug = slug || customDomainTenant?.store_slug;
   const effectiveTenantId = tenant?.id || customDomainTenant?.id;
@@ -127,6 +136,34 @@ export default function ProductDetail() {
       }
 
       setTenant(currentTenant);
+
+      if (currentTenant) {
+        // Fetch active coupons
+        const { data: couponsData } = await supabaseStore
+          .from('coupons')
+          .select('code, type, value, min_cart_amount, max_discount_amount, starts_at, ends_at')
+          .eq('tenant_id', currentTenant.id)
+          .eq('is_active', true);
+
+        if (couponsData) {
+          const now = new Date();
+          const validCoupons = couponsData.filter(c => {
+            if (c.starts_at && new Date(c.starts_at) > now) return false;
+            if (c.ends_at && new Date(c.ends_at) < now) return false;
+            return true;
+          });
+          setCoupons(validCoupons);
+        }
+
+        // Fetch Shiprocket integration status
+        const { data: integrations } = await supabaseStore
+          .from('tenant_integrations_safe')
+          .select('has_shiprocket_password')
+          .eq('tenant_id', currentTenant.id)
+          .maybeSingle();
+
+        setHasShiprocket(!!integrations?.has_shiprocket_password);
+      }
 
       if (!productSlug) return;
 
@@ -263,6 +300,32 @@ export default function ProductDetail() {
       });
       setIsWishlisted(true);
       toast.success('Added to wishlist');
+    }
+  };
+
+  const handleCheckDelivery = async () => {
+    if (!deliveryPincode || deliveryPincode.length !== 6) {
+      toast.error("Please enter a valid 6-digit pincode");
+      return;
+    }
+    setDeliveryStatus('loading');
+    setDeliveryError('');
+    setDeliveryData(null);
+    try {
+      const { data, error } = await supabaseStore.functions.invoke('shiprocket-check-serviceability', {
+        body: { delivery_postcode: deliveryPincode, cod: true }
+      });
+
+      if (error || !data.success) {
+        setDeliveryStatus('error');
+        setDeliveryError(data?.error || "Delivery not available for this pincode.");
+      } else {
+        setDeliveryStatus('success');
+        setDeliveryData(data.data);
+      }
+    } catch (err) {
+      setDeliveryStatus('error');
+      setDeliveryError("Failed to check delivery.");
     }
   };
 
@@ -461,22 +524,36 @@ export default function ProductDetail() {
                   Earn 10% CASHBACK
                 </div>
 
-                {/* Offers Box */}
-                <div className="mb-6 rounded-lg border border-dashed border-neutral-400 bg-white p-4 relative mx-px mt-4">
-                  <div className="absolute -top-3 left-4 bg-white p-1 rounded-full border border-dashed border-neutral-400 text-neutral-600">
-                    <div className="bg-neutral-200 rounded-full p-1">
-                      <Tag className="w-3 h-3 text-neutral-600" />
+                {/* Offers Box - Functional Carousel */}
+                {coupons.length > 0 && (
+                  <div className="mb-6 rounded-lg border border-dashed border-neutral-400 bg-white p-4 relative mx-px mt-4 overflow-hidden">
+                    <div className="absolute -top-3 left-4 bg-white p-1 rounded-full border border-dashed border-neutral-400 text-neutral-600 z-10">
+                      <div className="bg-neutral-200 rounded-full p-1">
+                        <Tag className="w-3 h-3 text-neutral-600" />
+                      </div>
+                    </div>
+
+                    <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar -mx-4 px-4 pb-2">
+                      {coupons.map((coupon, idx) => (
+                        <div key={idx} className="flex-none w-full snap-start pr-4 border-r border-neutral-100 mr-4 last:border-0 last:mr-0 last:pr-0">
+                          <div className="mt-2 text-sm">
+                            <p className="font-bold text-[#14833D]">
+                              {coupon.type === 'percent' ? `Get Flat ${coupon.value}% OFF` : `Get ₹${coupon.value} OFF`}
+                            </p>
+                            <p className="text-neutral-600 mt-1">
+                              {coupon.min_cart_amount > 0 ? `Add items worth ₹${coupon.min_cart_amount}+ to unlock this offer.` : 'Valid on this order!'}
+                              {coupon.max_discount_amount ? ` Max discount ₹${coupon.max_discount_amount}.` : ''}
+                            </p>
+                            <div className="flex justify-between items-center mt-4 border-t border-neutral-100 pt-3">
+                              <span className="text-neutral-700 font-medium cursor-pointer hover:text-black hover:underline" onClick={() => { navigator.clipboard.writeText(coupon.code); toast.success('Coupon code copied to clipboard!'); }}>Tap to copy coupon</span>
+                              <span className="font-medium text-neutral-900 border border-neutral-200 px-2 py-1 rounded bg-neutral-50">{coupon.code}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  <div className="mt-2 text-sm">
-                    <p className="font-bold text-[#14833D]">Get Flat 10% OFF</p>
-                    <p className="text-neutral-600 mt-1">Add items worth ₹2999+ to unlock this offer</p>
-                    <div className="flex justify-between items-center mt-4 border-t border-neutral-100 pt-3">
-                      <span className="text-neutral-700 font-medium">Apply coupon at checkout</span>
-                      <span className="font-medium text-neutral-900">Code: BYNG10</span>
-                    </div>
-                  </div>
-                </div>
+                )}
 
                 {/* Prepaid Banner */}
                 <div className="mb-8 flex items-center justify-between bg-[#f4f6ff] p-3 rounded-md text-xs sm:text-sm text-neutral-700">
@@ -522,26 +599,60 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Check Delivery Date */}
-                <div className="mb-8">
-                  <h3 className="font-bold text-base mb-3">Check Delivery Date</h3>
-                  <div className="flex h-12 w-full max-w-sm rounded overflow-hidden border border-neutral-300 focus-within:ring-1 focus-within:ring-black">
-                    <Input placeholder="Enter Pincode" className="rounded-none border-none h-full focus-visible:ring-0 px-4 text-base shadow-none" />
-                    <Button className="h-full rounded-none px-6 bg-[#222222] hover:bg-black text-white uppercase font-bold tracking-wider">Check</Button>
-                  </div>
-                  <div className="mt-5 space-y-3">
-                    <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
-                      <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
-                      Free Shipping
+                {/* Check Delivery Date - Functional */}
+                {hasShiprocket && (
+                  <div className="mb-8">
+                    <h3 className="font-bold text-base mb-3">Check Delivery Date</h3>
+                    <div className="flex h-12 w-full max-w-sm rounded overflow-hidden border border-neutral-300 focus-within:ring-1 focus-within:ring-black">
+                      <Input
+                        placeholder="Enter Pincode"
+                        value={deliveryPincode}
+                        onChange={(e) => setDeliveryPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="rounded-none border-none h-full focus-visible:ring-0 px-4 text-base shadow-none"
+                      />
+                      <Button
+                        onClick={handleCheckDelivery}
+                        disabled={deliveryStatus === 'loading' || deliveryPincode.length !== 6}
+                        className="h-full rounded-none px-6 bg-[#222222] hover:bg-black text-white uppercase font-bold tracking-wider disabled:bg-neutral-400"
+                      >
+                        {deliveryStatus === 'loading' ? '...' : 'Check'}
+                      </Button>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
-                      <div className="border border-neutral-500 rounded p-[2px] flex items-center font-bold text-[10px] uppercase">
-                        COD
+
+                    {deliveryStatus === 'error' && (
+                      <div className="mt-3 text-sm text-red-500 font-medium flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" /> {deliveryError}
                       </div>
-                      Cash On Delivery Available
+                    )}
+
+                    {deliveryStatus === 'success' && deliveryData?.available_courier_companies?.length > 0 && (
+                      <div className="mt-4 p-3 bg-green-50 rounded border border-green-100">
+                        <p className="text-sm text-green-800 font-medium">
+                          Delivery available to {deliveryPincode}.
+                        </p>
+                        <p className="text-xs text-green-700 mt-1">
+                          Expected delivery by: <span className="font-bold">{deliveryData.available_courier_companies[0]?.etd?.split(' ')[0] || "3-5 days"}</span>
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-5 space-y-3">
+                      <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
+                        <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
+                        Free Shipping
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
+                        <div className="border border-neutral-500 rounded p-[2px] flex items-center font-bold text-[10px] uppercase">
+                          COD
+                        </div>
+                        {deliveryStatus === 'success' && deliveryData?.available_courier_companies?.length > 0
+                          ? (deliveryData.available_courier_companies.some((c: any) => c.cod === 1) ? 'Cash On Delivery Available' : 'Cash On Delivery Not Available for this Pincode')
+                          : 'Cash On Delivery Available'
+                        }
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Yellow Reward Banner */}
                 <div className="mb-8 bg-[#fce000] flex items-center gap-4 p-4 rounded-md shadow-sm">
