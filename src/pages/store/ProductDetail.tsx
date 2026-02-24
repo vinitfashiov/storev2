@@ -654,25 +654,20 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Yellow Reward Banner */}
-                <div className="mb-8 bg-[#fce000] flex items-center gap-4 p-4 rounded-md shadow-sm">
-                  <Gift className="w-7 h-7 text-red-600 fill-teal-400" />
-                  <span className="font-bold text-sm sm:text-base text-neutral-900">You will get 10% reward points on this order</span>
-                </div>
 
                 {/* Actions (Desktop) */}
-                <div className="hidden lg:flex gap-4 mb-10 w-full max-w-sm">
+                <div className="hidden lg:flex gap-1.5 mb-10 w-full xl:max-w-md">
                   <Button
                     onClick={handleAddToCart}
                     disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                    className="flex-1 h-14 text-sm font-bold uppercase bg-[#222222] text-white hover:bg-black rounded-md transition-colors shadow-sm"
+                    className="flex-1 h-14 text-sm font-bold uppercase tracking-wider bg-[#222222] text-white hover:bg-black rounded-[0.25rem] transition-colors shadow-none"
                   >
                     {adding ? 'Adding...' : 'Add to Cart'}
                   </Button>
                   <Button
                     onClick={handleBuyNow}
                     disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                    className="flex-1 h-14 text-sm font-bold uppercase bg-[#fce000] text-black hover:bg-[#ebd000] rounded-md transition-colors shadow-sm"
+                    className="flex-1 h-14 text-sm font-bold uppercase tracking-wider bg-[#fce000] text-black hover:bg-[#ebd000] rounded-[0.25rem] transition-colors shadow-none"
                   >
                     Buy Now
                   </Button>
@@ -773,19 +768,19 @@ export default function ProductDetail() {
       />
 
       {/* Mobile Sticky Action Bar */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="flex gap-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-100 py-2.5 px-2.5 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-4px_15px_rgba(0,0,0,0.03)]">
+        <div className="flex gap-2 w-full">
           <Button
             onClick={handleAddToCart}
             disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-            className="flex-1 h-12 text-sm font-bold uppercase tracking-wider bg-[#222222] text-white hover:bg-black rounded-md transition-colors"
+            className="flex-1 h-[52px] text-[13px] font-extrabold uppercase tracking-widest bg-[#202020] text-white hover:bg-black rounded-[5px] transition-colors shadow-none"
           >
             {adding ? 'Adding...' : 'Add to Cart'}
           </Button>
           <Button
             onClick={handleBuyNow}
             disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-            className="flex-1 h-12 text-sm font-bold uppercase tracking-wider bg-[#fce000] text-black hover:bg-[#ebd000] rounded-md transition-colors"
+            className="flex-1 h-[52px] text-[13px] font-extrabold uppercase tracking-widest bg-[#ffdd00] text-black hover:bg-[#eacb00] rounded-[5px] transition-colors shadow-none"
           >
             Buy Now
           </Button>
