@@ -4,6 +4,8 @@ import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { D2CProductCard } from '@/components/storefront/d2c/D2CProductCard';
@@ -16,14 +18,20 @@ import {
   ShoppingCart,
   Minus,
   Plus,
-  ChevronRight,
   ChevronLeft,
   Check,
   AlertCircle,
   Heart,
   Clock,
   Star,
-  Share2
+  Share2,
+  ShieldCheck,
+  Users,
+  MapPin,
+  Truck,
+  IndianRupee,
+  Gift,
+  Tag
 } from 'lucide-react';
 
 interface Tenant {
@@ -80,7 +88,6 @@ export default function ProductDetail() {
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [adding, setAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -271,9 +278,9 @@ export default function ProductDetail() {
     }
 
     setAdding(true);
-    const success = await addToCart(product.id, price, quantity);
+    const success = await addToCart(product.id, price, 1);
     if (success) {
-      toast.success(`Added ${quantity} item(s) to cart!`);
+      toast.success(`Added item to cart!`);
     } else {
       toast.error('Failed to add to cart');
     }
@@ -292,7 +299,7 @@ export default function ProductDetail() {
     }
 
     setAdding(true);
-    const success = await addToCart(product.id, price, quantity);
+    const success = await addToCart(product.id, price, 1);
     setAdding(false);
 
     if (success) {
@@ -344,10 +351,9 @@ export default function ProductDetail() {
     );
   }
 
-  // Premium D2C Layout
+  // Premium D2C Layout matching the user reference images
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-black selection:text-white">
-      {/* Universal Header - No longer hidden on mobile */}
+    <div className="min-h-screen bg-white flex flex-col font-sans selection:bg-black selection:text-white pb-24 lg:pb-0">
       <StoreHeader
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -357,38 +363,23 @@ export default function ProductDetail() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 pb-24 lg:pb-0">
+      <main className="flex-1">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
 
-          {/* Breadcrumbs */}
-          <nav className="flex items-center gap-2 text-xs font-medium tracking-wide text-neutral-400 mb-6 lg:mb-10 pb-4 border-b border-neutral-100 overflow-x-auto whitespace-nowrap hide-scrollbar">
-            <Link to={getLink('/')} className="hover:text-black transition-colors uppercase">Home</Link>
-            <ChevronRight className="w-3 h-3 shrink-0" />
-            <Link to={getLink('/products')} className="hover:text-black transition-colors uppercase">Shop</Link>
-            {product.category && (
-              <>
-                <ChevronRight className="w-3 h-3 shrink-0" />
-                <span className="text-black uppercase">{product.category.name}</span>
-              </>
-            )}
-            <ChevronRight className="w-3 h-3 shrink-0" />
-            <span className="text-black uppercase truncate max-w-[200px] sm:max-w-none">{product.name}</span>
-          </nav>
-
-          <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16 mt-4 lg:mt-6">
 
             {/* Left Column: Images */}
             <div className="lg:col-span-7 xl:col-span-7 relative">
 
-              {/* Desktop: Image Grid Strategy */}
+              {/* Desktop: Image Grid */}
               <div className="hidden lg:grid grid-cols-2 gap-4">
                 {product.images?.map((img, idx) => (
-                  <div key={idx} className={`bg-neutral-50 overflow-hidden ${idx === 0 && product.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
-                    <img src={getImageUrl(img)} alt={product.name} className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-700 ease-out cursor-crosshair min-h-[500px]" />
+                  <div key={idx} className={`bg-neutral-50 overflow-hidden rounded-md ${idx === 0 && product.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
+                    <img src={getImageUrl(img)} alt={product.name} className="w-full h-full object-cover object-top min-h-[500px]" />
                   </div>
                 ))}
                 {(!product.images || product.images.length === 0) && (
-                  <div className="col-span-2 aspect-[3/4] bg-neutral-50 flex items-center justify-center">
+                  <div className="col-span-2 aspect-[3/4] bg-neutral-50 flex items-center justify-center rounded-md">
                     <Package className="w-24 h-24 text-neutral-300" />
                   </div>
                 )}
@@ -408,17 +399,9 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Mobile Discount Badge Overlay */}
-                {discount > 0 && (
-                  <div className="absolute top-4 left-4 z-10 lg:hidden">
-                    <Badge className="bg-green-600 hover:bg-green-600 text-white border-none rounded-sm px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-                      {discount}% OFF
-                    </Badge>
-                  </div>
-                )}
                 {/* Mobile Wishlist Overlay */}
                 <div className="absolute top-4 right-4 z-10 lg:hidden">
-                  <button onClick={handleToggleWishlist} className="w-10 h-10 bg-white/90 backdrop-blur-sm shadow-sm rounded-full flex items-center justify-center text-neutral-900 border border-neutral-100">
+                  <button onClick={handleToggleWishlist} className="w-10 h-10 bg-white/90 shadow-sm rounded-full flex items-center justify-center text-neutral-900 border border-neutral-100">
                     <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
                   </button>
                 </div>
@@ -426,70 +409,84 @@ export default function ProductDetail() {
 
               {/* Scroll indicator text for mobile */}
               {product.images?.length > 1 && (
-                <div className="lg:hidden text-center mt-3 text-[10px] text-neutral-400 font-medium uppercase tracking-widest">
-                  Swipe for more images
+                <div className="lg:hidden flex justify-center mt-3 gap-1">
+                  {product.images.map((_, i) => (
+                    <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === selectedImage ? 'bg-black' : 'bg-neutral-300'}`} />
+                  ))}
                 </div>
               )}
             </div>
 
             {/* Right Column: Sticky Details */}
-            <div className="lg:col-span-5 xl:col-span-5 mt-8 lg:mt-0 relative">
+            <div className="lg:col-span-5 xl:col-span-5 relative mt-6 lg:mt-0">
               <div className="lg:sticky lg:top-32 flex flex-col">
 
                 {/* Share & Wishlist (Desktop) */}
-                <div className="hidden lg:flex justify-end mb-4">
+                <div className="hidden lg:flex justify-end mb-4 gap-4">
+                  <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors group">
+                    <Share2 className="w-4 h-4 transition-colors group-hover:text-black" />
+                  </button>
                   <button onClick={handleToggleWishlist} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-black transition-colors group">
                     <Heart className={`w-4 h-4 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'group-hover:fill-black group-hover:text-black'}`} />
-                    {isWishlisted ? 'Saved' : 'Save'}
                   </button>
                 </div>
 
                 {/* Header info */}
-                <div className="mb-6 lg:mb-8">
+                <div className="mb-4">
                   {product.brand && (
-                    <h2 className="text-xs font-bold tracking-[0.2em] uppercase text-neutral-500 mb-3">{product.brand.name}</h2>
+                    <h2 className="text-[11px] font-bold uppercase text-neutral-500 mb-2 tracking-wide">{product.brand.name}</h2>
                   )}
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-normal text-neutral-900 leading-[1.1] tracking-tight">{product.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 leading-[1.2]">{product.name}</h1>
                 </div>
 
                 {/* Pricing */}
-                <div className="flex items-end gap-3 mb-8">
-                  <span className="text-2xl lg:text-3xl font-bold tracking-tight text-neutral-900">₹{displayPrice}</span>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl font-bold text-neutral-900">₹{displayPrice}</span>
                   {displayComparePrice && (
                     <>
-                      <span className="text-lg lg:text-xl text-neutral-400 line-through font-light">₹{displayComparePrice}</span>
-                      {/* Discount Badge */}
-                      <div className="ml-2">
-                        <Badge className="bg-green-600 hover:bg-green-600 text-white rounded-sm px-2.5 py-1 text-xs font-bold tracking-wider uppercase">
-                          Save {discount}%
-                        </Badge>
+                      <span className="text-lg text-neutral-400 line-through">₹{displayComparePrice}</span>
+                      {/* Yellow Discount Highlight */}
+                      <div className="ml-1 px-2 py-0.5 bg-[#fce000] text-black text-[11px] font-bold tracking-wider uppercase">
+                        {discount}% OFF
                       </div>
                     </>
                   )}
                 </div>
 
-                {/* Stock Status */}
-                <div className="mb-8">
-                  {isOutOfStock ? (
-                    <div className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-red-600 bg-red-50 px-3 py-1.5 rounded-sm">
-                      <AlertCircle className="w-4 h-4" />
-                      Out of Stock
-                    </div>
-                  ) : displayStockQty <= 5 ? (
-                    <div className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-amber-600 bg-amber-50 px-3 py-1.5 rounded-sm">
-                      <Clock className="w-4 h-4" />
-                      Only {displayStockQty} left
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 text-xs font-bold tracking-widest uppercase text-green-600 bg-green-50 px-3 py-1.5 rounded-sm">
-                      <Check className="w-4 h-4" />
-                      In Stock
-                    </div>
-                  )}
+                {/* Cashback Text */}
+                <div className="flex items-center gap-1.5 mb-6 text-sm text-green-600 font-medium">
+                  <span className="flex items-center justify-center w-4 h-4 rounded-full border border-green-600">
+                    <IndianRupee className="w-[10px] h-[10px]" strokeWidth={3} />
+                  </span>
+                  Earn 10% CASHBACK
                 </div>
 
-                {/* Divider */}
-                <div className="w-full h-px bg-neutral-200 mb-8" />
+                {/* Offers Box */}
+                <div className="mb-6 rounded-lg border border-dashed border-neutral-400 bg-white p-4 relative mx-px mt-4">
+                  <div className="absolute -top-3 left-4 bg-white p-1 rounded-full border border-dashed border-neutral-400 text-neutral-600">
+                    <div className="bg-neutral-200 rounded-full p-1">
+                      <Tag className="w-3 h-3 text-neutral-600" />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-sm">
+                    <p className="font-bold text-[#14833D]">Get Flat 10% OFF</p>
+                    <p className="text-neutral-600 mt-1">Add items worth ₹2999+ to unlock this offer</p>
+                    <div className="flex justify-between items-center mt-4 border-t border-neutral-100 pt-3">
+                      <span className="text-neutral-700 font-medium">Apply coupon at checkout</span>
+                      <span className="font-medium text-neutral-900">Code: BYNG10</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prepaid Banner */}
+                <div className="mb-8 flex items-center justify-between bg-[#f4f6ff] p-3 rounded-md text-xs sm:text-sm text-neutral-700">
+                  <span className="font-medium">Additional Prepaid Discount At Checkout</span>
+                  <div className="flex gap-1.5 items-center">
+                    <span className="bg-[#5c2d91] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Pe</span>
+                    <span className="bg-white border text-[#1a1f71] text-[9px] font-bold px-1.5 py-0.5 rounded italic">VISA</span>
+                    <span className="bg-sky-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Pay</span>
+                  </div>
+                </div>
 
                 {/* Variant Selectors */}
                 {product.has_variants && attributeOptions.length > 0 && (
@@ -497,16 +494,23 @@ export default function ProductDetail() {
                     {attributeOptions.map(attr => (
                       <div key={attr.name}>
                         <div className="flex justify-between items-center mb-3">
-                          <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-900">{attr.name}</label>
+                          <label className="text-base font-bold text-neutral-900">
+                            {attr.name} <span className="text-neutral-500 font-normal">({selectedAttributes[attr.name]})</span>
+                          </label>
+                          {attr.name.toLowerCase() === 'size' && (
+                            <span className="text-sm font-medium text-neutral-600 cursor-pointer hover:underline flex items-center">
+                              Size Guide <ChevronRight className="w-4 h-4 ml-0.5" />
+                            </span>
+                          )}
                         </div>
                         <div className="flex gap-3 flex-wrap">
                           {attr.values.map(value => (
                             <button
                               key={value}
                               onClick={() => setSelectedAttributes(prev => ({ ...prev, [attr.name]: value }))}
-                              className={`px-6 py-3 border text-sm font-medium transition-all ${selectedAttributes[attr.name] === value
-                                ? 'border-black bg-black text-white'
-                                : 'border-neutral-200 text-neutral-900 hover:border-black'
+                              className={`px-4 py-2 min-w-[3rem] min-h-[3rem] border rounded-md text-sm font-medium transition-all flex items-center justify-center ${selectedAttributes[attr.name] === value
+                                ? 'border-black text-black ring-1 ring-black ring-offset-1 bg-white'
+                                : 'border-neutral-300 text-neutral-700 hover:border-black bg-white'
                                 }`}
                             >
                               {value}
@@ -518,74 +522,111 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Quantity Selector */}
-                <div className="mb-10">
-                  <label className="text-[11px] font-bold uppercase tracking-widest text-neutral-900 mb-3 block">Quantity</label>
-                  <div className="inline-flex items-center border border-neutral-200 h-12 w-32">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      disabled={isOutOfStock}
-                      className="flex-1 h-full hover:bg-neutral-50 flex items-center justify-center transition-colors disabled:opacity-50 text-neutral-500"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-10 text-center font-medium text-sm text-neutral-900">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(Math.min(displayStockQty, quantity + 1))}
-                      disabled={isOutOfStock || quantity >= displayStockQty}
-                      className="flex-1 h-full hover:bg-neutral-50 flex items-center justify-center transition-colors disabled:opacity-50 text-neutral-500"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                {/* Check Delivery Date */}
+                <div className="mb-8">
+                  <h3 className="font-bold text-base mb-3">Check Delivery Date</h3>
+                  <div className="flex h-12 w-full max-w-sm rounded overflow-hidden border border-neutral-300 focus-within:ring-1 focus-within:ring-black">
+                    <Input placeholder="Enter Pincode" className="rounded-none border-none h-full focus-visible:ring-0 px-4 text-base shadow-none" />
+                    <Button className="h-full rounded-none px-6 bg-[#222222] hover:bg-black text-white uppercase font-bold tracking-wider">Check</Button>
+                  </div>
+                  <div className="mt-5 space-y-3">
+                    <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
+                      <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
+                      Free Shipping
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
+                      <div className="border border-neutral-500 rounded p-[2px] flex items-center font-bold text-[10px] uppercase">
+                        COD
+                      </div>
+                      Cash On Delivery Available
+                    </div>
                   </div>
                 </div>
 
+                {/* Yellow Reward Banner */}
+                <div className="mb-8 bg-[#fce000] flex items-center gap-4 p-4 rounded-md shadow-sm">
+                  <Gift className="w-7 h-7 text-red-600 fill-teal-400" />
+                  <span className="font-bold text-sm sm:text-base text-neutral-900">You will get 10% reward points on this order</span>
+                </div>
+
                 {/* Actions (Desktop) */}
-                <div className="hidden lg:flex flex-col gap-3 mb-10">
+                <div className="hidden lg:flex gap-4 mb-10 w-full max-w-sm">
                   <Button
                     onClick={handleAddToCart}
                     disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                    variant="outline"
-                    className="w-full h-14 text-sm font-bold tracking-widest uppercase border-black text-black hover:bg-black hover:text-white rounded-none transition-colors"
+                    className="flex-1 h-14 text-sm font-bold uppercase bg-[#222222] text-white hover:bg-black rounded-md transition-colors shadow-sm"
                   >
                     {adding ? 'Adding...' : 'Add to Cart'}
                   </Button>
                   <Button
                     onClick={handleBuyNow}
                     disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-                    className="w-full h-14 text-sm font-bold tracking-widest uppercase bg-black text-white hover:bg-neutral-800 rounded-none transition-colors"
+                    className="flex-1 h-14 text-sm font-bold uppercase bg-[#fce000] text-black hover:bg-[#ebd000] rounded-md transition-colors shadow-sm"
                   >
-                    Buy it Now
+                    Buy Now
                   </Button>
                 </div>
 
-                {/* Services Information */}
-                <div className="grid grid-cols-2 gap-4 py-6 border-y border-neutral-200 mb-10">
-                  <div className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-neutral-50">
-                    <Package className="w-6 h-6 text-neutral-700 font-light" strokeWidth={1.5} />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-neutral-600">Secure<br />Delivery</span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center text-center gap-2 p-4 bg-neutral-50">
-                    <Star className="w-6 h-6 text-neutral-700 font-light" strokeWidth={1.5} />
-                    <span className="text-[10px] uppercase tracking-widest font-bold text-neutral-600">Premium<br />Quality Assured</span>
-                  </div>
+                {/* Accordion For Description & Policies */}
+                <div className="mb-10 text-neutral-800">
+                  <Accordion type="single" collapsible className="w-full" defaultValue="overview">
+                    <AccordionItem value="overview">
+                      <AccordionTrigger className="text-sm font-bold hover:no-underline py-4">
+                        Product overview and details
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm text-neutral-600 leading-relaxed whitespace-pre-line pb-4">
+                        {product.description || "No specific details provided for this product."}
+                        {(selectedVariant?.sku || product.sku) && (
+                          <span className="block mt-4 text-xs font-bold text-neutral-400 uppercase">SKU: {selectedVariant?.sku || product.sku}</span>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="returns">
+                      <AccordionTrigger className="text-sm font-bold hover:no-underline py-4">
+                        Returns, Exchange, & Refund Policy
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm text-neutral-500 pb-4">
+                        7 days easy returns and exchange
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="marketed">
+                      <AccordionTrigger className="text-sm font-bold hover:no-underline py-4 border-b-0">
+                        Marketed By
+                      </AccordionTrigger>
+                      <AccordionContent className="text-sm text-neutral-500 pb-4">
+                        Company and distributor information
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 </div>
 
-                {/* Description Header */}
-                {product.description && (
-                  <div className="space-y-6">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-900 border-b border-neutral-200 pb-3">Product Details</h3>
-                    <div className="prose prose-sm text-neutral-600 max-w-none leading-relaxed font-light">
-                      <p className="whitespace-pre-line">{product.description}</p>
+                {/* Trust Badges */}
+                <div className="grid grid-cols-3 gap-2 py-8 border-y border-neutral-100 mb-10 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center relative">
+                      <ShieldCheck className="w-8 h-8 text-neutral-700 absolute z-10" strokeWidth={1.5} />
+                      <div className="absolute inset-0 border-2 border-neutral-700/20 rotate-12 rounded-full border-dashed"></div>
+                      <div className="absolute inset-0 border-2 border-neutral-700/20 -rotate-12 rounded-full"></div>
                     </div>
-                    {/* SKU */}
-                    {(selectedVariant?.sku || product.sku) && (
-                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mt-4">
-                        SKU: {selectedVariant?.sku || product.sku}
-                      </p>
-                    )}
+                    <span className="text-[12px] font-bold text-neutral-800 leading-tight">Genuine<br />Product</span>
                   </div>
-                )}
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center relative">
+                      <Users className="w-8 h-8 text-neutral-700 z-10" strokeWidth={1.5} />
+                      <div className="absolute inset-0 border-[1.5px] border-neutral-700/20 rounded-full border-dashed"></div>
+                      <div className="absolute inset-3 border-[1.5px] border-neutral-700/20 rounded-full"></div>
+                    </div>
+                    <span className="text-[12px] font-bold text-neutral-800 leading-tight">3M+ Happy<br />Customers</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center relative">
+                      <MapPin className="w-8 h-8 text-neutral-700 z-10" strokeWidth={1.5} />
+                      <div className="absolute inset-0 border-[1.5px] border-neutral-700/20 rounded-full"></div>
+                      <div className="absolute bottom-2 left-3 w-8 h-[2px] bg-neutral-700/20"></div>
+                    </div>
+                    <span className="text-[12px] font-bold text-neutral-800 leading-tight">Made in<br />India</span>
+                  </div>
+                </div>
 
               </div>
             </div>
@@ -594,20 +635,15 @@ export default function ProductDetail() {
 
           {/* Similar Products Section */}
           {similarProducts.length > 0 && (
-            <div className="mt-20 lg:mt-32 pt-16 border-t border-neutral-200 mb-8">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="text-2xl font-normal text-neutral-900 tracking-wide uppercase">You Might Also Like</h2>
-                {product.category && (
-                  <Link to={getLink('/products')} className="text-xs font-bold uppercase tracking-widest text-neutral-500 hover:text-black hidden sm:block border-b border-transparent hover:border-black pb-1 transition-all">
-                    View More
-                  </Link>
-                )}
+            <div className="mt-16 lg:mt-24 pt-8 mb-8 border-t-8 border-neutral-50/50">
+              <div className="mb-6 lg:mb-8">
+                <h2 className="text-xl font-bold text-neutral-900 tracking-tight">Similar Products</h2>
               </div>
 
               {/* Scrollable Row */}
-              <div className="flex overflow-x-auto gap-4 lg:gap-8 pb-8 snap-x hide-scrollbar">
+              <div className="flex flex-wrap lg:flex-nowrap overflow-x-auto gap-4 lg:gap-6 pb-8 snap-x hide-scrollbar">
                 {similarProducts.map((p) => (
-                  <div key={p.id} className="min-w-[240px] lg:min-w-[280px] w-[65vw] lg:w-1/4 shrink-0 snap-start">
+                  <div key={p.id} className="min-w-[160px] lg:min-w-[240px] w-[calc(50%-8px)] lg:w-1/4 shrink-0 snap-start">
                     <D2CProductCard product={p} storeSlug={effectiveSlug || ''} />
                   </div>
                 ))}
@@ -618,7 +654,6 @@ export default function ProductDetail() {
         </div>
       </main>
 
-      {/* Universal Footer - Unhidden on mobile */}
       <StoreFooter
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -628,21 +663,20 @@ export default function ProductDetail() {
 
       {/* Mobile Sticky Action Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             onClick={handleAddToCart}
             disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-            variant="outline"
-            className="flex-1 h-12 text-xs font-bold tracking-widest uppercase border-black text-black hover:bg-neutral-100 rounded-none transition-colors"
+            className="flex-1 h-12 text-sm font-bold uppercase tracking-wider bg-[#222222] text-white hover:bg-black rounded-md transition-colors"
           >
             {adding ? 'Adding...' : 'Add to Cart'}
           </Button>
           <Button
             onClick={handleBuyNow}
             disabled={isOutOfStock || adding || (product.has_variants && !selectedVariant)}
-            className="flex-1 h-12 text-xs font-bold tracking-widest uppercase bg-black text-white hover:bg-neutral-800 rounded-none transition-colors"
+            className="flex-1 h-12 text-sm font-bold uppercase tracking-wider bg-[#fce000] text-black hover:bg-[#ebd000] rounded-md transition-colors"
           >
-            Buy it Now
+            Buy Now
           </Button>
         </div>
       </div>

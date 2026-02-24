@@ -16,11 +16,15 @@ AS $$
 $$;
 
 -- Grant super admin role to the platform owner
--- Phone: +918544437580
+-- Phone: 8544437580
+-- Note: Supabase stores phone in raw_user_meta_data or you can use email
 UPDATE public.profiles 
 SET role = 'super_admin' 
 WHERE id IN (
-  SELECT id FROM auth.users WHERE phone = '+918544437580'
+  SELECT id FROM auth.users 
+  WHERE raw_user_meta_data->>'phone' = '8544437580'
+  OR phone = '8544437580'
+  OR email LIKE '%8544437580%'
 );
 
 -- Update RLS policies to allow super admins full access

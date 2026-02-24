@@ -20,7 +20,7 @@ $$;
 UPDATE public.profiles 
 SET role = 'super_admin' 
 WHERE id IN (
-  SELECT id FROM auth.users WHERE phone = '+91YOUR_PHONE_NUMBER_HERE'
+  SELECT id FROM auth.users WHERE phone = '8544437580'
 );
 
 -- Update RLS policies to allow super admins full access
