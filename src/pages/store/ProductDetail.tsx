@@ -427,29 +427,48 @@ export default function ProductDetail() {
       />
 
       <main className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+        <div className="max-w-[1400px] mx-auto sm:px-6 lg:px-8 sm:py-6 lg:py-10">
 
-          <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16 mt-4 lg:mt-6">
+          <div className="lg:grid lg:grid-cols-12 lg:gap-x-12 xl:gap-x-16 sm:mt-4 lg:mt-6">
 
             {/* Left Column: Images */}
             <div className="lg:col-span-7 xl:col-span-7 relative">
 
-              {/* Desktop: Image Grid */}
-              <div className="hidden lg:grid grid-cols-2 gap-4">
-                {product.images?.map((img, idx) => (
-                  <div key={idx} className={`bg-neutral-50 overflow-hidden rounded-md ${idx === 0 && product.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
-                    <img src={getImageUrl(img)} alt={product.name} className="w-full h-full object-cover object-top min-h-[500px]" />
-                  </div>
-                ))}
-                {(!product.images || product.images.length === 0) && (
-                  <div className="col-span-2 aspect-[3/4] bg-neutral-50 flex items-center justify-center rounded-md">
-                    <Package className="w-24 h-24 text-neutral-300" />
+              {/* Desktop: Image Gallery */}
+              <div className="hidden lg:flex gap-4">
+                {/* Thumbnails */}
+                {product.images && product.images.length > 1 && (
+                  <div className="flex flex-col gap-3 w-20 shrink-0">
+                    {product.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedImage(idx)}
+                        className={`aspect-[3/4] rounded bg-neutral-50 overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-black' : 'border-transparent hover:border-neutral-300'}`}
+                      >
+                        <img src={getImageUrl(img)} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover object-top" />
+                      </button>
+                    ))}
                   </div>
                 )}
+
+                {/* Main Image */}
+                <div className="flex-1 rounded-md overflow-hidden bg-neutral-50">
+                  {product.images?.length > 0 ? (
+                    <img
+                      src={getImageUrl(product.images[selectedImage] || product.images[0])}
+                      alt={product.name}
+                      className="w-full h-auto min-h-[500px] object-cover object-top aspect-[4/5] lg:aspect-[3/4]"
+                    />
+                  ) : (
+                    <div className="w-full aspect-[4/5] lg:aspect-[3/4] flex items-center justify-center">
+                      <Package className="w-24 h-24 text-neutral-300" />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Mobile: Horizontal Snap Carousel */}
-              <div className="lg:hidden -mx-4 sm:mx-0 flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
+              <div className="lg:hidden flex overflow-x-auto snap-x snap-mandatory hide-scrollbar">
                 {product.images?.length > 0 ? (
                   product.images.map((img, idx) => (
                     <div key={idx} className="w-full flex-none snap-center relative aspect-[4/5] bg-neutral-50">
@@ -481,7 +500,7 @@ export default function ProductDetail() {
             </div>
 
             {/* Right Column: Sticky Details */}
-            <div className="lg:col-span-5 xl:col-span-5 relative mt-6 lg:mt-0">
+            <div className="lg:col-span-5 xl:col-span-5 relative mt-6 lg:mt-0 px-4 sm:px-0">
               <div className="lg:sticky lg:top-32 flex flex-col">
 
                 {/* Share & Wishlist (Desktop) */}
@@ -741,7 +760,7 @@ export default function ProductDetail() {
 
           {/* Similar Products Section */}
           {similarProducts.length > 0 && (
-            <div className="mt-16 lg:mt-24 pt-8 mb-8 border-t-8 border-neutral-50/50">
+            <div className="mt-16 lg:mt-24 pt-8 mb-8 border-t-8 border-neutral-50/50 px-4 sm:px-0">
               <div className="mb-6 lg:mb-8">
                 <h2 className="text-xl font-bold text-neutral-900 tracking-tight">Similar Products</h2>
               </div>
