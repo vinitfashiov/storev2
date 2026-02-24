@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Json } from '@/integrations/supabase/types';
 import { useStoreAnalyticsEvent } from '@/contexts/StoreAnalyticsContext';
+import { toast } from 'sonner';
 
 interface CartItem {
   id: string;
@@ -98,26 +99,36 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         .select()
         .single();
 
-      if (error || !data) return null;
+      if (error || !data) {
+        toast.error(`Cart creation error: ${error?.message || 'Unknown'}`);
+        return null;
+      }
 
       localStorage.setItem(getCartKey(), data.id);
       const newCart: Cart = { ...data, items: [] };
       setCart(newCart);
       return newCart;
-    } catch (error) {
+    } catch (error: any) {
+      toast.error(`Cart catch error: ${error?.message || 'Unknown'}`);
       console.error('Error creating cart:', error);
       return null;
     }
   }, [tenantId, storeSlug]);
 
   const addToCart = useCallback(async (productId: string, price: number, qty: number = 1) => {
-    if (!tenantId) return false;
+    if (!tenantId) {
+      toast.error('Missing Tenant ID in cart hook');
+      return false;
+    }
 
     try {
       let currentCart = cart;
       if (!currentCart) {
         currentCart = await createCart();
-        if (!currentCart) return false;
+        if (!currentCart) {
+          toast.error('Failed to create cart backend instance');
+          return false;
+        }
       }
 
       const existingItem = currentCart.items.find(item => item.product_id === productId);
@@ -182,8 +193,9 @@ export function useCart(storeSlug: string, tenantId: string | null) {
             });
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to sync cart:', error);
+        toast.error(`Sync error: ${error?.message || 'Unknown'}`);
         // Rollback optimistic update on error
         fetchCart(currentCart.id);
       }
@@ -195,8 +207,9 @@ export function useCart(storeSlug: string, tenantId: string | null) {
       trackEvent('add_to_cart', { product_id: productId, qty, price, cart_value: getSubtotal() + price * qty });
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in addToCart:', error);
+      toast.error(`Global add error: ${error?.message || 'Unknown'}`);
       return false;
     }
   }, [cart, tenantId, createCart, fetchCart, trackEvent]);
