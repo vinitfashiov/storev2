@@ -191,6 +191,28 @@ serve(async (req) => {
     // 5. Create Order (Atomic)
     // CRITICAL: Create order BEFORE marking intent as paid.
 
+    // IDEMPOTENCY CHECK: Ensure we haven't already created this order to prevent double-charging/double-deduction.
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('order_number', draftData.order_number)
+      .eq('tenant_id', tenant.id)
+      .maybeSingle();
+
+    if (existingOrder) {
+      console.log('Idempotency Check: Order already exists. Returning success.');
+      // Mark as paid since order exists
+      await supabase
+        .from('payment_intents')
+        .update({ status: 'paid', razorpay_payment_id })
+        .eq('id', payment_intent_id);
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'Order already processed', order_number: draftData.order_number }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Prepare order items
     const orderItemsData = draftData.items.map(item => ({
       product_id: item.product_id,
@@ -257,19 +279,22 @@ serve(async (req) => {
 
     // Handle Coupons
     if (draftData.coupon_id) {
-      // Fire and forget - not critical for order success
-      Promise.all([
-        supabase.from('coupon_redemptions').insert({
+      // Made atomic: if order succeeds, we await coupon usage to ensure consistency
+      try {
+        await supabase.from('coupon_redemptions').insert({
           tenant_id: tenant.id,
           coupon_id: draftData.coupon_id,
           order_id: orderId,
           customer_id: draftData.customer_id || null,
           discount_amount: draftData.discount_total || 0
-        }),
-        supabase.rpc('increment_coupon_usage', {
+        });
+
+        await supabase.rpc('increment_coupon_usage', {
           p_coupon_id: draftData.coupon_id
-        })
-      ]).catch(err => console.error('Coupon Error:', err));
+        });
+      } catch (err) {
+        console.error('Coupon Error - Order still succeeded:', err);
+      }
     }
 
     // Handle Grocery Delivery Assignments

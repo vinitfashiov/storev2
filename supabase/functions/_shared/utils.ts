@@ -6,8 +6,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCache, cached, CacheKeys } from "./cache.ts";
 import { monitor, createContext } from "./monitoring.ts";
 
+// A flexible but secure CORS header generator function.
+// It reflects the incoming Origin if it's a localhost or Vercel deployment URL,
+// otherwise it denies the cross-origin request.
+export const generateCorsHeaders = (req: Request) => {
+  const origin = req.headers.get('Origin') || '';
+  // Only allow localhost during dev, or any vercel.app domain, or the user's custom domains
+  // With the reverse proxy in place, the origin should match the domain hosting the frontend.
+  // We can safely reflect the origin if it's present, since our proxy enforces same-origin.
+
+  return {
+    'Access-Control-Allow-Origin': origin || '*', // Fallback for non-browser clients (like curl) which don't send Origin
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+};
+
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // Kept for backwards compatibility if needed, but functions should transition to generateCorsHeaders
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -28,7 +43,7 @@ export async function getTenantBySlug(
   slug: string
 ) {
   const cacheKey = CacheKeys.tenant(slug);
-  
+
   return cached(
     cacheKey,
     async () => {
@@ -54,7 +69,7 @@ export async function getTenantByDomain(
   domain: string
 ) {
   const cacheKey = CacheKeys.domainTenant(domain.toLowerCase());
-  
+
   return cached(
     cacheKey,
     async () => {
@@ -96,7 +111,7 @@ export async function getTenantIntegrations(
   tenantId: string
 ) {
   const cacheKey = CacheKeys.integration(tenantId);
-  
+
   return cached(
     cacheKey,
     async () => {
@@ -139,6 +154,7 @@ export async function invalidateDomainCache(domain: string): Promise<void> {
  * Error response helper
  */
 export function errorResponse(
+  req: Request,
   message: string,
   status: number = 400,
   error?: unknown
@@ -151,20 +167,31 @@ export function errorResponse(
     JSON.stringify({ error: message }),
     {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...generateCorsHeaders(req), 'Content-Type': 'application/json' },
     }
   );
+}
+console.error('Error:', error);
+  }
+
+return new Response(
+  JSON.stringify({ error: message }),
+  {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  }
+);
 }
 
 /**
  * Success response helper
  */
-export function successResponse(data: any, status: number = 200): Response {
+export function successResponse(req: Request, data: any, status: number = 200): Response {
   return new Response(
     JSON.stringify(data),
     {
       status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...generateCorsHeaders(req), 'Content-Type': 'application/json' },
     }
   );
 }

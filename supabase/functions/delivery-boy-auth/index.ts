@@ -10,7 +10,7 @@ const corsHeaders = {
 
 serve(async (req) => {
   const context = createContext('delivery-boy-auth', req);
-  
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -58,21 +58,9 @@ serve(async (req) => {
       // Verify password using bcrypt
       let isValidPassword = false;
       try {
-        // Try bcrypt verification first (for properly hashed passwords)
         isValidPassword = await bcrypt.compare(password, deliveryBoy.password_hash);
-      } catch {
-        // Fallback for legacy plaintext passwords - compare directly
-        // This allows existing users to login and they should reset password
-        isValidPassword = deliveryBoy.password_hash === password;
-        
-        // If plaintext match, upgrade to bcrypt hash
-        if (isValidPassword) {
-          const newHash = await bcrypt.hash(password);
-          await supabase
-            .from('delivery_boys')
-            .update({ password_hash: newHash })
-            .eq('id', deliveryBoy.id);
-        }
+      } catch (err) {
+        console.error('Bcrypt comparison failed', err);
       }
 
       if (!isValidPassword) {
