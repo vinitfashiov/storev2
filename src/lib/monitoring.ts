@@ -122,7 +122,7 @@ class FrontendMonitor {
    */
   trackEvent(eventName: string, properties?: Record<string, any>): void {
     console.log('Event tracked:', eventName, properties);
-    
+
     // Send to analytics backend
     this.sendToBackend('/functions/v1/track-event', {
       event: eventName,
@@ -141,8 +141,8 @@ class FrontendMonitor {
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (!supabaseUrl) return;
+      // Use the proxy endpoint instead of raw VITE_SUPABASE_URL
+      const supabaseUrl = '/supabase-api';
 
       await fetch(`${supabaseUrl}${endpoint}`, {
         method: 'POST',

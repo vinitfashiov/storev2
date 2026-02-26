@@ -75,7 +75,7 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
   const login = async (mobile: string, password: string, slug: string): Promise<{ error?: string }> => {
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delivery-boy-auth`,
+        `/supabase-api/functions/v1/delivery-boy-auth`,
         {
           method: 'POST',
           headers: {
@@ -121,7 +121,7 @@ export function DeliveryAuthProvider({ children, storeSlug }: { children: ReactN
 
   const refreshData = async () => {
     if (!deliveryBoy || !storeSlug) return;
-    
+
     // Re-login to refresh data
     const stored = localStorage.getItem(`${STORAGE_KEY}_${storeSlug}`);
     if (stored) {

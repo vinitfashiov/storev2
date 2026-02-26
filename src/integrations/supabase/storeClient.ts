@@ -4,7 +4,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const getBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+        return window.location.origin;
+    }
+    return 'http://localhost:8080';
+};
+
+const SUPABASE_URL = `${getBaseUrl()}/supabase-api`;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabaseStore = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

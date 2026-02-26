@@ -8,12 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { 
-  Package, 
-  Truck, 
-  Wallet, 
-  MapPin, 
-  Phone, 
+import {
+  Package,
+  Truck,
+  Wallet,
+  MapPin,
+  Phone,
   Clock,
   CheckCircle,
   XCircle,
@@ -143,14 +143,14 @@ export default function DeliveryDashboard() {
 
   // Update order status mutation - uses secure edge function
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ assignmentId, status, oldStatus }: { 
-      assignmentId: string; 
+    mutationFn: async ({ assignmentId, status, oldStatus }: {
+      assignmentId: string;
       status: DeliveryStatus;
       oldStatus: DeliveryStatus;
     }) => {
       // Use secure edge function with validation
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-delivery-status`,
+        `/supabase-api/functions/v1/update-delivery-status`,
         {
           method: 'POST',
           headers: {
@@ -183,7 +183,7 @@ export default function DeliveryDashboard() {
             .select('per_order_amount, percentage_value')
             .eq('id', deliveryBoy.id)
             .single();
-          
+
           earningAmount = boyData?.per_order_amount || 0;
         } else if (deliveryBoy.payment_type === 'percentage_per_order') {
           const { data: boyData } = await supabase
@@ -191,7 +191,7 @@ export default function DeliveryDashboard() {
             .select('percentage_value')
             .eq('id', deliveryBoy.id)
             .single();
-          
+
           earningAmount = (orderTotal * (boyData?.percentage_value || 0)) / 100;
         }
 
@@ -403,8 +403,8 @@ export default function DeliveryDashboard() {
                       )}
 
                       {isUnassigned && !isMyOrder ? (
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={() => selfAssignMutation.mutate(assignment.id)}
                           disabled={selfAssignMutation.isPending}
                         >
@@ -483,7 +483,7 @@ export default function DeliveryDashboard() {
                       className="flex-1 px-3 py-2 border rounded-md text-sm"
                       max={deliveryBoy?.wallet_balance || 0}
                     />
-                    <Button 
+                    <Button
                       onClick={() => {
                         const amount = parseFloat(payoutAmount);
                         if (amount > 0 && amount <= (deliveryBoy?.wallet_balance || 0)) {
@@ -519,8 +519,8 @@ export default function DeliveryDashboard() {
                       </div>
                       <Badge variant={
                         req.status === 'pending' ? 'outline' :
-                        req.status === 'paid' ? 'default' :
-                        req.status === 'rejected' ? 'destructive' : 'secondary'
+                          req.status === 'paid' ? 'default' :
+                            req.status === 'rejected' ? 'destructive' : 'secondary'
                       }>
                         {req.status}
                       </Badge>

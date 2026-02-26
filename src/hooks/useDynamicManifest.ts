@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+// Use proxy for fetching dynamic manifests to bypass ISP blocks
+const SUPABASE_URL = '/supabase-api';
 
 interface DynamicManifestOptions {
   type: 'admin' | 'storefront';
@@ -29,7 +30,7 @@ export function useDynamicManifest({ type, slug, tenantId }: DynamicManifestOpti
     // For storefront, try to use dynamic manifest if edge function is available
     if (type === 'storefront' && (slug || tenantId)) {
       let manifestUrl = `${SUPABASE_URL}/functions/v1/pwa-manifest?type=${type}`;
-      
+
       if (slug) {
         manifestUrl += `&slug=${encodeURIComponent(slug)}`;
       } else if (tenantId) {
@@ -38,7 +39,7 @@ export function useDynamicManifest({ type, slug, tenantId }: DynamicManifestOpti
 
       // Find or create manifest link
       let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-      
+
       if (!manifestLink) {
         manifestLink = document.createElement('link');
         manifestLink.rel = 'manifest';
