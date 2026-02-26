@@ -171,17 +171,7 @@ export function errorResponse(
     }
   );
 }
-console.error('Error:', error);
-  }
 
-return new Response(
-  JSON.stringify({ error: message }),
-  {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  }
-);
-}
 
 /**
  * Success response helper
