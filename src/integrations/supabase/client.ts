@@ -4,7 +4,14 @@ import type { Database } from './types';
 
 // In production, we use the Vercel rewrite proxy to bypass ISP blocks and handle Custom Domain CORS natively.
 // In development, we use the Vite dev proxy.
-const SUPABASE_URL = '/supabase-api';
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'http://localhost:8080';
+};
+
+const SUPABASE_URL = `${getBaseUrl()}/supabase-api`;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Performance-optimized Supabase client
