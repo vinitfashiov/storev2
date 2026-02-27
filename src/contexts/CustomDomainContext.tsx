@@ -51,7 +51,7 @@ function isPlatformDomain(hostname: string): boolean {
 
 // Cache for domain lookups (10 seconds for faster debugging)
 const domainCache = new Map<string, { tenant: Tenant | null; expiresAt: number }>();
-const CACHE_TTL = 10 * 1000; // 10 seconds
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 interface CustomDomainProviderProps {
   children: ReactNode;

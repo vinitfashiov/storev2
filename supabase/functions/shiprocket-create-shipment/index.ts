@@ -65,6 +65,14 @@ const stateNameMap: Record<string, string> = {
   'WB': 'West Bengal',
 };
 
+// Global in-memory cache for Shiprocket tokens (Tokens are valid for 10 days)
+interface ShiprocketTokenCache {
+  token: string;
+  expiresAt: number;
+}
+const shiprocketTokenCache = new Map<string, ShiprocketTokenCache>();
+const TOKEN_TTL = 9 * 24 * 60 * 60 * 1000; // 9 days in milliseconds
+
 function getFullStateName(stateCode: string): string {
   if (!stateCode) return '';
   const upperCode = stateCode.toUpperCase().trim();
@@ -171,41 +179,55 @@ serve(async (req) => {
     console.log('Order found:', order.order_number, 'with', order.order_items?.length, 'items');
 
     // Authenticate with Shiprocket
-    console.log('Authenticating with Shiprocket...');
-    const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: integration.shiprocket_email,
-        password: integration.shiprocket_password,
-      }),
-    });
+    const cacheKey = integration.shiprocket_email;
+    const cachedToken = shiprocketTokenCache.get(cacheKey);
 
-    const authRaw = await authRes.text();
     let authData: ShiprocketTokenResponse = {};
-    try {
-      authData = authRaw ? JSON.parse(authRaw) : {};
-    } catch {
-      // Keep empty if parsing fails
-    }
 
-    if (!authRes.ok || !authData?.token) {
-      const message = authData?.message || authData?.error || 'Shiprocket authentication failed.';
-      console.error('Shiprocket auth failed:', message);
-
-      return new Response(
-        JSON.stringify({
-          error: message,
-          shiprocket_status: authRes.status,
+    if (cachedToken && cachedToken.expiresAt > Date.now()) {
+      console.log('Using cached Shiprocket token');
+      authData.token = cachedToken.token;
+    } else {
+      console.log('Authenticating with Shiprocket...');
+      const authRes = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: integration.shiprocket_email,
+          password: integration.shiprocket_password,
         }),
-        {
-          status: authRes.status >= 400 ? authRes.status : 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+      });
 
-    console.log('Shiprocket authentication successful');
+      const authRaw = await authRes.text();
+      try {
+        authData = authRaw ? JSON.parse(authRaw) : {};
+      } catch {
+        // Keep empty if parsing fails
+      }
+
+      if (!authRes.ok || !authData?.token) {
+        const message = authData?.message || authData?.error || 'Shiprocket authentication failed.';
+        console.error('Shiprocket auth failed:', message);
+
+        return new Response(
+          JSON.stringify({
+            error: message,
+            shiprocket_status: authRes.status,
+          }),
+          {
+            status: authRes.status >= 400 ? authRes.status : 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      // Save token to cache
+      shiprocketTokenCache.set(cacheKey, {
+        token: authData.token,
+        expiresAt: Date.now() + TOKEN_TTL
+      });
+      console.log('Shiprocket authentication successful & cached');
+    }
 
     const address = order.shipping_address as Record<string, string>;
     const fullStateName = getFullStateName(address.state || '');

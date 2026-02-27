@@ -28,6 +28,27 @@ function getClientIp(req: Request): string | null {
   return null;
 }
 
+// Simple in-memory LRU Cache for IP -> Geo mapping to prevent redundant API calls
+const ipGeoCache = new Map<string, { geo: any, expiresAt: number }>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 mins
+const MAX_CACHE_SIZE = 5000; // Prevent memory leaks in Edge function
+
+function getCachedGeo(ip: string) {
+  const hit = ipGeoCache.get(ip);
+  if (hit && hit.expiresAt > Date.now()) return hit.geo;
+  if (hit) ipGeoCache.delete(ip);
+  return null;
+}
+
+function setCachedGeo(ip: string, geo: any) {
+  if (ipGeoCache.size >= MAX_CACHE_SIZE) {
+    // Delete oldest (Map iterates in insertion order)
+    const oldestKey = ipGeoCache.keys().next().value;
+    if (oldestKey) ipGeoCache.delete(oldestKey);
+  }
+  ipGeoCache.set(ip, { geo, expiresAt: Date.now() + CACHE_TTL });
+}
+
 async function getGeoFromIp(ip: string): Promise<{
   country?: string;
   country_code?: string;
@@ -180,7 +201,12 @@ serve(async (req) => {
     if (needsIpFallback) {
       const ip = getClientIp(req);
       if (ip) {
-        const geo = await getGeoFromIp(ip);
+        let geo = getCachedGeo(ip);
+        if (!geo) {
+          geo = await getGeoFromIp(ip);
+          if (geo) setCachedGeo(ip, geo);
+        }
+
         if (geo) {
           country = geo.country ?? country;
           country_code = geo.country_code ?? country_code;

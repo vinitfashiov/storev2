@@ -32,7 +32,10 @@ async function loadRazorpayScript(): Promise<void> {
     );
     if (existing) {
       existing.addEventListener('load', () => resolve(), { once: true });
-      existing.addEventListener('error', () => reject(new Error('Failed to load payment SDK')), { once: true });
+      existing.addEventListener('error', () => {
+        razorpayScriptPromise = null;
+        reject(new Error('Failed to load payment SDK'));
+      }, { once: true });
       return;
     }
 
@@ -40,7 +43,11 @@ async function loadRazorpayScript(): Promise<void> {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load payment SDK'));
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      document.body.removeChild(script);
+      reject(new Error('Failed to load payment SDK'));
+    };
     document.body.appendChild(script);
   });
 
@@ -407,9 +414,6 @@ export default function CheckoutPage() {
             trackEvent('purchase_complete', { order_number: verifyData.order_number || orderNumber, total: amount, payment_method: 'razorpay' });
             await clearCart();
             toast.success('Payment successful!');
-            trackEvent('purchase_complete', { order_number: verifyData.order_number || orderNumber, total: amount, payment_method: 'razorpay' });
-            await clearCart();
-            toast.success('Payment successful!');
             navigate(getLink(`/order-confirmation?order=${verifyData.order_number || orderNumber}`));
           } catch (err: any) {
             toast.error(err.message || 'Payment verification failed');
@@ -635,14 +639,11 @@ export default function CheckoutPage() {
         }
 
         // Fire purchase_complete analytics
-        trackEvent('purchase_complete', { order_number: orderNumber, total, item_count: cart.items.length });
+        trackEvent('purchase_complete', { order_number: orderNumber, total, item_count: cart.items.length, payment_method: 'cod' });
 
         await clearCart();
         toast.success('Order placed successfully!');
-        await clearCart();
-        toast.success('Order placed successfully!');
         navigate(getLink(`/order-confirmation?order=${orderNumber}`));
-        setSubmitting(false);
         setSubmitting(false);
       }
     } catch (error: any) {
