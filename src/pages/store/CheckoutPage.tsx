@@ -9,6 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCart } from '@/hooks/useCart';
 import { useStoreAuth } from '@/contexts/StoreAuthContext';
 import { useStoreAnalyticsEvent } from '@/contexts/StoreAnalyticsContext';
+import { calculateD2CDeliveryFee, calculateGroceryDeliveryFee, D2CDeliverySettings, GroceryDeliverySettings } from '@/utils/deliveryCalculator';
 import { toast } from 'sonner';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
@@ -56,7 +57,7 @@ async function loadRazorpayScript(): Promise<void> {
 
 interface Tenant { id: string; store_name: string; store_slug: string; business_type: 'ecommerce' | 'grocery'; }
 
-interface DeliverySettings {
+interface DeliverySettings extends GroceryDeliverySettings {
   delivery_mode: 'slots' | 'asap' | 'both';
   asap_eta_minutes: number;
   min_order_amount: number;
@@ -75,6 +76,8 @@ interface CustomerAddress {
   state: string;
   pincode: string;
   is_default: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface AppliedCoupon {
@@ -108,7 +111,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [submitting, setSubmitting] = useState(false);
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '', latitude: null as number | null, longitude: null as number | null });
   const [searchQuery, setSearchQuery] = useState('');
 
   // Customer addresses state
@@ -118,6 +121,7 @@ export default function CheckoutPage() {
 
   // Grocery-specific state
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
+  const [d2cDeliverySettings, setD2cDeliverySettings] = useState<D2CDeliverySettings | null>(null);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
   const [slots, setSlots] = useState<DeliverySlot[]>([]);
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
@@ -166,12 +170,26 @@ export default function CheckoutPage() {
               asap_eta_minutes: settingsRes.data.asap_eta_minutes,
               min_order_amount: Number(settingsRes.data.min_order_amount),
               delivery_fee: Number(settingsRes.data.delivery_fee),
-              free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null
+              free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null,
+              fixed_delivery_fee_enabled: settingsRes.data.fixed_delivery_fee_enabled || false,
+              free_delivery_enabled: settingsRes.data.free_delivery_enabled || false,
+              minimum_order_enabled: settingsRes.data.minimum_order_enabled || false,
+              max_delivery_fee_enabled: settingsRes.data.max_delivery_fee_enabled || false,
+              max_delivery_fee: Number(settingsRes.data.max_delivery_fee || 0),
+              distance_based_delivery_enabled: settingsRes.data.distance_based_delivery_enabled || false,
+              distance_calculation_type: settingsRes.data.distance_calculation_type as 'slab' | 'per_km',
+              per_km_rate: settingsRes.data.per_km_rate,
+              distance_slabs: settingsRes.data.distance_slabs as any,
+              store_latitude: settingsRes.data.store_latitude ? Number(settingsRes.data.store_latitude) : null,
+              store_longitude: settingsRes.data.store_longitude ? Number(settingsRes.data.store_longitude) : null
             });
             if (settingsRes.data.delivery_mode === 'slots') setDeliveryOption('slot');
           }
           if (zonesRes.data) setZones(zonesRes.data);
           if (slotsRes.data) setSlots(slotsRes.data);
+        } else if (cdTenant.business_type === 'ecommerce') {
+          const { data: d2cRes } = await supabaseStore.from('tenant_delivery_settings_d2c').select('*').eq('tenant_id', cdTenant.id).maybeSingle();
+          if (d2cRes) setD2cDeliverySettings(d2cRes as unknown as D2CDeliverySettings);
         }
         return;
       }
@@ -199,12 +217,26 @@ export default function CheckoutPage() {
               asap_eta_minutes: settingsRes.data.asap_eta_minutes,
               min_order_amount: Number(settingsRes.data.min_order_amount),
               delivery_fee: Number(settingsRes.data.delivery_fee),
-              free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null
+              free_delivery_above: settingsRes.data.free_delivery_above ? Number(settingsRes.data.free_delivery_above) : null,
+              fixed_delivery_fee_enabled: settingsRes.data.fixed_delivery_fee_enabled || false,
+              free_delivery_enabled: settingsRes.data.free_delivery_enabled || false,
+              minimum_order_enabled: settingsRes.data.minimum_order_enabled || false,
+              max_delivery_fee_enabled: settingsRes.data.max_delivery_fee_enabled || false,
+              max_delivery_fee: Number(settingsRes.data.max_delivery_fee || 0),
+              distance_based_delivery_enabled: settingsRes.data.distance_based_delivery_enabled || false,
+              distance_calculation_type: settingsRes.data.distance_calculation_type as 'slab' | 'per_km',
+              per_km_rate: settingsRes.data.per_km_rate,
+              distance_slabs: settingsRes.data.distance_slabs as any,
+              store_latitude: settingsRes.data.store_latitude ? Number(settingsRes.data.store_latitude) : null,
+              store_longitude: settingsRes.data.store_longitude ? Number(settingsRes.data.store_longitude) : null
             });
             if (settingsRes.data.delivery_mode === 'slots') setDeliveryOption('slot');
           }
           if (zonesRes.data) setZones(zonesRes.data);
           if (slotsRes.data) setSlots(slotsRes.data);
+        } else if (data.business_type === 'ecommerce') {
+          const { data: d2cRes } = await supabaseStore.from('tenant_delivery_settings_d2c').select('*').eq('tenant_id', data.id).maybeSingle();
+          if (d2cRes) setD2cDeliverySettings(d2cRes as unknown as D2CDeliverySettings);
         }
       }
     };
@@ -235,7 +267,7 @@ export default function CheckoutPage() {
         .order('is_default', { ascending: false });
 
       if (data && data.length > 0) {
-        setSavedAddresses(data);
+        setSavedAddresses(data as any[]);
         const defaultAddr = data.find(a => a.is_default) || data[0];
         if (defaultAddr) {
           setSelectedAddressId(defaultAddr.id);
@@ -330,10 +362,43 @@ export default function CheckoutPage() {
     }
   }, [subtotal]);
 
+  // Helper for Haversine distance
+  const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
   const calculateDeliveryFee = () => {
-    if (!isGrocery || !deliverySettings) return 0;
-    if (deliverySettings.free_delivery_above && subtotal >= deliverySettings.free_delivery_above) return 0;
-    return deliverySettings.delivery_fee;
+    if (isGrocery) {
+      const areaFee = selectedZone ? (selectedZone as any).delivery_fee || 0 : 0;
+      let distance = 0;
+
+      if (deliverySettings?.distance_based_delivery_enabled && deliverySettings.store_latitude && deliverySettings.store_longitude) {
+        let destLat = null;
+        let destLng = null;
+        if (selectedAddressId === 'new' && form.latitude && form.longitude) {
+          destLat = form.latitude;
+          destLng = form.longitude;
+        } else if (selectedAddressId !== 'new') {
+          const addr = savedAddresses.find(a => a.id === selectedAddressId);
+          if (addr?.latitude && addr?.longitude) {
+            destLat = addr.latitude;
+            destLng = addr.longitude;
+          }
+        }
+        if (destLat && destLng) {
+          distance = getDistanceInKm(deliverySettings.store_latitude, deliverySettings.store_longitude, destLat, destLng);
+        }
+      }
+
+      return calculateGroceryDeliveryFee(subtotal, deliverySettings, areaFee, distance);
+    } else {
+      if (!cart) return 0;
+      return calculateD2CDeliveryFee(subtotal, cart.items as any, d2cDeliverySettings);
+    }
   };
 
   const deliveryFee = calculateDeliveryFee();
@@ -497,7 +562,9 @@ export default function CheckoutPage() {
           city: form.city,
           state: form.state,
           pincode: form.pincode,
-          is_default: savedAddresses.length === 0
+          is_default: savedAddresses.length === 0,
+          latitude: form.latitude,
+          longitude: form.longitude
         });
       }
 
@@ -841,16 +908,54 @@ export default function CheckoutPage() {
                           />
                         </div>
                       </div>
-                      <div>
-                        <Label className="text-sm text-neutral-600">Pincode *</Label>
-                        <Input
-                          required
-                          value={form.pincode}
-                          onChange={e => setForm({ ...form, pincode: e.target.value })}
-                          className="mt-1 h-12 rounded-xl"
-                          maxLength={6}
-                          placeholder="6-digit pincode"
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-sm text-neutral-600">Pincode *</Label>
+                          <Input
+                            required
+                            value={form.pincode}
+                            onChange={e => setForm({ ...form, pincode: e.target.value })}
+                            className="mt-1 h-12 rounded-xl"
+                            maxLength={6}
+                            placeholder="6-digit pincode"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border border-neutral-100 bg-neutral-50/50 rounded-xl">
+                          <div className="space-y-1 pr-4">
+                            <Label className="text-sm font-medium">Delivery Location</Label>
+                            <p className="text-xs text-neutral-500">
+                              {form.latitude && form.longitude
+                                ? "Location captured for accurate delivery"
+                                : "Location helps us calculate accurate grocery delivery fees"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={() => {
+                              if ('geolocation' in navigator) {
+                                toast.loading('Getting location...', { id: 'geo' });
+                                navigator.geolocation.getCurrentPosition(
+                                  (position) => {
+                                    setForm({ ...form, latitude: position.coords.latitude, longitude: position.coords.longitude });
+                                    toast.success('Location captured successfully', { id: 'geo' });
+                                  },
+                                  (err) => {
+                                    toast.error('Failed to get location. Please enable location permissions.', { id: 'geo' });
+                                  }
+                                );
+                              } else {
+                                toast.error('Geolocation is not supported by your browser');
+                              }
+                            }}
+                            className="rounded-xl gap-2 flex-shrink-0 whitespace-nowrap"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            {form.latitude ? 'Update Location' : 'Get Location'}
+                          </Button>
+                        </div>
                         {zones.length > 0 && (
                           <div className="mt-2">
                             {selectedZone ? (

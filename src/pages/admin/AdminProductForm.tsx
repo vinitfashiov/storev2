@@ -25,6 +25,7 @@ interface Variant {
   compare_at_price: number | null;
   stock_qty: number;
   is_active: boolean;
+  weight: number | null;
   attributes: { attribute_id: string; attribute_name: string; value_id: string; value: string }[];
 }
 
@@ -41,17 +42,18 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  
+
   // Form state
   const [form, setForm] = useState({
     name: '', slug: '', description: '', price: '', compare_at_price: '',
-    sku: '', stock_qty: '0', category_id: '', brand_id: '', is_active: true, has_variants: false
+    sku: '', stock_qty: '0', category_id: '', brand_id: '', is_active: true, has_variants: false,
+    product_delivery_fee_enabled: false, product_delivery_fee: '', product_weight: ''
   });
-  
+
   // Images state
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
-  
+
   // Variants state
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedAttributes, setSelectedAttributes] = useState<{ attributeId: string; valueIds: string[] }[]>([]);
@@ -63,7 +65,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
         supabase.from('brands').select('id, name').eq('tenant_id', tenantId).eq('is_active', true),
         supabase.from('attributes').select('id, name').eq('tenant_id', tenantId)
       ]);
-      
+
       // Fetch attribute values
       const attrsWithValues: Attribute[] = [];
       if (attrsRes.data) {
@@ -72,7 +74,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
           attrsWithValues.push({ ...attr, values: values || [] });
         }
       }
-      
+
       setCategories(catsRes.data || []);
       setBrands(brandsRes.data || []);
       setAttributes(attrsWithValues);
@@ -84,7 +86,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
           .select('*')
           .eq('id', productId)
           .single();
-        
+
         if (product) {
           setForm({
             name: product.name,
@@ -97,18 +99,21 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
             category_id: product.category_id || '',
             brand_id: product.brand_id || '',
             is_active: product.is_active,
-            has_variants: product.has_variants
+            has_variants: product.has_variants,
+            product_delivery_fee_enabled: product.product_delivery_fee_enabled || false,
+            product_delivery_fee: product.product_delivery_fee?.toString() || '',
+            product_weight: product.product_weight?.toString() || ''
           });
           const imgArray = Array.isArray(product.images) ? (product.images as string[]) : [];
           setImages(imgArray);
-          
+
           // Load existing variants
           if (product.has_variants) {
             const { data: existingVariants } = await supabase
               .from('product_variants')
               .select('*')
               .eq('product_id', productId);
-            
+
             if (existingVariants) {
               const variantsWithAttrs: Variant[] = [];
               for (const v of existingVariants) {
@@ -116,7 +121,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                   .from('variant_attributes')
                   .select('attribute_id, attribute_value_id')
                   .eq('variant_id', v.id);
-                
+
                 const attrs: Variant['attributes'] = [];
                 if (variantAttrs) {
                   for (const va of variantAttrs) {
@@ -127,7 +132,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                     }
                   }
                 }
-                
+
                 variantsWithAttrs.push({
                   id: v.id,
                   sku: v.sku || '',
@@ -135,6 +140,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                   compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
                   stock_qty: v.stock_qty,
                   is_active: v.is_active,
+                  weight: v.weight ? Number(v.weight) : null,
                   attributes: attrs
                 });
               }
@@ -158,14 +164,14 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     setUploading(true);
     const newImages: string[] = [];
-    
+
     for (const file of Array.from(files)) {
       const fileExt = file.name.split('.').pop();
       const fileName = `${tenantId}/products/${productId || 'new'}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      
+
       const { error } = await supabase.storage.from('product-images').upload(fileName, file);
       if (error) {
         toast.error(`Failed to upload ${file.name}`);
@@ -173,7 +179,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
       }
       newImages.push(fileName);
     }
-    
+
     setImages([...images, ...newImages]);
     setUploading(false);
     toast.success(`${newImages.length} image(s) uploaded`);
@@ -195,23 +201,23 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
       toast.error('Select at least one attribute value');
       return;
     }
-    
+
     // Generate all combinations
     const combinations: { attribute_id: string; attribute_name: string; value_id: string; value: string }[][] = [];
-    
+
     const generate = (index: number, current: { attribute_id: string; attribute_name: string; value_id: string; value: string }[]) => {
       if (index === selectedAttributes.length) {
         if (current.length > 0) combinations.push([...current]);
         return;
       }
-      
+
       const { attributeId, valueIds } = selectedAttributes[index];
       const attr = attributes.find(a => a.id === attributeId);
       if (!attr || valueIds.length === 0) {
         generate(index + 1, current);
         return;
       }
-      
+
       for (const valueId of valueIds) {
         const val = attr.values.find(v => v.id === valueId);
         if (val) {
@@ -219,9 +225,9 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
         }
       }
     };
-    
+
     generate(0, []);
-    
+
     const newVariants: Variant[] = combinations.map(attrs => ({
       id: `new-${Math.random().toString(36).substring(7)}`,
       sku: '',
@@ -229,9 +235,10 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
       compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
       stock_qty: 0,
       is_active: true,
+      weight: null,
       attributes: attrs
     }));
-    
+
     setVariants(prev => [...prev, ...newVariants]);
     toast.success(`Generated ${newVariants.length} variant(s)`);
   };
@@ -245,6 +252,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
       compare_at_price: form.compare_at_price ? parseFloat(form.compare_at_price) : null,
       stock_qty: 0,
       is_active: true,
+      weight: null,
       attributes: []
     }]);
   };
@@ -262,7 +270,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (disabled) return;
-    
+
     setSaving(true);
 
     const productData = {
@@ -278,16 +286,19 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
       brand_id: form.brand_id || null,
       is_active: form.is_active,
       has_variants: form.has_variants,
+      product_delivery_fee_enabled: form.product_delivery_fee_enabled,
+      product_delivery_fee: form.product_delivery_fee_enabled && form.product_delivery_fee ? parseFloat(form.product_delivery_fee) : null,
+      product_weight: form.product_weight ? parseFloat(form.product_weight) : null,
       images: images
     };
 
     try {
       let finalProductId = productId;
-      
+
       if (productId) {
         const { error } = await supabase.from('products').update(productData).eq('id', productId);
         if (error) throw error;
-        
+
         // Delete existing variants and recreate
         if (form.has_variants) {
           await supabase.from('product_variants').delete().eq('product_id', productId);
@@ -296,7 +307,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
         const { data: newProduct, error } = await supabase.from('products').insert(productData).select().single();
         if (error) throw error;
         finalProductId = newProduct.id;
-        
+
         // Move images to correct folder
         if (images.length > 0 && newProduct) {
           const movedImages: string[] = [];
@@ -312,7 +323,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
           await supabase.from('products').update({ images: movedImages }).eq('id', newProduct.id);
         }
       }
-      
+
       // Insert variants
       if (form.has_variants && finalProductId) {
         for (const variant of variants) {
@@ -323,11 +334,12 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
             price: variant.price,
             compare_at_price: variant.compare_at_price,
             stock_qty: variant.stock_qty,
-            is_active: variant.is_active
+            is_active: variant.is_active,
+            weight: variant.weight
           }).select().single();
-          
+
           if (variantError) throw variantError;
-          
+
           // Insert variant attributes
           for (const attr of variant.attributes) {
             await supabase.from('variant_attributes').insert({
@@ -338,7 +350,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
           }
         }
       }
-      
+
       toast.success(productId ? 'Product updated' : 'Product created');
       navigate(-1);
     } catch (error: any) {
@@ -411,12 +423,12 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                 <Input value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} required />
               </div>
             </div>
-            
+
             <div>
               <Label>Description</Label>
               <Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label>Price (₹) *</Label>
@@ -437,7 +449,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                 </div>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Category</Label>
@@ -464,7 +476,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                 </Select>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Switch checked={form.is_active} onCheckedChange={v => setForm({ ...form, is_active: v })} />
@@ -474,6 +486,52 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                 <Switch checked={form.has_variants} onCheckedChange={v => setForm({ ...form, has_variants: v })} />
                 <Label>Has Variants</Label>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Shipping & Delivery */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Shipping & Delivery</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Override Global Delivery Fee</Label>
+                <p className="text-sm text-muted-foreground">Charge a specific delivery fee for this product</p>
+              </div>
+              <Switch
+                checked={form.product_delivery_fee_enabled}
+                onCheckedChange={v => setForm({ ...form, product_delivery_fee_enabled: v })}
+              />
+            </div>
+
+            {form.product_delivery_fee_enabled && (
+              <div>
+                <Label>Product Delivery Fee (₹)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={form.product_delivery_fee}
+                  onChange={e => setForm({ ...form, product_delivery_fee: e.target.value })}
+                />
+              </div>
+            )}
+
+            <div className="pt-4 border-t">
+              <Label>Product Weight (kg)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                placeholder="e.g. 1.5"
+                value={form.product_weight}
+                onChange={e => setForm({ ...form, product_weight: e.target.value })}
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Required if you use weight-based delivery rates</p>
             </div>
           </CardContent>
         </Card>
@@ -583,6 +641,7 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                         <TableHead>SKU</TableHead>
                         <TableHead>Price (₹)</TableHead>
                         <TableHead>Compare Price</TableHead>
+                        <TableHead>Weight (kg)</TableHead>
                         <TableHead>Stock</TableHead>
                         <TableHead>Active</TableHead>
                         <TableHead></TableHead>
@@ -627,6 +686,16 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
                               onChange={e => updateVariant(idx, 'compare_at_price', e.target.value ? parseFloat(e.target.value) : null)}
                               className="w-24"
                               placeholder="Optional"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={variant.weight || ''}
+                              onChange={e => updateVariant(idx, 'weight', e.target.value ? parseFloat(e.target.value) : null)}
+                              className="w-20"
+                              placeholder="Weight"
                             />
                           </TableCell>
                           <TableCell>

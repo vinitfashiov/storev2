@@ -63,12 +63,12 @@ const groceryNavItems = [
   { href: '/dashboard/delivery-orders', label: 'Delivery Orders', icon: Truck },
   { href: '/dashboard/delivery-payouts', label: 'Delivery Payouts', icon: CreditCard },
   { href: '/dashboard/delivery-slots', label: 'Delivery Slots', icon: Clock },
-  { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
   { href: '/dashboard/product-availability', label: 'Zone Availability', icon: Grid },
 ];
 
 const storeNavItems = [
   { href: '/dashboard/store-settings', label: 'Store Settings', icon: Palette },
+  { href: '/dashboard/delivery-settings', label: 'Delivery Settings', icon: Truck },
   { href: '/dashboard/page-builder', label: 'Page Builder', icon: Layers },
   { href: '/dashboard/banners', label: 'Banners', icon: Image },
   { href: '/dashboard/pages', label: 'Pages', icon: FileText },

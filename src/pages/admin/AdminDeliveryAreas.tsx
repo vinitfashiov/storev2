@@ -22,6 +22,7 @@ interface DeliveryArea {
   name: string;
   pincodes: string[];
   localities: string[];
+  delivery_fee: number;
   is_active: boolean;
   created_at: string;
 }
@@ -40,6 +41,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
     name: '',
     pincodes: '',
     localities: '',
+    delivery_fee: 0,
   });
 
   const { data: areas, isLoading } = useQuery({
@@ -63,7 +65,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
         .select('delivery_area_id, delivery_boys(full_name, is_active)')
         .eq('tenant_id', tenantId);
       if (error) throw error;
-      
+
       const counts: Record<string, DeliveryBoyAssignment> = {};
       data.forEach((item: any) => {
         if (!counts[item.delivery_area_id]) {
@@ -85,6 +87,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
       const { error } = await supabase.from('delivery_areas').insert({
         tenant_id: tenantId,
         name: data.name,
+        delivery_fee: data.delivery_fee,
         pincodes: data.pincodes.split(',').map(p => p.trim()).filter(Boolean),
         localities: data.localities.split(',').map(l => l.trim()).filter(Boolean),
       });
@@ -105,6 +108,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
     mutationFn: async (data: typeof formData & { id: string }) => {
       const { error } = await supabase.from('delivery_areas').update({
         name: data.name,
+        delivery_fee: data.delivery_fee,
         pincodes: data.pincodes.split(',').map(p => p.trim()).filter(Boolean),
         localities: data.localities.split(',').map(l => l.trim()).filter(Boolean),
       }).eq('id', data.id);
@@ -151,7 +155,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
   });
 
   const resetForm = () => {
-    setFormData({ name: '', pincodes: '', localities: '' });
+    setFormData({ name: '', pincodes: '', localities: '', delivery_fee: 0 });
   };
 
   const handleEdit = (area: DeliveryArea) => {
@@ -160,6 +164,7 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
       name: area.name,
       pincodes: area.pincodes.join(', '),
       localities: area.localities?.join(', ') || '',
+      delivery_fee: area.delivery_fee || 0,
     });
     setIsDialogOpen(true);
   };
@@ -229,6 +234,19 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
                 />
               </div>
               <div className="space-y-2">
+                <Label>Delivery Fee (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={formData.delivery_fee}
+                  onChange={(e) => setFormData({ ...formData, delivery_fee: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 50"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">Area-specific delivery charge</p>
+              </div>
+              <div className="space-y-2">
                 <Label>Pincodes (comma separated)</Label>
                 <Input
                   value={formData.pincodes}
@@ -270,16 +288,21 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
           {areas?.map((area) => {
             const assignment = areaAssignments?.[area.id];
             const isExpanded = expandedCards[area.id];
-            
+
             return (
               <Card key={area.id} className={!area.is_active ? 'opacity-60' : ''}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-lg">{area.name}</CardTitle>
-                      <Badge variant={area.is_active ? 'default' : 'secondary'} className="mt-1">
-                        {area.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={area.is_active ? 'default' : 'secondary'}>
+                          {area.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge variant="outline" className="bg-primary/5">
+                          Fee: ₹{area.delivery_fee || 0}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(area)} disabled={disabled}>
@@ -356,8 +379,8 @@ export default function AdminDeliveryAreas({ tenantId, disabled }: AdminDelivery
                     <span className="text-sm text-muted-foreground">
                       {area.pincodes?.length || 0} pincodes
                     </span>
-                    <Switch 
-                      checked={area.is_active} 
+                    <Switch
+                      checked={area.is_active}
                       onCheckedChange={(checked) => toggleStatusMutation.mutate({ id: area.id, is_active: checked })}
                       disabled={disabled}
                     />

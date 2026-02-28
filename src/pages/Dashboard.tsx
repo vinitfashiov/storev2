@@ -24,6 +24,7 @@ const AdminIntegrations = lazy(() => import('./admin/AdminIntegrations'));
 const AdminStores = lazy(() => import('./admin/AdminStores'));
 const AdminDeliverySlots = lazy(() => import('./admin/AdminDeliverySlots'));
 const AdminDeliverySettings = lazy(() => import('./admin/AdminDeliverySettings'));
+const AdminD2CDeliverySettings = lazy(() => import('./admin/AdminD2CDeliverySettings'));
 const AdminProductAvailability = lazy(() => import('./admin/AdminProductAvailability'));
 const AdminPaymentIntents = lazy(() => import('./admin/AdminPaymentIntents'));
 const AdminStoreSettings = lazy(() => import('./admin/AdminStoreSettings'));
@@ -103,6 +104,7 @@ function preloadAllAdminPages() {
   schedulePreload(() => import('./admin/AdminDeliveryPayouts'), 3200);
   schedulePreload(() => import('./admin/AdminDeliverySlots'), 3300);
   schedulePreload(() => import('./admin/AdminDeliverySettings'), 3400);
+  schedulePreload(() => import('./admin/AdminD2CDeliverySettings'), 3450);
   schedulePreload(() => import('./admin/AdminProductAvailability'), 3500);
 }
 
@@ -299,7 +301,7 @@ export default function Dashboard() {
             <Route path="suppliers" element={<AdminSuppliers tenantId={tenant.id} />} />
             <Route path="purchase-orders" element={<AdminPurchaseOrders tenantId={tenant.id} businessType={tenant.business_type} />} />
             {/* Grocery-specific routes */}
-            {isGrocery && (
+            {isGrocery ? (
               <>
                 <Route path="batches" element={<AdminBatches tenantId={tenant.id} />} />
                 <Route path="pos" element={<AdminPOS tenantId={tenant.id} />} />
@@ -311,6 +313,11 @@ export default function Dashboard() {
                 <Route path="delivery-slots" element={<AdminDeliverySlots tenantId={tenant.id} disabled={isTrialExpired} />} />
                 <Route path="delivery-settings" element={<AdminDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />
                 <Route path="product-availability" element={<AdminProductAvailability tenantId={tenant.id} disabled={isTrialExpired} />} />
+              </>
+            ) : (
+              <>
+                {/* D2C specific routes */}
+                <Route path="delivery-settings" element={<AdminD2CDeliverySettings tenantId={tenant.id} disabled={isTrialExpired} />} />
               </>
             )}
           </Routes>

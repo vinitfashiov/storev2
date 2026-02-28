@@ -21,6 +21,8 @@ interface Address {
   state: string;
   pincode: string;
   is_default: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 interface StoreAddressesProps {
@@ -78,7 +80,9 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
     city: '',
     state: '',
     pincode: '',
-    is_default: false
+    is_default: false,
+    latitude: null as number | null,
+    longitude: null as number | null
   });
 
   const fetchAddresses = async () => {
@@ -120,7 +124,9 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
       city: form.city,
       state: form.state,
       pincode: form.pincode,
-      is_default: form.is_default || addresses.length === 0
+      is_default: form.is_default || addresses.length === 0,
+      latitude: form.latitude,
+      longitude: form.longitude
     });
 
     if (error) {
@@ -130,7 +136,7 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
     }
 
     toast.success('Address saved');
-    setForm({ label: 'Home', line1: '', line2: '', city: '', state: '', pincode: '', is_default: false });
+    setForm({ label: 'Home', line1: '', line2: '', city: '', state: '', pincode: '', is_default: false, latitude: null, longitude: null });
     setDialogOpen(false);
     setSaving(false);
     fetchAddresses();
@@ -249,15 +255,53 @@ export default function StoreAddresses({ tenantId }: StoreAddressesProps) {
                       />
                     </div>
                   </div>
-                  <div className="pb-4">
-                    <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Pincode *</Label>
-                    <Input
-                      value={form.pincode}
-                      onChange={(e) => setForm({ ...form, pincode: e.target.value })}
-                      maxLength={6}
-                      required
-                      className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors"
-                    />
+                  <div className="pb-4 space-y-4">
+                    <div>
+                      <Label className="text-xs text-neutral-500 uppercase tracking-widest font-semibold">Pincode *</Label>
+                      <Input
+                        value={form.pincode}
+                        onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+                        maxLength={6}
+                        required
+                        className="mt-2 rounded-none border-0 border-b border-neutral-300 focus-visible:ring-0 focus-visible:border-black px-0 h-10 text-base bg-transparent transition-colors"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border border-neutral-100 bg-neutral-50/50">
+                      <div className="space-y-1 pr-4">
+                        <Label className="text-sm font-medium">Delivery Location</Label>
+                        <p className="text-xs text-neutral-500">
+                          {form.latitude && form.longitude
+                            ? "Location captured for accurate delivery"
+                            : "Location helps us calculate accurate grocery delivery fees"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          if ('geolocation' in navigator) {
+                            toast.loading('Getting location...', { id: 'geo' });
+                            navigator.geolocation.getCurrentPosition(
+                              (position) => {
+                                setForm({ ...form, latitude: position.coords.latitude, longitude: position.coords.longitude });
+                                toast.success('Location captured successfully', { id: 'geo' });
+                              },
+                              (err) => {
+                                toast.error('Failed to get location. Please enable location permissions.', { id: 'geo' });
+                              }
+                            );
+                          } else {
+                            toast.error('Geolocation is not supported by your browser');
+                          }
+                        }}
+                        className="rounded-none gap-2 flex-shrink-0 whitespace-nowrap"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        {form.latitude ? 'Update Location' : 'Get Location'}
+                      </Button>
+                    </div>
                   </div>
                   <Button
                     className="w-full rounded-none h-12 tracking-widest uppercase bg-black text-white hover:bg-neutral-800 mt-4"

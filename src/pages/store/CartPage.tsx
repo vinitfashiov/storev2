@@ -83,6 +83,17 @@ export default function CartPage() {
               free_delivery_above: settings.free_delivery_above ? Number(settings.free_delivery_above) : null
             });
           }
+        } else if (cdTenant.business_type === 'ecommerce') {
+          const { data: d2cSettings } = await supabaseStore
+            .from('tenant_delivery_settings_d2c')
+            .select('free_delivery_enabled, free_delivery_threshold')
+            .eq('tenant_id', cdTenant.id)
+            .maybeSingle();
+          if (d2cSettings && d2cSettings.free_delivery_enabled) {
+            setDeliverySettings({
+              free_delivery_above: d2cSettings.free_delivery_threshold ? Number(d2cSettings.free_delivery_threshold) : null
+            });
+          }
         }
         setTenantLoading(false);
         return;
@@ -110,6 +121,17 @@ export default function CartPage() {
           if (settings) {
             setDeliverySettings({
               free_delivery_above: settings.free_delivery_above ? Number(settings.free_delivery_above) : null
+            });
+          }
+        } else if (data.business_type === 'ecommerce') {
+          const { data: d2cSettings } = await supabaseStore
+            .from('tenant_delivery_settings_d2c')
+            .select('free_delivery_enabled, free_delivery_threshold')
+            .eq('tenant_id', data.id)
+            .maybeSingle();
+          if (d2cSettings && d2cSettings.free_delivery_enabled) {
+            setDeliverySettings({
+              free_delivery_above: d2cSettings.free_delivery_threshold ? Number(d2cSettings.free_delivery_threshold) : null
             });
           }
         }
@@ -417,6 +439,25 @@ export default function CartPage() {
             <div className="w-full lg:w-[380px] shrink-0">
               <div className="bg-neutral-50 p-8 sticky top-24">
                 <h3 className="font-serif tracking-tight text-xl mb-6">Order Summary</h3>
+
+                {/* Free Delivery Banner */}
+                {freeDeliveryThreshold && (
+                  <div className={`mb-6 p-4 rounded-none border flex flex-col gap-2 ${isEligibleForFreeDelivery
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-white border-neutral-200'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-neutral-600'}`} />
+                      <p className={`text-sm font-medium ${isEligibleForFreeDelivery ? 'text-green-700' : 'text-neutral-700'}`}>
+                        {isEligibleForFreeDelivery
+                          ? '🎉 You get FREE delivery!'
+                          : `Add ₹${amountToFreeDelivery.toFixed(0)} more for FREE delivery`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-4 text-neutral-600 mb-6">
                   <div className="flex justify-between">
                     <span>Subtotal</span>

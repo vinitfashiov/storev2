@@ -78,7 +78,13 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
           .eq('tenant_id', tenant.id)
           .maybeSingle();
 
-        const hasShipping = (zonesCount && zonesCount > 0) || !!deliverySettings;
+        const { data: deliverySettingsD2C } = await supabase
+          .from('tenant_delivery_settings_d2c')
+          .select('*')
+          .eq('tenant_id', tenant.id)
+          .maybeSingle();
+
+        const hasShipping = (zonesCount && zonesCount > 0) || !!deliverySettings || !!deliverySettingsD2C;
 
         // Check if custom domain is configured
         const { count: domainsCount } = await supabase
@@ -431,9 +437,9 @@ export default function AdminDashboard({ tenant, isTrialExpired }: AdminDashboar
                     </span>
                   </Link>
 
-                  {/* Review Shipping - Links to Delivery Settings or Settings */}
+                  {/* Review Shipping - Links to Delivery Settings */}
                   <Link
-                    to={tenant.business_type === 'grocery' ? "/dashboard/delivery-settings" : "/dashboard/settings"}
+                    to="/dashboard/delivery-settings"
                     className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${todos.reviewShipping
                       ? 'bg-success/10 hover:bg-success/15'
                       : 'bg-transparent hover:bg-muted/50'
