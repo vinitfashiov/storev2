@@ -59,37 +59,42 @@ export function calculateD2CDeliveryFee(
 
     let totalFee = 0;
 
-    // 3. Weight-Based or Fixed Fee
-    if (settings.weight_based_delivery_enabled) {
-        // Phase 2 implementation, default to fixed for now if weight logic not fully fleshed out
-        // Total up weights
-        let totalWeight = 0;
-        cartItems.forEach(item => {
-            const w = item.product?.product_weight || 0;
-            totalWeight += (w * item.qty);
-        });
+    // Check if there are any items that do NOT have a product specific fee
+    const itemsUsingBaseFee = cartItems.filter(item =>
+        !(item.product?.product_delivery_fee_enabled && item.product?.product_delivery_fee != null)
+    );
 
-        if (settings.weight_calculation_type === 'per_kg') {
-            totalFee += totalWeight * settings.per_kg_rate;
-        } else {
-            // Slab
-            const matchingSlab = settings.weight_slabs?.find(
-                slab => totalWeight >= slab.minWeight && totalWeight <= slab.maxWeight
-            );
-            if (matchingSlab) {
-                totalFee += matchingSlab.fee;
+    // 3. Weight-Based or Fixed Fee
+    if (itemsUsingBaseFee.length > 0) {
+        if (settings.weight_based_delivery_enabled) {
+            // Phase 2 implementation, default to fixed for now if weight logic not fully fleshed out
+            // Total up weights ONLY for items using base fee
+            let totalWeight = 0;
+            itemsUsingBaseFee.forEach(item => {
+                const w = item.product?.product_weight || 0;
+                totalWeight += (w * item.qty);
+            });
+
+            if (settings.weight_calculation_type === 'per_kg') {
+                totalFee += totalWeight * settings.per_kg_rate;
+            } else {
+                // Slab
+                const matchingSlab = settings.weight_slabs?.find(
+                    slab => totalWeight >= slab.minWeight && totalWeight <= slab.maxWeight
+                );
+                if (matchingSlab) {
+                    totalFee += matchingSlab.fee;
+                }
             }
+        } else if (settings.fixed_delivery_fee_enabled) {
+            totalFee += settings.fixed_delivery_fee;
         }
-    } else if (settings.fixed_delivery_fee_enabled) {
-        totalFee += settings.fixed_delivery_fee;
     }
 
     // 4. Product-wise specific overrides
     cartItems.forEach(item => {
         if (item.product?.product_delivery_fee_enabled && item.product?.product_delivery_fee != null) {
-            // Product specific fee overrides the general weight/fixed for THIS item's portion, 
-            // or adds to it? The spec says "Override Global Delivery Fee" on the product form.
-            // We will add it to the total base fee.
+            // Product specific fee overrides the general weight/fixed for THIS item's portion
             totalFee += (item.product.product_delivery_fee * item.qty);
         }
     });

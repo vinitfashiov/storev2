@@ -22,6 +22,8 @@ interface CartItem {
     price: number;
     images: Json;
     stock_qty: number;
+    product_delivery_fee_enabled?: boolean;
+    product_delivery_fee?: number | null;
   } | null;
 }
 
@@ -65,7 +67,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         .from('cart_items')
         .select(`
           *,
-          product:products(id, name, slug, price, images, stock_qty)
+          product:products(id, name, slug, price, images, stock_qty, product_delivery_fee_enabled, product_delivery_fee)
         `)
         .eq('cart_id', cartId);
 
