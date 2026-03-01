@@ -1306,100 +1306,161 @@ export default function CheckoutPage() {
             {checkoutStep === 2 && (
               <section className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 p-0 lg:p-6 lg:shadow-sm">
 
-                {/* Remove border-b on mobile for clean look */}
-                <div className="hidden lg:flex items-center justify-between mb-6 pb-3 border-b border-neutral-200">
+                {/* Header Actions */}
+                <div className="flex items-center justify-between mb-6 pb-3 border-b border-neutral-200 lg:border-none lg:pb-0">
                   <h2 className="font-bold text-lg text-neutral-900">Delivery Address</h2>
+                  {savedAddresses.length > 0 && !showNewAddressForm && (
+                    <button
+                      type="button"
+                      onClick={handleAddNewAddress}
+                      className="text-sm text-[#ff3f6c] font-medium flex items-center gap-1 hover:text-[#d32f50] transition-colors"
+                    >
+                      <Plus className="w-4 h-4" /> Add New
+                    </button>
+                  )}
                 </div>
 
-                {/* No "Contact Information" section distinct from Address in the design, combined into one flow */}
-
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Pincode goes near the top conceptually in India, but sticking to standard form flow */}
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Full Name *</Label>
-                    <Input
-                      required
-                      value={form.name}
-                      onChange={e => setForm({ ...form, name: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="Enter your full name"
-                    />
+                {/* Saved Addresses List */}
+                {savedAddresses.length > 0 && !showNewAddressForm && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-300">
+                    {savedAddresses.map(addr => (
+                      <div
+                        key={addr.id}
+                        onClick={() => handleAddressSelect(addr.id)}
+                        className={`p-4 rounded-md border-2 cursor-pointer transition-all ${selectedAddressId === addr.id
+                            ? 'border-[#ff3f6c] bg-pink-50/50'
+                            : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                          }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <span className="inline-block px-2 py-0.5 bg-neutral-100 rounded text-[11px] font-semibold text-neutral-600 mb-2 uppercase tracking-wide">
+                              {addr.label || 'Home'}
+                            </span>
+                            <p className="text-[15px] font-semibold text-neutral-900 mb-1">{customer?.name || 'Customer'}</p>
+                            <p className="text-[13px] text-neutral-600 leading-relaxed mb-2">
+                              {addr.line1}
+                              {addr.line2 && <><br />{addr.line2}</>}
+                              <br />
+                              {addr.city}, {addr.state} - {addr.pincode}
+                            </p>
+                            <p className="text-[13px] text-neutral-600">Mobile: <span className="font-medium text-neutral-900">{customer?.phone || form.phone}</span></p>
+                          </div>
+                          {selectedAddressId === addr.id && (
+                            <div className="w-5 h-5 rounded-full bg-[#ff3f6c] flex items-center justify-center shrink-0">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                )}
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Mobile Number *</Label>
-                    <Input
-                      required
-                      value={form.phone}
-                      onChange={e => setForm({ ...form, phone: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="10-digit mobile number"
-                    />
-                  </div>
+                {/* New Address Form */}
+                {(showNewAddressForm || savedAddresses.length === 0) && (
+                  <div className="animate-in slide-in-from-bottom-2 duration-300">
+                    {savedAddresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewAddressForm(false);
+                          if (savedAddresses.length > 0) handleAddressSelect(savedAddresses[0].id);
+                        }}
+                        className="text-sm text-neutral-500 flex items-center gap-1 mb-5 hover:text-neutral-900 transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4 ml-[-4px]" /> Back to saved addresses
+                      </button>
+                    )}
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Address *</Label>
-                    <Input
-                      required
-                      value={form.line1}
-                      onChange={e => setForm({ ...form, line1: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="House/Flat No., Building Name"
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Full Name *</Label>
+                        <Input
+                          required
+                          value={form.name}
+                          onChange={e => setForm({ ...form, name: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="Your full name"
+                        />
+                      </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Locality / Area (optional)</Label>
-                    <Input
-                      value={form.line2}
-                      onChange={e => setForm({ ...form, line2: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="Locality / Area"
-                    />
-                  </div>
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Mobile Number *</Label>
+                        <Input
+                          required
+                          value={form.phone}
+                          onChange={e => setForm({ ...form, phone: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="10-digit mobile number"
+                        />
+                      </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Landmark (optional)</Label>
-                    <Input
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="Landmark (optional)"
-                    />
-                  </div>
+                      <div className="md:col-span-2">
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Flat / House No. / Building Area *</Label>
+                        <Input
+                          required
+                          value={form.line1}
+                          onChange={e => setForm({ ...form, line1: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="House/Flat No., Building Name"
+                        />
+                      </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Pin Code *</Label>
-                    <Input
-                      required
-                      value={form.pincode}
-                      onChange={e => setForm({ ...form, pincode: e.target.value })}
-                      maxLength={6}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="6-digit pincode"
-                    />
-                  </div>
+                      <div className="md:col-span-2">
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Locality / Area / Street (optional)</Label>
+                        <Input
+                          value={form.line2}
+                          onChange={e => setForm({ ...form, line2: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="Street, Locality, Area"
+                        />
+                      </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">City *</Label>
-                    <Input
-                      required
-                      value={form.city}
-                      onChange={e => setForm({ ...form, city: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="City"
-                    />
-                  </div>
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Pin Code *</Label>
+                        <Input
+                          required
+                          value={form.pincode}
+                          onChange={e => setForm({ ...form, pincode: e.target.value })}
+                          maxLength={6}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="6-digit pincode"
+                        />
+                      </div>
 
-                  <div>
-                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">State *</Label>
-                    <Input
-                      required
-                      value={form.state}
-                      onChange={e => setForm({ ...form, state: e.target.value })}
-                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
-                      placeholder="State"
-                    />
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Landmark (optional)</Label>
+                        <Input
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          placeholder="Landmark (optional)"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">City *</Label>
+                        <Input
+                          required
+                          value={form.city}
+                          onChange={e => setForm({ ...form, city: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm bg-neutral-50/50"
+                          placeholder="City"
+                        />
+                      </div>
+
+                      <div>
+                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">State *</Label>
+                        <Input
+                          required
+                          value={form.state}
+                          onChange={e => setForm({ ...form, state: e.target.value })}
+                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm bg-neutral-50/50"
+                          placeholder="State"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </section>
             )}
 
@@ -1427,21 +1488,23 @@ export default function CheckoutPage() {
                       </div>
                     </button>
 
-                    {razorpayConfigured && (
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('razorpay')}
-                        className={`p-4 text-left flex items-center justify-between transition-all ${paymentMethod === 'razorpay'
+                    <button
+                      type="button"
+                      onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
+                      disabled={!razorpayConfigured}
+                      className={`p-4 text-left flex items-center justify-between transition-all ${paymentMethod === 'razorpay'
                           ? 'bg-white border-l-4 border-l-black font-semibold'
                           : 'hover:bg-neutral-50 text-neutral-600 border-l-4 border-l-transparent'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <CreditCard className="w-5 h-5" />
-                          <span className="text-[15px]">Pay Online (UPI, Cards)</span>
+                        } ${!razorpayConfigured ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="w-5 h-5" />
+                        <div>
+                          <span className="text-[15px] block">Pay Online (UPI, Cards)</span>
+                          {!razorpayConfigured && <span className="text-[11px] text-neutral-400 font-normal">Currently unavailable</span>}
                         </div>
-                      </button>
-                    )}
+                      </div>
+                    </button>
                   </div>
 
                   {/* Right Content */}
