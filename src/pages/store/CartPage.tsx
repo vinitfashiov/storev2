@@ -3,12 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabaseStore } from '@/integrations/supabase/storeClient';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
 import { CheckoutStepper } from '@/components/storefront/CheckoutStepper';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight, ShieldCheck, Tag } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight, ShieldCheck, Tag, Loader2, X } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Tenant {
@@ -59,6 +60,12 @@ export default function CartPage() {
   const [tenantLoading, setTenantLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
+
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ id: string; code: string; discount: number; type: string } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [showCouponInput, setShowCouponInput] = useState(false);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const { cart, loading, itemCount, updateQuantity, removeItem, getSubtotal } = useCart(slug || '', tenant?.id || null);
 
@@ -142,6 +149,97 @@ export default function CartPage() {
     fetchTenant();
   }, [slug, isCustomDomain, cdTenant]);
 
+  // Restore coupon on load
+  useEffect(() => {
+    const saved = sessionStorage.getItem('applied_coupon');
+    if (saved) {
+      try {
+        setAppliedCoupon(JSON.parse(saved));
+      } catch (e) { }
+    }
+  }, []);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError('');
+
+    try {
+      const { data: coupon, error } = await supabaseStore
+        .from('coupons')
+        .select('*')
+        .eq('tenant_id', tenant?.id)
+        .eq('code', couponCode.toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error || !coupon) {
+        setCouponError('Invalid or expired coupon');
+        setApplyingCoupon(false);
+        return;
+      }
+
+      const subtotalVal = getSubtotal();
+
+      if (coupon.min_cart_amount && subtotalVal < coupon.min_cart_amount) {
+        setCouponError(`Add items worth ₹${coupon.min_cart_amount - subtotalVal} more to apply this coupon`);
+        setApplyingCoupon(false);
+        return;
+      }
+
+      const now = new Date();
+      if (coupon.starts_at && new Date(coupon.starts_at) > now) {
+        setCouponError('Coupon is not yet active');
+        setApplyingCoupon(false);
+        return;
+      }
+      if (coupon.ends_at && new Date(coupon.ends_at) < now) {
+        setCouponError('Coupon has expired');
+        setApplyingCoupon(false);
+        return;
+      }
+
+      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+        setCouponError('Coupon usage limit exceeded');
+        setApplyingCoupon(false);
+        return;
+      }
+
+      let discount = 0;
+      if (coupon.type === 'percent') {
+        discount = subtotalVal * (coupon.value / 100);
+        if (coupon.max_discount_amount) {
+          discount = Math.min(discount, coupon.max_discount_amount);
+        }
+      } else {
+        discount = coupon.value;
+      }
+
+      const verifiedCoupon = {
+        id: coupon.id,
+        code: coupon.code,
+        discount: discount,
+        type: coupon.type
+      };
+
+      setAppliedCoupon(verifiedCoupon);
+      setShowCouponInput(false);
+      setCouponError('');
+
+      sessionStorage.setItem('applied_coupon', JSON.stringify(verifiedCoupon));
+
+    } catch (e: any) {
+      setCouponError(e.message || 'Error applying coupon');
+    }
+    setApplyingCoupon(false);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    sessionStorage.removeItem('applied_coupon');
+  };
+
   const getImageUrl = (images: any) => {
     if (!images) return null;
     const imageArray = Array.isArray(images) ? images : (typeof images === 'string' ? [images] : []);
@@ -165,6 +263,9 @@ export default function CartPage() {
   const freeDeliveryThreshold = deliverySettings?.free_delivery_above;
   const isEligibleForFreeDelivery = freeDeliveryThreshold && subtotal >= freeDeliveryThreshold;
   const amountToFreeDelivery = freeDeliveryThreshold ? Math.max(0, freeDeliveryThreshold - subtotal) : 0;
+
+  const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+  const finalTotal = Math.max(0, subtotal - discountAmount);
 
   // Grocery Mobile Layout - Clean and Simple
   if (isGrocery) {
@@ -518,18 +619,57 @@ export default function CartPage() {
 
               {/* Coupons Section (Moved above summary) */}
               <div className="bg-white lg:border lg:border-neutral-100 mb-2 lg:mb-4 lg:shadow-sm">
-                <div className="p-4 flex items-center justify-between hover:bg-neutral-50 cursor-pointer transition-colors group">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
-                    <div>
-                      <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
-                      <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
+                {!appliedCoupon ? (
+                  <div className="p-4 flex flex-col transition-all cursor-pointer group">
+                    <div onClick={() => setShowCouponInput(!showCouponInput)} className="flex items-center justify-between hover:bg-neutral-50 rounded bg-white w-full">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
+                        <div>
+                          <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
+                          <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
+                        Apply <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${showCouponInput ? 'rotate-90' : ''}`} />
+                      </div>
                     </div>
+
+                    {showCouponInput && (
+                      <div className="mt-4 flex flex-col gap-2 relative">
+                        <div className="flex gap-2">
+                          <Input
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            placeholder="Enter coupon code"
+                            className="h-10 text-sm focus-visible:ring-[#ff3f6c] uppercase"
+                            disabled={applyingCoupon}
+                          />
+                          <Button
+                            onClick={handleApplyCoupon}
+                            disabled={!couponCode || applyingCoupon}
+                            className="h-10 px-6 bg-[#ff3f6c] hover:bg-[#d32f50] text-white"
+                          >
+                            {applyingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                          </Button>
+                        </div>
+                        {couponError && <p className="text-xs text-red-500 font-medium">{couponError}</p>}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
-                    Apply <ChevronRight className="w-4 h-4 ml-0.5" />
+                ) : (
+                  <div className="p-4 flex items-center justify-between group">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5"><Tag className="w-5 h-5 text-[#ff3f6c] fill-pink-50" /></div>
+                      <div>
+                        <span className="text-sm font-bold text-[#ff3f6c] block uppercase">{appliedCoupon.code} applied</span>
+                        <span className="text-xs text-neutral-500">You saved ₹{appliedCoupon.discount.toFixed(0)}</span>
+                      </div>
+                    </div>
+                    <button onClick={handleRemoveCoupon} className="flex items-center text-[12px] font-bold text-neutral-500 hover:text-neutral-900 bg-neutral-100 px-2 py-1 rounded">
+                      Remove
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="bg-white lg:border lg:border-neutral-100 p-4 lg:p-6 lg:shadow-sm">
@@ -549,6 +689,13 @@ export default function CartPage() {
                       <span className="text-[#03a685] text-xs font-bold">FREE</span>
                     </div>
                   </div>
+
+                  {appliedCoupon && (
+                    <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
+                      <span className="text-[#03a685] font-medium">Coupon ({appliedCoupon.code})</span>
+                      <span className="text-[#03a685] font-bold">-₹{appliedCoupon.discount.toFixed(0)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-start mt-4 mb-1">
@@ -557,7 +704,7 @@ export default function CartPage() {
                     <span className="text-[11px] text-neutral-500">Inclusive of all taxes</span>
                   </div>
                   <span className="text-sm font-bold text-neutral-900">
-                    ₹{subtotal.toFixed(0)}
+                    ₹{finalTotal.toFixed(0)}
                   </span>
                 </div>
 
@@ -589,7 +736,7 @@ export default function CartPage() {
         {cart && cart.items.length > 0 && (
           <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 flex items-center justify-between safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <div>
-              <p className="text-sm font-bold text-neutral-900">₹{subtotal.toFixed(0)}</p>
+              <p className="text-sm font-bold text-neutral-900">₹{finalTotal.toFixed(0)}</p>
               <p className="text-xs text-[#03a685] font-bold underline cursor-pointer decoration-dotted underline-offset-4">View price details</p>
             </div>
             <Link to={getLink('/checkout')} className="w-1/2 ml-4">

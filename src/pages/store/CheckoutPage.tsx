@@ -131,11 +131,28 @@ export default function CheckoutPage() {
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [zoneError, setZoneError] = useState<string>('');
 
-  // Coupon state
   const [couponCode, setCouponCode] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponError, setCouponError] = useState('');
+  const [showCouponInput, setShowCouponInput] = useState(false);
+
+  // Restore coupon on load if exists
+  useEffect(() => {
+    const saved = sessionStorage.getItem('applied_coupon');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setAppliedCoupon({
+          coupon_id: parsed.id,
+          coupon_code: parsed.code,
+          coupon_type: parsed.type,
+          coupon_value: parsed.discount, // This isn't exactly the raw value but we just need discount_amount
+          discount_amount: parsed.discount
+        });
+      } catch (e) { }
+    }
+  }, []);
 
   const { cart, itemCount, getSubtotal, clearCart } = useCart(slug || '', tenant?.id || null);
 
@@ -436,7 +453,15 @@ export default function CheckoutPage() {
           discount_amount: data.discount_amount
         });
         setCouponCode('');
+        setShowCouponInput(false);
         toast.success(data.message);
+
+        sessionStorage.setItem('applied_coupon', JSON.stringify({
+          id: data.coupon_id,
+          code: data.coupon_code,
+          discount: data.discount_amount,
+          type: data.coupon_type
+        }));
       } else {
         setCouponError(data.error || 'Invalid coupon');
       }
@@ -450,6 +475,7 @@ export default function CheckoutPage() {
   const removeCoupon = () => {
     setAppliedCoupon(null);
     setCouponError('');
+    sessionStorage.removeItem('applied_coupon');
   };
 
   const handleRazorpayPayment = async (paymentIntentId: string, orderNumber: string, amount: number) => {
@@ -1373,79 +1399,121 @@ export default function CheckoutPage() {
                       </button>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Full Name *</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="relative">
                         <Input
                           required
+                          id="fullName"
                           value={form.name}
                           onChange={e => setForm({ ...form, name: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
-                          placeholder="Your full name"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder="Full Name *"
                         />
+                        <Label
+                          htmlFor="fullName"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Full Name *
+                        </Label>
                       </div>
 
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Mobile Number *</Label>
+                      <div className="relative">
                         <Input
                           required
+                          id="phoneNumber"
                           value={form.phone}
                           onChange={e => setForm({ ...form, phone: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
                           placeholder="10-digit mobile number"
                         />
+                        <Label
+                          htmlFor="phoneNumber"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Mobile Number *
+                        </Label>
                       </div>
 
-                      <div className="md:col-span-2">
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Flat / House No. / Building Area *</Label>
+                      <div className="md:col-span-2 relative">
                         <Input
                           required
+                          id="line1"
                           value={form.line1}
                           onChange={e => setForm({ ...form, line1: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
-                          placeholder="House/Flat No., Building Name"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder="House/Flat No., Building Name *"
                         />
+                        <Label
+                          htmlFor="line1"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Flat / House No. / Building Area *
+                        </Label>
                       </div>
 
-                      <div className="md:col-span-2">
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Locality / Area / Street (optional)</Label>
+                      <div className="md:col-span-2 relative">
                         <Input
+                          id="line2"
                           value={form.line2}
                           onChange={e => setForm({ ...form, line2: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
-                          placeholder="Street, Locality, Area"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder="Locality, Area, Street"
                         />
+                        <Label
+                          htmlFor="line2"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Locality / Area / Street (optional)
+                        </Label>
                       </div>
 
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Pin Code *</Label>
+                      <div className="relative">
                         <Input
                           required
+                          id="pincode"
                           value={form.pincode}
                           onChange={e => setForm({ ...form, pincode: e.target.value })}
                           maxLength={6}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
-                          placeholder="6-digit pincode"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder="6-digit pincode *"
                         />
+                        <Label
+                          htmlFor="pincode"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Pin Code *
+                        </Label>
                       </div>
 
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">Landmark (optional)</Label>
+                      <div className="relative">
                         <Input
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm"
+                          id="landmark"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
                           placeholder="Landmark (optional)"
                         />
+                        <Label
+                          htmlFor="landmark"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          Landmark (optional)
+                        </Label>
                       </div>
 
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">City *</Label>
+                      <div className="md:col-span-2 relative">
                         <Input
                           required
+                          id="city"
                           value={form.city}
                           onChange={e => setForm({ ...form, city: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm bg-neutral-50/50"
-                          placeholder="City"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-neutral-50/50 px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder="City *"
                         />
+                        <Label
+                          htmlFor="city"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          City *
+                        </Label>
                       </div>
 
                       <div>
@@ -1560,18 +1628,58 @@ export default function CheckoutPage() {
 
             {/* Coupons Section */}
             <div className="bg-white lg:border lg:border-neutral-100 mb-2 lg:mb-4 lg:shadow-sm">
-              <div className="p-4 flex items-center justify-between hover:bg-neutral-50 cursor-pointer transition-colors group">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
-                  <div>
-                    <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
-                    <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
+              {!appliedCoupon ? (
+                <div className="p-4 flex flex-col transition-all cursor-pointer group">
+                  <div onClick={() => setShowCouponInput(!showCouponInput)} className="flex items-center justify-between hover:bg-neutral-50 rounded bg-white w-full">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
+                      <div>
+                        <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
+                        <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
+                      Apply <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${showCouponInput ? 'rotate-90' : ''}`} />
+                    </div>
                   </div>
+
+                  {showCouponInput && (
+                    <div className="mt-4 flex flex-col gap-2 relative">
+                      <div className="flex gap-2">
+                        <Input
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Enter coupon code"
+                          className="h-10 text-sm focus-visible:ring-[#ff3f6c] uppercase"
+                          disabled={couponLoading}
+                        />
+                        <Button
+                          onClick={handleApplyCoupon}
+                          disabled={!couponCode || couponLoading}
+                          type="button"
+                          className="h-10 px-6 bg-[#ff3f6c] hover:bg-[#d32f50] text-white"
+                        >
+                          {couponLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                        </Button>
+                      </div>
+                      {couponError && <p className="text-xs text-red-500 font-medium">{couponError}</p>}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
-                  Apply <ChevronRight className="w-4 h-4 ml-0.5" />
+              ) : (
+                <div className="p-4 flex items-center justify-between group">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5"><Tag className="w-5 h-5 text-[#ff3f6c] fill-pink-50" /></div>
+                    <div>
+                      <span className="text-sm font-bold text-[#ff3f6c] block uppercase">{appliedCoupon.coupon_code} applied</span>
+                      <span className="text-xs text-neutral-500">You saved ₹{appliedCoupon.discount_amount.toFixed(0)}</span>
+                    </div>
+                  </div>
+                  <button onClick={removeCoupon} type="button" className="flex items-center text-[12px] font-bold text-neutral-500 hover:text-neutral-900 bg-neutral-100 px-2 py-1 rounded">
+                    Remove
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="bg-white lg:border lg:border-neutral-100 p-4 lg:p-6 lg:shadow-sm">
@@ -1587,10 +1695,23 @@ export default function CheckoutPage() {
                 <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
                   <span className="text-neutral-600">Delivery fee</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-neutral-400 line-through">₹99</span>
-                    <span className="text-[#03a685] text-xs font-bold">FREE</span>
+                    {deliveryFee === 0 ? (
+                      <>
+                        <span className="text-xs text-neutral-400 line-through">₹99</span>
+                        <span className="text-[#03a685] text-xs font-bold">FREE</span>
+                      </>
+                    ) : (
+                      <span className="font-medium text-neutral-900">₹{deliveryFee.toFixed(0)}</span>
+                    )}
                   </div>
                 </div>
+
+                {appliedCoupon && (
+                  <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
+                    <span className="text-[#03a685] font-medium">Coupon ({appliedCoupon.coupon_code})</span>
+                    <span className="text-[#03a685] font-bold">-₹{appliedCoupon.discount_amount.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-between items-start mt-4 mb-1">
@@ -1599,7 +1720,7 @@ export default function CheckoutPage() {
                   <span className="text-[11px] text-neutral-500">Inclusive of all taxes</span>
                 </div>
                 <span className="text-sm font-bold text-neutral-900">
-                  ₹{subtotal.toFixed(0)}
+                  ₹{total.toFixed(0)}
                 </span>
               </div>
 
