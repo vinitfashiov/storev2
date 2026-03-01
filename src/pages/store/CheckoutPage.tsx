@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
+import { CheckoutStepper } from '@/components/storefront/CheckoutStepper';
 import {
   CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin,
   Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield, ShieldCheck
@@ -113,6 +114,7 @@ export default function CheckoutPage() {
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', line1: '', line2: '', city: '', state: '', pincode: '', latitude: null as number | null, longitude: null as number | null });
   const [searchQuery, setSearchQuery] = useState('');
+  const [checkoutStep, setCheckoutStep] = useState<2 | 3>(2); // Start at step 2 (Address)
 
   // Customer addresses state
   const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([]);
@@ -544,6 +546,13 @@ export default function CheckoutPage() {
         toast.error('Please select a delivery slot');
         return;
       }
+    }
+
+    // Step progression logic for e-commerce
+    if (!isGrocery && checkoutStep === 2) {
+      setCheckoutStep(3);
+      window.scrollTo(0, 0);
+      return;
     }
 
     setSubmitting(true);
@@ -1272,273 +1281,309 @@ export default function CheckoutPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <main className="flex-1 container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
-        {/* Progress Steps */}
-        <div className="mb-6">
-          <div className="flex items-center justify-center gap-3 lg:gap-6 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-xs">
-                <Check className="w-4 h-4" />
-              </div>
-              <span className="text-xs lg:text-sm font-medium text-green-600 hidden sm:block">Cart</span>
-            </div>
-            <div className="w-12 lg:w-20 h-0.5 bg-[#ff3f6c]"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-[#ff3f6c] flex items-center justify-center text-white font-semibold text-xs">
-                2
-              </div>
-              <span className="text-xs lg:text-sm font-medium text-[#ff3f6c] hidden sm:block">Checkout</span>
-            </div>
-            <div className="w-12 lg:w-20 h-0.5 bg-neutral-300"></div>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-600 font-semibold text-xs">
-                3
-              </div>
-              <span className="text-xs lg:text-sm font-medium text-neutral-500 hidden sm:block">Payment</span>
-            </div>
+      <main className="flex-1 lg:max-w-[1200px] lg:mx-auto w-full lg:px-4 py-0 lg:py-6">
+        <CheckoutStepper currentStep={checkoutStep} />
+
+        {/* Mobile Header (replaces standard header on small screens) */}
+        <div className="lg:hidden flex items-center justify-between bg-white px-4 py-3 border-b border-neutral-100 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <button onClick={() => checkoutStep === 3 ? setCheckoutStep(2) : navigate(-1)} className="p-1 -ml-1 text-neutral-700">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-lg font-semibold text-neutral-900">
+              {checkoutStep === 2 ? 'Add address' : 'Payment'}
+            </h1>
           </div>
+          <span className="text-sm font-medium text-neutral-500 tracking-wide">
+            STEP {checkoutStep}/3
+          </span>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-          <div className="flex-1 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-4 lg:gap-6 lg:mt-6">
+          <div className="flex-1 space-y-4 px-4 lg:px-0 mt-4 lg:mt-0">
 
-            {/* Contact Details */}
-            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
-              <h2 className="font-bold text-base lg:text-lg text-neutral-900 mb-4 pb-3 border-b border-neutral-200">Contact Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Full Name *</Label>
-                  <Input
-                    required
-                    value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Phone Number *</Label>
-                  <Input
-                    required
-                    value={form.phone}
-                    onChange={e => setForm({ ...form, phone: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="10-digit mobile number"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Email (Optional)</Label>
-                  <Input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-              </div>
-            </section>
+            {/* Step 2: Delivery Address */}
+            {checkoutStep === 2 && (
+              <section className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 p-0 lg:p-6 lg:shadow-sm">
 
-            {/* Delivery Address */}
-            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-200">
-                <h2 className="font-bold text-base lg:text-lg text-neutral-900">Delivery Address</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Address Line 1 *</Label>
-                  <Input
-                    required
-                    value={form.line1}
-                    onChange={e => setForm({ ...form, line1: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="House/Flat No., Building Name"
-                  />
+                {/* Remove border-b on mobile for clean look */}
+                <div className="hidden lg:flex items-center justify-between mb-6 pb-3 border-b border-neutral-200">
+                  <h2 className="font-bold text-lg text-neutral-900">Delivery Address</h2>
                 </div>
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Address Line 2</Label>
-                  <Input
-                    value={form.line2}
-                    onChange={e => setForm({ ...form, line2: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="Street, Area, Landmark (Optional)"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">City *</Label>
-                  <Input
-                    required
-                    value={form.city}
-                    onChange={e => setForm({ ...form, city: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="City"
-                  />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">State *</Label>
-                  <Input
-                    required
-                    value={form.state}
-                    onChange={e => setForm({ ...form, state: e.target.value })}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
-                    placeholder="State"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Pincode *</Label>
-                  <Input
-                    required
-                    value={form.pincode}
-                    onChange={e => setForm({ ...form, pincode: e.target.value })}
-                    maxLength={6}
-                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3 w-full md:w-1/2"
-                    placeholder="6-digit pincode"
-                  />
-                </div>
-              </div>
-            </section>
 
-            {/* Payment Method */}
-            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
-              <h2 className="font-bold text-base lg:text-lg text-neutral-900 mb-4 pb-3 border-b border-neutral-200">Payment Options</h2>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
-                <div
-                  className={`p-4 rounded-md border transition-all cursor-pointer ${
-                    paymentMethod === 'cod'
-                      ? 'border-[#ff3f6c] bg-pink-50'
-                      : 'border-neutral-300 hover:border-neutral-400 bg-white'
-                  }`}
-                  onClick={() => setPaymentMethod('cod')}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="cod" id="cod-ecom" className={paymentMethod === 'cod' ? 'border-[#ff3f6c] text-[#ff3f6c]' : ''} />
-                      <Label htmlFor="cod-ecom" className="flex items-center gap-2.5 cursor-pointer font-medium text-neutral-900 text-sm">
-                        <Truck className="w-5 h-5 text-neutral-600" />
-                        Cash on Delivery
-                      </Label>
-                    </div>
-                    {paymentMethod === 'cod' && (
-                      <Check className="w-5 h-5 text-[#ff3f6c]" />
-                    )}
+                {/* No "Contact Information" section distinct from Address in the design, combined into one flow */}
+
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Pincode goes near the top conceptually in India, but sticking to standard form flow */}
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Full Name *</Label>
+                    <Input
+                      required
+                      value={form.name}
+                      onChange={e => setForm({ ...form, name: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Mobile Number *</Label>
+                    <Input
+                      required
+                      value={form.phone}
+                      onChange={e => setForm({ ...form, phone: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="10-digit mobile number"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Address *</Label>
+                    <Input
+                      required
+                      value={form.line1}
+                      onChange={e => setForm({ ...form, line1: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="House/Flat No., Building Name"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Locality / Area (optional)</Label>
+                    <Input
+                      value={form.line2}
+                      onChange={e => setForm({ ...form, line2: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="Locality / Area"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Landmark (optional)</Label>
+                    <Input
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="Landmark (optional)"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">Pin Code *</Label>
+                    <Input
+                      required
+                      value={form.pincode}
+                      onChange={e => setForm({ ...form, pincode: e.target.value })}
+                      maxLength={6}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="6-digit pincode"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">City *</Label>
+                    <Input
+                      required
+                      value={form.city}
+                      onChange={e => setForm({ ...form, city: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="City"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-medium text-neutral-600 mb-1.5 block">State *</Label>
+                    <Input
+                      required
+                      value={form.state}
+                      onChange={e => setForm({ ...form, state: e.target.value })}
+                      className="h-12 border-0 border-b border-neutral-300 rounded-none focus-visible:ring-0 focus-visible:border-black px-0 shadow-none text-base"
+                      placeholder="State"
+                    />
                   </div>
                 </div>
-                <div
-                  className={`p-4 rounded-md border transition-all cursor-pointer ${
-                    !razorpayConfigured
-                      ? 'opacity-50 cursor-not-allowed bg-neutral-50'
-                      : paymentMethod === 'razorpay'
-                        ? 'border-[#ff3f6c] bg-pink-50'
-                        : 'border-neutral-300 hover:border-neutral-400 bg-white'
-                  }`}
-                  onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <RadioGroupItem value="razorpay" id="razorpay-ecom" disabled={!razorpayConfigured} className={paymentMethod === 'razorpay' ? 'border-[#ff3f6c] text-[#ff3f6c]' : ''} />
-                      <Label htmlFor="razorpay-ecom" className="flex items-center gap-2.5 cursor-pointer font-medium text-neutral-900 text-sm">
-                        <CreditCard className="w-5 h-5 text-neutral-600" />
-                        <div>
-                          Pay Online (UPI, Cards, Net Banking)
-                          {!razorpayConfigured && <span className="block text-xs text-neutral-500 font-normal">Not available</span>}
+              </section>
+            )}
+
+            {/* Step 3: Payment Method */}
+            {checkoutStep === 3 && (
+              <section className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 p-4 lg:p-6 lg:shadow-sm">
+
+                <h2 className="hidden lg:block font-bold text-[18px] text-neutral-900 mb-6">Choose payment mode</h2>
+
+                <div className="flex flex-col lg:flex-row border border-neutral-200 rounded-sm overflow-hidden">
+
+                  {/* Left Nav (Desktop Tabs style) */}
+                  <div className="w-full lg:w-[35%] bg-neutral-100 flex flex-col border-b lg:border-b-0 lg:border-r border-neutral-200">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`p-4 text-left flex items-center justify-between transition-all ${paymentMethod === 'cod'
+                        ? 'bg-white border-l-4 border-l-black font-semibold'
+                        : 'hover:bg-neutral-50 text-neutral-600 border-l-4 border-l-transparent'
+                        }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Truck className="w-5 h-5" />
+                        <span className="text-[15px]">Cash on delivery</span>
+                      </div>
+                    </button>
+
+                    {razorpayConfigured && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('razorpay')}
+                        className={`p-4 text-left flex items-center justify-between transition-all ${paymentMethod === 'razorpay'
+                          ? 'bg-white border-l-4 border-l-black font-semibold'
+                          : 'hover:bg-neutral-50 text-neutral-600 border-l-4 border-l-transparent'
+                          }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <CreditCard className="w-5 h-5" />
+                          <span className="text-[15px]">Pay Online (UPI, Cards)</span>
                         </div>
-                      </Label>
-                    </div>
-                    {paymentMethod === 'razorpay' && razorpayConfigured && (
-                      <Check className="w-5 h-5 text-[#ff3f6c]" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Right Content */}
+                  <div className="w-full lg:w-[65%] p-6">
+                    {paymentMethod === 'cod' && (
+                      <div className="animate-in fade-in duration-300">
+                        <h3 className="font-bold text-[15px] mb-2 text-neutral-900">Pay on delivery (Cash/Card/UPI)</h3>
+                        <p className="text-sm text-neutral-500 mb-8 leading-relaxed">
+                          Pay in cash or pay in person at the time of delivery with GPay/PayTM/PhonePe.
+                        </p>
+
+                        <div className="hidden lg:block">
+                          <Button
+                            type="button" // Use type=button and manually call handleSubmit to match desktop flow if needed, but it's inside form
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="w-full rounded-sm h-[50px] text-[15px] font-bold bg-[#1e1e24] hover:bg-black text-white transition-colors"
+                          >
+                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Place order'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {paymentMethod === 'razorpay' && (
+                      <div className="animate-in fade-in duration-300">
+                        <h3 className="font-bold text-[15px] mb-2 text-neutral-900">Pay securely via Razorpay</h3>
+                        <p className="text-sm text-neutral-500 mb-8 leading-relaxed">
+                          Use any UPI app, Credit/Debit card, or Netbanking. You will be redirected to the secure payment gateway.
+                        </p>
+
+                        <div className="hidden lg:block">
+                          <Button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="w-full rounded-sm h-[50px] text-[15px] font-bold bg-[#1e1e24] hover:bg-black text-white transition-colors"
+                          >
+                            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : `Pay ₹${total.toFixed(0)}`}
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-              </RadioGroup>
-            </section>
+              </section>
+            )}
+
           </div>
 
-          {/* Right Column - Order Summary */}
-          <div className="w-full lg:w-[400px] shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-5 lg:p-6 sticky top-24 border border-neutral-200">
-              <h3 className="font-bold text-base lg:text-lg mb-5 text-neutral-900 pb-4 border-b border-neutral-200">Order Summary</h3>
+          {/* Right Column - Order Summary Sidebar (Same as Cart) */}
+          <div className="w-full lg:w-[400px] shrink-0 mt-4 lg:mt-0">
 
-              {/* Cart Items Preview */}
-              <div className="space-y-3.5 max-h-[32vh] overflow-y-auto mb-5 pb-5 border-b border-neutral-200">
-                {cart.items.map(item => {
-                  const imageUrl = getImageUrl(item.product?.images);
-                  return (
-                    <div key={item.id} className="flex gap-3">
-                      <div className="w-16 h-20 rounded-md border border-neutral-200 overflow-hidden shrink-0 bg-neutral-50 relative">
-                        {imageUrl ? (
-                          <img src={imageUrl} alt={item.product?.name || 'Product'} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-5 h-5 text-neutral-300" />
-                          </div>
-                        )}
-                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-neutral-800 text-white rounded-full flex items-center justify-center text-xs font-semibold">
-                          {item.qty}
-                        </div>
-                      </div>
-                      <div className="flex-1 flex flex-col justify-between min-w-0">
-                        <span className="font-medium text-xs text-neutral-900 line-clamp-2">{item.product?.name}</span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-neutral-500">₹{item.unit_price.toFixed(2)}</span>
-                          <span className="text-sm font-semibold text-neutral-900">₹{(item.unit_price * item.qty).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Bill Details */}
-              <div className="space-y-3 text-sm mb-5 pb-5 border-b border-neutral-200">
-                <div className="flex justify-between">
-                  <span className="text-neutral-700">Subtotal</span>
-                  <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-700">Delivery Fee</span>
-                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : 'text-neutral-900 font-medium'}>
-                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
-                  </span>
-                </div>
-                {deliveryFee === 0 && (
-                  <div className="flex items-center gap-2 p-2.5 bg-green-50 rounded-md">
-                    <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-xs font-medium text-green-700">Free delivery applied!</span>
+            {/* Coupons Section */}
+            <div className="bg-white lg:border lg:border-neutral-100 mb-2 lg:mb-4 lg:shadow-sm">
+              <div className="p-4 flex items-center justify-between hover:bg-neutral-50 cursor-pointer transition-colors group">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
+                  <div>
+                    <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
+                    <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
                   </div>
-                )}
+                </div>
+                <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
+                  Apply <ChevronRight className="w-4 h-4 ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white lg:border lg:border-neutral-100 p-4 lg:p-6 lg:shadow-sm">
+
+              <div className="space-y-3 lg:space-y-4 text-sm mt-2">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600">Item total</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-neutral-400 line-through">₹{(subtotal * 1.3).toFixed(0)}</span>
+                    <span className="font-medium text-neutral-900">₹{subtotal.toFixed(0)}</span>
+                  </div>
+                </div>
+                <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
+                  <span className="text-neutral-600">Delivery fee</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-neutral-400 line-through">₹99</span>
+                    <span className="text-[#03a685] text-xs font-bold">FREE</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center mb-6">
-                <span className="text-base font-bold text-neutral-900">Total Amount</span>
-                <span className="text-2xl font-bold text-neutral-900">
-                  ₹{total.toFixed(2)}
+              <div className="flex justify-between items-start mt-4 mb-1">
+                <div>
+                  <span className="text-[15px] font-bold text-neutral-900 block">Grand total</span>
+                  <span className="text-[11px] text-neutral-500">Inclusive of all taxes</span>
+                </div>
+                <span className="text-sm font-bold text-neutral-900">
+                  ₹{subtotal.toFixed(0)}
                 </span>
               </div>
 
-              {/* Place Order Button */}
-              <Button
-                type="submit"
-                className="w-full rounded-md h-12 text-base font-bold bg-[#ff3f6c] hover:bg-[#ff1744] text-white transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={submitting || cart.items.length === 0}
-              >
-                {submitting ? (
-                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
-                ) : paymentMethod === 'razorpay' ? (
-                  <>Pay ₹{total.toFixed(2)}</>
-                ) : (
-                  <>Place Order</>
-                )}
-              </Button>
+              <div className="border-t border-b border-neutral-100 py-3 my-4">
+                <div className="text-[13px] text-neutral-600">
+                  Average delivery time: <span className="font-bold text-neutral-900">3-5 days</span>
+                </div>
+              </div>
 
-              {/* Trust Indicators */}
-              <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-3 border-t border-neutral-100">
-                <ShieldCheck className="w-4 h-4 text-green-600" />
-                <span>Safe and Secure Payments</span>
+              <div className="bg-[#eafaf1] border border-[#d2f4e1] rounded-sm p-3 mb-6">
+                <p className="text-[#03a685] text-sm font-medium leading-relaxed">
+                  You have saved total 30% (₹{(subtotal * 0.3).toFixed(0)}) on your order! Yay!
+                </p>
+              </div>
+
+              <div className="hidden lg:block">
+                <Button
+                  type="submit"
+                  disabled={submitting || cart.items.length === 0}
+                  className="w-full rounded-sm h-[50px] text-[15px] font-bold bg-[#1e1e24] hover:bg-black text-white transition-colors"
+                >
+                  {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : checkoutStep === 2 ? 'Continue' : 'Place order'}
+                </Button>
               </div>
             </div>
           </div>
         </form>
+
+        {/* Mobile Sticky Footer */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 flex items-center justify-between safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div>
+            <p className="text-sm font-bold text-neutral-900">₹{subtotal.toFixed(0)}</p>
+            <p className="text-xs text-[#03a685] font-bold underline cursor-pointer decoration-dotted underline-offset-4">View price details</p>
+          </div>
+          <div className="w-1/2 ml-4">
+            <Button
+              type="submit"
+              form="checkoutMobileForm" // Not strictly needed, we intercept onClick
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full h-11 bg-[#1e1e24] hover:bg-black text-white font-bold text-sm rounded-sm"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : checkoutStep === 2 ? 'Continue' : 'Place order'}
+            </Button>
+          </div>
+        </div>
+
       </main>
     </div>
   );

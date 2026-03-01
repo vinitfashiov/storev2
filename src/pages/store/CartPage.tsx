@@ -7,7 +7,8 @@ import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight, ShieldCheck } from 'lucide-react';
+import { CheckoutStepper } from '@/components/storefront/CheckoutStepper';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight, ShieldCheck, Tag } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Tenant {
@@ -366,13 +367,34 @@ export default function CartPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
+      <main className="flex-1 lg:max-w-[1200px] lg:mx-auto w-full lg:px-4 py-0 lg:py-6">
+
+        <CheckoutStepper currentStep={1} />
+
         {/* Header Section */}
-        <div className="mb-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-neutral-900 mb-1">
-            Shopping Cart ({itemCount})
+        <div className="hidden lg:flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            Cart ({itemCount} Item{itemCount !== 1 ? 's' : ''})
           </h1>
-          <p className="text-neutral-600 text-sm">{itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart</p>
+          <div className="text-xl font-bold text-neutral-900">
+            Total ₹{getSubtotal().toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+          </div>
+        </div>
+
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between bg-white px-4 py-3 border-b border-neutral-100 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="p-1 -ml-1 text-neutral-700">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h1 className="text-lg font-semibold text-neutral-900">Shopping Bag</h1>
+          </div>
+          <span className="text-sm font-medium text-neutral-500 tracking-wide">STEP 1/3</span>
+        </div>
+
+        <div className="lg:hidden px-4 py-3 bg-neutral-50 flex justify-between items-center text-sm font-medium border-b border-neutral-100">
+          <span className="text-neutral-600 uppercase tracking-widest text-[11px]">{itemCount} ITEM{itemCount !== 1 ? 'S' : ''}</span>
+          <span className="text-neutral-900">Total ₹{getSubtotal().toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
         </div>
 
         {!cart || cart.items.length === 0 ? (
@@ -409,14 +431,14 @@ export default function CartPage() {
               )}
 
               {/* Cart Items Cards */}
-              <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
+              <div className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 lg:shadow-sm">
                 {cart.items.map((item, index) => {
                   const imageUrl = getImageUrl(item.product?.images);
                   return (
-                    <div key={item.id} className={`p-4 lg:p-5 ${index !== cart.items.length - 1 ? 'border-b border-neutral-200' : ''}`}>
-                      <div className="flex gap-4 lg:gap-5">
+                    <div key={item.id} className={`p-4 lg:p-6 ${index !== cart.items.length - 1 ? 'border-b border-neutral-100' : ''}`}>
+                      <div className="flex gap-4 lg:gap-6">
                         <Link to={getLink(`/product/${item.product?.slug || ''}`)} className="block shrink-0">
-                          <div className="w-24 h-28 lg:w-28 lg:h-32 rounded-md border border-neutral-200 overflow-hidden bg-neutral-50">
+                          <div className="w-24 h-28 lg:w-32 lg:h-36 rounded-sm border border-neutral-100 overflow-hidden bg-white flex items-center justify-center p-2">
                             {imageUrl ? (
                               <img
                                 src={imageUrl}
@@ -434,33 +456,51 @@ export default function CartPage() {
                           <div className="flex justify-between gap-4">
                             <div className="flex-1">
                               <Link to={getLink(`/product/${item.product?.slug || ''}`)}>
-                                <h3 className="font-medium text-base lg:text-lg text-neutral-900 hover:text-[#ff3f6c] transition-colors line-clamp-2">
+                                <h3 className="text-sm lg:text-base text-neutral-900 hover:text-[#ff3f6c] transition-colors line-clamp-2">
                                   {item.product?.name || 'Product'}
                                 </h3>
                               </Link>
-                              <p className="text-neutral-500 mt-1 text-sm">₹{item.unit_price.toFixed(2)}</p>
+
+                              <div className="mt-2 flex items-baseline gap-2">
+                                <span className="font-bold text-sm lg:text-base text-neutral-900">₹{item.unit_price.toFixed(0)}</span>
+                                <span className="text-xs lg:text-sm text-neutral-400 line-through">₹{(item.unit_price * 1.3).toFixed(0)}</span>
+                                <span className="text-xs lg:text-sm font-bold text-green-500">(30% off)</span>
+                              </div>
+                              <p className="text-xs text-neutral-500 mt-1 italic">You saved ₹{(item.unit_price * 0.3).toFixed(0)}!</p>
                             </div>
+
                             <button
-                              className="text-neutral-400 hover:text-red-500 transition-colors h-fit"
+                              className="text-xs font-bold text-neutral-500 hover:text-red-500 transition-colors h-fit uppercase tracking-wider"
                               onClick={() => removeItem(item.id)}
                             >
-                              <Trash2 className="w-5 h-5" />
+                              REMOVE
                             </button>
                           </div>
-                          <div className="flex items-center justify-between mt-auto pt-3">
-                            <div className="flex items-center border border-neutral-300 rounded-md">
-                              <button className="px-3 py-1.5 hover:bg-neutral-100 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
-                                <Minus className="w-4 h-4 text-neutral-600" />
-                              </button>
-                              <span className="w-10 text-center text-sm font-medium border-x border-neutral-300">{item.qty}</span>
-                              <button className="px-3 py-1.5 hover:bg-neutral-100 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
-                                <Plus className="w-4 h-4 text-neutral-600" />
-                              </button>
+
+                          <div className="flex items-center gap-2 mt-4 text-xs font-medium text-neutral-700">
+                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[80px] cursor-pointer hover:border-neutral-300">
+                              <span>size: 128gb</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-lg text-neutral-900">
-                                ₹{(item.unit_price * item.qty).toFixed(2)}
-                              </p>
+                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[80px] cursor-pointer hover:border-neutral-300">
+                              <div className="flex items-center gap-1.5">
+                                <span>color:</span>
+                                <div className="w-3 h-3 bg-black rounded-sm border border-neutral-300"></div>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
+                            </div>
+                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[70px] cursor-pointer hover:border-neutral-300">
+                              <span className="mr-1">Qty: {item.qty}</span>
+                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
+                            </div>
+                          </div>
+
+                          {/* Mobile Qty Controls (optional since we have the dropdown above, keeping minimal for now) */}
+                          <div className="hidden items-center justify-between mt-auto pt-3">
+                            <div className="flex items-center border border-neutral-300 rounded-sm bg-white">
+                              <button className="px-3 py-1 text-xl font-light hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>-</button>
+                              <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
+                              <button className="px-3 py-1 text-xl font-light hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>+</button>
                             </div>
                           </div>
                         </div>
@@ -470,52 +510,93 @@ export default function CartPage() {
                 })}
               </div>
 
-              {/* Continue Shopping Link */}
-              <Link to={getLink('/products')} className="block mt-4">
-                <div className="bg-white border border-neutral-200 rounded-lg p-4 hover:border-[#ff3f6c] transition-colors text-center">
-                  <p className="text-[#ff3f6c] font-medium flex items-center justify-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    Add More Items
-                  </p>
-                </div>
-              </Link>
+              {/* Remove Add More items link from this spot, keep minimal */}
             </div>
 
             {/* Order Summary Sidebar */}
-            <div className="w-full lg:w-[380px] shrink-0">
-              <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-5 lg:p-6 sticky top-24">
-                <h3 className="font-bold text-lg mb-5 text-neutral-900 pb-4 border-b border-neutral-200">Price Details</h3>
+            <div className="w-full lg:w-[400px] shrink-0">
 
-                <div className="space-y-3.5 mb-5 pb-5 border-b border-neutral-200">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-700">Price ({itemCount} items)</span>
-                    <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
+              {/* Coupons Section (Moved above summary) */}
+              <div className="bg-white lg:border lg:border-neutral-100 mb-2 lg:mb-4 lg:shadow-sm">
+                <div className="p-4 flex items-center justify-between hover:bg-neutral-50 cursor-pointer transition-colors group">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5"><Tag className="w-5 h-5 text-[#03a685] fill-[#03a685]" /></div>
+                    <div>
+                      <span className="text-sm font-bold text-neutral-900 block">Coupons and offers</span>
+                      <span className="text-xs text-neutral-500">Save more with coupon and offers</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-neutral-700">Delivery Charges</span>
-                    <span className="text-sm text-green-600 font-medium">To be calculated</span>
+                  <div className="flex items-center text-sm font-medium text-neutral-900 group-hover:text-[#ff3f6c]">
+                    Apply <ChevronRight className="w-4 h-4 ml-0.5" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white lg:border lg:border-neutral-100 p-4 lg:p-6 lg:shadow-sm">
+
+                <div className="space-y-3 lg:space-y-4 text-sm mt-2">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Item total</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-neutral-400 line-through">₹{(subtotal * 1.3).toFixed(0)}</span>
+                      <span className="font-medium text-neutral-900">₹{subtotal.toFixed(0)}</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
+                    <span className="text-neutral-600">Delivery fee</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-neutral-400 line-through">₹99</span>
+                      <span className="text-[#03a685] text-xs font-bold">FREE</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mb-6 pb-5 border-b border-neutral-200">
-                  <span className="text-base font-bold text-neutral-900">Total Amount</span>
-                  <span className="text-2xl font-bold text-neutral-900">
-                    ₹{subtotal.toFixed(2)}
+                <div className="flex justify-between items-start mt-4 mb-1">
+                  <div>
+                    <span className="text-[15px] font-bold text-neutral-900 block">Grand total</span>
+                    <span className="text-[11px] text-neutral-500">Inclusive of all taxes</span>
+                  </div>
+                  <span className="text-sm font-bold text-neutral-900">
+                    ₹{subtotal.toFixed(0)}
                   </span>
                 </div>
 
-                <Link to={getLink('/checkout')}>
-                  <Button className="w-full rounded-md h-12 text-base font-bold bg-[#ff3f6c] hover:bg-[#ff1744] text-white transition-colors mb-4">
-                    Place Order
-                  </Button>
-                </Link>
+                <div className="border-t border-b border-neutral-100 py-3 my-4">
+                  <div className="text-[13px] text-neutral-600">
+                    Average delivery time: <span className="font-bold text-neutral-900">3-5 days</span>
+                  </div>
+                </div>
 
-                <div className="flex items-center justify-center gap-2 text-xs text-neutral-500">
-                  <ShieldCheck className="w-4 h-4 text-green-600" />
-                  <span>Safe and Secure Payments</span>
+                <div className="bg-[#eafaf1] border border-[#d2f4e1] rounded-sm p-3 mb-6">
+                  <p className="text-[#03a685] text-sm font-medium leading-relaxed">
+                    You have saved total 30% (₹{(subtotal * 0.3).toFixed(0)}) on your order! Yay!
+                  </p>
+                </div>
+
+                <div className="hidden lg:block">
+                  <Link to={getLink('/checkout')}>
+                    <Button className="w-full rounded-sm h-12 text-[15px] font-bold bg-[#1e1e24] hover:bg-black text-white transition-colors">
+                      Continue
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Mobile Sticky Footer */}
+        {cart && cart.items.length > 0 && (
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 flex items-center justify-between safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div>
+              <p className="text-sm font-bold text-neutral-900">₹{subtotal.toFixed(0)}</p>
+              <p className="text-xs text-[#03a685] font-bold underline cursor-pointer decoration-dotted underline-offset-4">View price details</p>
+            </div>
+            <Link to={getLink('/checkout')} className="w-1/2 ml-4">
+              <Button className="w-full h-11 bg-[#1e1e24] hover:bg-black text-white font-bold text-sm rounded-sm">
+                Continue
+              </Button>
+            </Link>
           </div>
         )}
       </main>
