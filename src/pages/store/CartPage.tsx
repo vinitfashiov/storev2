@@ -354,9 +354,9 @@ export default function CartPage() {
 
 
 
-  // E-commerce Layout (Refined D2C)
+  // E-commerce Layout (Modern D2C)
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex flex-col">
       <StoreHeader
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -366,123 +366,176 @@ export default function CartPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 container mx-auto px-4 py-8 lg:py-16 max-w-5xl">
-        <h1 className="text-3xl lg:text-4xl font-serif text-neutral-900 tracking-tight mb-10 text-center">Your Cart</h1>
+      <main className="flex-1 container mx-auto px-4 py-6 lg:py-12 max-w-7xl">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-2">
+            Shopping Cart
+          </h1>
+          <p className="text-neutral-600 text-sm">{itemCount} {itemCount === 1 ? 'item' : 'items'} in your cart</p>
+        </div>
 
         {!cart || cart.items.length === 0 ? (
-          <div className="py-16 flex flex-col items-center justify-center text-center bg-neutral-50 p-6">
-            <ShoppingCart className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
-            <h3 className="font-medium text-lg text-neutral-900 mb-2">Your cart is empty</h3>
-            <p className="text-neutral-500 mb-6">Discover our latest collections to get started.</p>
+          <div className="py-16 flex flex-col items-center justify-center text-center bg-white rounded-3xl shadow-xl p-8 lg:p-16">
+            <div className="w-32 h-32 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mb-6">
+              <ShoppingCart className="w-16 h-16 text-purple-500" />
+            </div>
+            <h3 className="font-bold text-2xl text-neutral-900 mb-3">Your cart is empty</h3>
+            <p className="text-neutral-500 mb-8 max-w-md">Looks like you haven't added anything yet. Start shopping to fill it up!</p>
             <Link to={getLink('/products')}>
-              <Button className="rounded-none px-8 py-6 text-sm tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
-                Continue Shopping
+              <Button className="rounded-full px-10 py-6 text-base font-semibold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all">
+                Start Shopping
               </Button>
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
-            <div className="flex-1 space-y-0">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            {/* Cart Items */}
+            <div className="flex-1 space-y-4">
+              {/* Free Delivery Banner */}
+              {freeDeliveryThreshold && (
+                <div className={`p-4 rounded-2xl flex items-center gap-3 shadow-md ${isEligibleForFreeDelivery
+                  ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
+                  : 'bg-white border-2 border-dashed border-orange-300'
+                  }`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isEligibleForFreeDelivery ? 'bg-white/20' : 'bg-orange-100'}`}>
+                    <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-white' : 'text-orange-600'}`} />
+                  </div>
+                  <p className={`text-sm font-semibold ${isEligibleForFreeDelivery ? 'text-white' : 'text-neutral-800'}`}>
+                    {isEligibleForFreeDelivery
+                      ? '🎉 Yay! You qualified for FREE delivery!'
+                      : `Add ₹${amountToFreeDelivery.toFixed(0)} more to unlock FREE delivery`
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Cart Items Cards */}
               {cart.items.map((item) => {
                 const imageUrl = getImageUrl(item.product?.images);
                 return (
-                  <div key={item.id} className="py-8 border-b border-neutral-100 flex gap-8 group first:pt-0 relative">
-                    <Link to={getLink(`/product/${item.product?.slug || ''}`)} className="block shrink-0">
-                      <div className="w-28 h-36 md:w-36 md:h-48 rounded-md bg-neutral-50 overflow-hidden relative">
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={item.product?.name || 'Product'}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-8 h-8 text-neutral-300" />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                    <div className="flex-1 flex flex-col justify-between py-2">
-                      <div className="flex justify-between items-start gap-4">
+                  <div key={item.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow p-4 lg:p-6 group relative">
+                    <div className="flex gap-4 lg:gap-6">
+                      <Link to={getLink(`/product/${item.product?.slug || ''}`)} className="block shrink-0">
+                        <div className="w-24 h-28 lg:w-32 lg:h-36 rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden relative shadow-md">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={item.product?.name || 'Product'}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="w-10 h-10 text-neutral-400" />
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                      <div className="flex-1 flex flex-col justify-between">
                         <div>
                           <Link to={getLink(`/product/${item.product?.slug || ''}`)}>
-                            <h3 className="font-serif text-xl tracking-tight text-neutral-900 hover:text-neutral-600 transition-colors line-clamp-2 pr-8">
+                            <h3 className="font-bold text-lg lg:text-xl text-neutral-900 hover:text-purple-600 transition-colors line-clamp-2 pr-8">
                               {item.product?.name || 'Product'}
                             </h3>
                           </Link>
-                          <p className="text-neutral-500 mt-2 text-sm">₹{item.unit_price.toFixed(2)}</p>
+                          <p className="text-neutral-500 mt-1 text-sm">Price: ₹{item.unit_price.toFixed(2)}</p>
                         </div>
-                        <button
-                          className="absolute top-8 right-0 md:static md:top-auto md:right-auto text-neutral-400 hover:text-red-500 transition-colors p-2 -mr-2 -mt-2 md:m-0"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex items-end justify-between mt-auto pt-4">
-                        <div className="flex items-center border border-neutral-200 rounded-md overflow-hidden bg-white">
-                          <button className="px-3 py-2 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="w-10 text-center text-sm font-medium">{item.qty}</span>
-                          <button className="px-3 py-2 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <div className="font-serif font-medium text-xl text-neutral-900">
-                          ₹{(item.unit_price * item.qty).toFixed(2)}
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex items-center border-2 border-purple-200 rounded-full overflow-hidden bg-white shadow-sm">
+                            <button className="px-3 py-2 hover:bg-purple-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
+                              <Minus className="w-4 h-4 text-purple-600" />
+                            </button>
+                            <span className="w-12 text-center text-sm font-bold text-purple-700">{item.qty}</span>
+                            <button className="px-3 py-2 hover:bg-purple-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
+                              <Plus className="w-4 h-4 text-purple-600" />
+                            </button>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-neutral-500 mb-1">Total</p>
+                            <p className="font-bold text-xl lg:text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              ₹{(item.unit_price * item.qty).toFixed(2)}
+                            </p>
+                          </div>
                         </div>
                       </div>
+                      <button
+                        className="absolute top-4 right-4 p-2 rounded-full hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-all"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
                 );
               })}
+
+              {/* Continue Shopping Link */}
+              <Link to={getLink('/products')} className="block">
+                <div className="bg-white/60 backdrop-blur-sm border-2 border-dashed border-purple-300 rounded-2xl p-4 hover:bg-white hover:border-purple-400 transition-all text-center group">
+                  <p className="text-purple-600 font-semibold flex items-center justify-center gap-2">
+                    <Plus className="w-5 h-5" />
+                    Continue Shopping
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </p>
+                </div>
+              </Link>
             </div>
 
-            <div className="w-full lg:w-[380px] shrink-0 xl:w-[420px]">
-              <div className="bg-neutral-50 rounded-xl p-8 lg:p-10 sticky top-28 shadow-sm border border-neutral-100">
-                <h3 className="font-serif tracking-tight text-2xl mb-8">Summary</h3>
+            {/* Order Summary Sidebar */}
+            <div className="w-full lg:w-[420px] shrink-0">
+              <div className="bg-white rounded-3xl shadow-2xl p-6 lg:p-8 sticky top-24 border border-neutral-100">
+                <h3 className="font-bold text-2xl mb-6 text-neutral-900">Order Summary</h3>
 
-                {/* Free Delivery Banner */}
-                {freeDeliveryThreshold && (
-                  <div className={`mb-8 p-4 rounded-lg flex flex-col gap-2 ${isEligibleForFreeDelivery
-                    ? 'bg-green-100/50 text-green-800'
-                    : 'bg-white border text-neutral-700'
-                    }`}>
-                    <div className="flex items-center gap-3">
-                      <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-neutral-400'}`} />
-                      <p className={`text-sm font-medium tracking-wide`}>
-                        {isEligibleForFreeDelivery
-                          ? '🎉 You get FREE delivery!'
-                          : `Add ₹${amountToFreeDelivery.toFixed(0)} more for FREE delivery`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-4 text-neutral-600 mb-8 border-b border-neutral-200 pb-6">
+                <div className="space-y-4 mb-6 pb-6 border-b border-neutral-200">
                   <div className="flex justify-between text-base">
-                    <span>Subtotal</span>
-                    <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
+                    <span className="text-neutral-600">Subtotal ({itemCount} items)</span>
+                    <span className="font-semibold text-neutral-900">₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-base">
-                    <span>Shipping</span>
-                    <span className="text-neutral-500">Calculated at checkout</span>
+                    <span className="text-neutral-600">Shipping</span>
+                    <span className="text-sm text-neutral-500">Calculated at checkout</span>
                   </div>
                 </div>
 
-                <div className="flex justify-between items-end font-serif text-2xl mb-8 text-neutral-900">
-                  <span className="text-lg font-sans text-neutral-500">Total</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                <div className="flex justify-between items-center mb-8 pb-6 border-b border-neutral-200">
+                  <span className="text-lg font-semibold text-neutral-700">Total Amount</span>
+                  <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    ₹{subtotal.toFixed(2)}
+                  </span>
                 </div>
+
                 <Link to={getLink('/checkout')}>
-                  <Button className="w-full rounded-full h-14 tracking-widest uppercase bg-[#222] text-white hover:bg-black shadow-lg shadow-black/5 hover:shadow-black/10 transition-all font-bold">
-                    Checkout Now
+                  <Button className="w-full rounded-full h-14 text-base font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-[1.02] mb-4">
+                    Proceed to Checkout
+                    <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
-                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-400">
-                  <ShieldCheck className="w-4 h-4" /> Secure checkout
+
+                <div className="flex items-center justify-center gap-2 text-sm text-neutral-500 mb-6">
+                  <ShieldCheck className="w-5 h-5 text-green-500" />
+                  <span className="font-medium">100% Secure Checkout</span>
+                </div>
+
+                {/* Trust Badges */}
+                <div className="grid grid-cols-3 gap-3 pt-6 border-t border-neutral-100">
+                  <div className="text-center">
+                    <div className="w-10 h-10 mx-auto mb-2 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <p className="text-xs text-neutral-600 font-medium">Fast Delivery</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
+                      <ShieldCheck className="w-5 h-5 text-green-600" />
+                    </div>
+                    <p className="text-xs text-neutral-600 font-medium">Safe Payment</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-10 h-10 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
+                      <Package className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-neutral-600 font-medium">Easy Returns</p>
+                  </div>
                 </div>
               </div>
             </div>
