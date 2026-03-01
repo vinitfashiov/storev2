@@ -16,7 +16,7 @@ import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import {
   CreditCard, Truck, Loader2, Zap, Clock, AlertTriangle, MapPin,
-  Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield
+  Tag, X, Check, ChevronLeft, ChevronRight, Plus, Package, Shield, ShieldCheck
 } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
@@ -1272,8 +1272,8 @@ export default function CheckoutPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <main className="flex-1 container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
-        <h1 className="text-2xl lg:text-3xl font-serif text-neutral-900 tracking-tight mb-8">Checkout</h1>
+      <main className="flex-1 container mx-auto px-4 py-8 lg:py-16 max-w-5xl">
+        <h1 className="text-3xl lg:text-4xl font-serif text-neutral-900 tracking-tight mb-10 text-center">Checkout</h1>
         <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-12 lg:gap-16">
           <div className="flex-1 space-y-12">
 
@@ -1327,18 +1327,18 @@ export default function CheckoutPage() {
             <section>
               <h2 className="font-serif text-xl mb-6 text-neutral-900">Payment Method</h2>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
-                <div className={`p-5 border ${paymentMethod === 'cod' ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'} transition-all cursor-pointer`} onClick={() => setPaymentMethod('cod')}>
+                <div className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${paymentMethod === 'cod' ? 'border-black bg-neutral-50 shadow-sm' : 'border-neutral-200 hover:border-neutral-300 bg-white'}`} onClick={() => setPaymentMethod('cod')}>
                   <div className="flex items-center space-x-4">
                     <RadioGroupItem value="cod" id="cod-ecom" className={paymentMethod === 'cod' ? 'border-black text-black' : ''} />
-                    <Label htmlFor="cod-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full">
+                    <Label htmlFor="cod-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full text-base">
                       <Truck className="w-5 h-5 text-neutral-600" /> Cash on Delivery
                     </Label>
                   </div>
                 </div>
-                <div className={`p-5 border ${!razorpayConfigured ? 'opacity-50' : paymentMethod === 'razorpay' ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'} transition-all cursor-pointer`} onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}>
+                <div className={`p-5 rounded-xl border-2 transition-all cursor-pointer ${!razorpayConfigured ? 'opacity-50' : paymentMethod === 'razorpay' ? 'border-black bg-neutral-50 shadow-sm' : 'border-neutral-200 hover:border-neutral-300 bg-white'}`} onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}>
                   <div className="flex items-center space-x-4">
                     <RadioGroupItem value="razorpay" id="razorpay-ecom" disabled={!razorpayConfigured} className={paymentMethod === 'razorpay' ? 'border-black text-black' : ''} />
-                    <Label htmlFor="razorpay-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full">
+                    <Label htmlFor="razorpay-ecom" className="flex items-center gap-3 cursor-pointer font-medium text-neutral-900 w-full text-base">
                       <CreditCard className="w-5 h-5 text-neutral-600" /> Pay Online {!razorpayConfigured && <span className="text-xs text-neutral-400 font-normal ml-auto">(Not available)</span>}
                     </Label>
                   </div>
@@ -1349,46 +1349,65 @@ export default function CheckoutPage() {
 
           {/* Right Column - Order Summary */}
           <div className="w-full lg:w-[420px] shrink-0">
-            <div className="bg-neutral-50 p-8 sticky top-24">
-              <h3 className="font-serif tracking-tight text-xl mb-6 text-neutral-900">Order Summary</h3>
+            <div className="bg-neutral-50 rounded-xl p-8 lg:p-10 sticky top-28 shadow-sm border border-neutral-100">
+              <h3 className="font-serif tracking-tight text-2xl mb-8 text-neutral-900">Summary</h3>
 
-              <div className="space-y-4 border-b border-neutral-200 pb-6 mb-6">
-                {cart.items.map(item => (
-                  <div key={item.id} className="flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <span className="font-medium text-neutral-800 line-clamp-2 md:line-clamp-none">{item.product?.name}</span>
-                      <span className="text-sm text-neutral-500 block mt-1">Qty: {item.qty}</span>
+              <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar mb-8">
+                {cart.items.map(item => {
+                  const imageUrl = getImageUrl(item.product?.images);
+                  return (
+                    <div key={item.id} className="flex gap-4">
+                      <div className="w-20 h-24 rounded-lg bg-white overflow-hidden shrink-0 border border-neutral-100 relative">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt={item.product?.name || 'Product'} className="w-full h-full object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+                            <Package className="w-6 h-6 text-neutral-300" />
+                          </div>
+                        )}
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-neutral-500 text-white rounded-full flex items-center justify-center text-xs font-medium border-2 border-white shadow-sm">
+                          {item.qty}
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-center">
+                        <span className="font-serif text-lg text-neutral-900 line-clamp-2 pr-4">{item.product?.name}</span>
+                        <span className="text-sm text-neutral-500 block mt-1">₹{item.unit_price.toFixed(2)}</span>
+                      </div>
+                      <div className="text-right font-serif font-medium text-lg flex items-center">
+                        ₹{(item.unit_price * item.qty).toFixed(2)}
+                      </div>
                     </div>
-                    <span className="font-medium text-neutral-900">₹{(item.unit_price * item.qty).toFixed(2)}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
-              <div className="space-y-4 text-neutral-600 mb-6 text-sm">
+              <div className="space-y-4 text-neutral-600 text-base border-b border-neutral-200 pb-6 mb-8 mt-8">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>₹{subtotal.toFixed(2)}</span>
+                  <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery</span>
-                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
+                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : 'text-neutral-500'}>
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
               </div>
 
-              <div className="border-t border-neutral-200 pt-4 flex justify-between font-medium text-xl mb-8 text-neutral-900">
-                <span>Total</span>
+              <div className="flex justify-between items-end font-serif text-3xl mb-8 text-neutral-900">
+                <span className="text-lg font-sans text-neutral-500">Total</span>
                 <span>₹{total.toFixed(2)}</span>
               </div>
-              <Button type="submit" className="w-full rounded-none py-6 tracking-widest uppercase bg-black text-white hover:bg-neutral-800 h-14" disabled={submitting || cart.items.length === 0}>
+              <Button type="submit" className="w-full rounded-full h-14 tracking-widest uppercase bg-[#222] text-white hover:bg-black shadow-lg shadow-black/5 hover:shadow-black/10 transition-all font-bold disabled:bg-neutral-300" disabled={submitting || cart.items.length === 0}>
                 {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</> : paymentMethod === 'razorpay' ? `Pay ₹${total.toFixed(2)}` : 'Place Order'}
               </Button>
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                <ShieldCheck className="w-4 h-4" /> Secure checkout
+              </div>
             </div>
           </div>
         </form>
       </main>
-      <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={null} phone={null} />
     </div>
   );
 }

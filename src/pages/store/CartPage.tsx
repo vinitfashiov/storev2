@@ -7,7 +7,7 @@ import { StoreHeader } from '@/components/storefront/StoreHeader';
 import { StoreFooter } from '@/components/storefront/StoreFooter';
 import { GroceryBottomNav } from '@/components/storefront/grocery/GroceryBottomNav';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Package, ChevronLeft, Truck, ChevronRight, ShieldCheck } from 'lucide-react';
 import { useCustomDomain } from '@/contexts/CustomDomainContext';
 
 interface Tenant {
@@ -366,8 +366,8 @@ export default function CartPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
-        <h1 className="text-2xl lg:text-3xl font-serif text-neutral-900 tracking-tight mb-8">Shopping Cart</h1>
+      <main className="flex-1 container mx-auto px-4 py-8 lg:py-16 max-w-5xl">
+        <h1 className="text-3xl lg:text-4xl font-serif text-neutral-900 tracking-tight mb-10 text-center">Your Cart</h1>
 
         {!cart || cart.items.length === 0 ? (
           <div className="py-16 flex flex-col items-center justify-center text-center bg-neutral-50 p-6">
@@ -386,9 +386,9 @@ export default function CartPage() {
               {cart.items.map((item) => {
                 const imageUrl = getImageUrl(item.product?.images);
                 return (
-                  <div key={item.id} className="py-6 border-b border-neutral-100 flex gap-6 group first:pt-0">
+                  <div key={item.id} className="py-8 border-b border-neutral-100 flex gap-8 group first:pt-0 relative">
                     <Link to={getLink(`/product/${item.product?.slug || ''}`)} className="block shrink-0">
-                      <div className="w-24 h-32 md:w-32 md:h-40 bg-neutral-50 overflow-hidden relative">
+                      <div className="w-28 h-36 md:w-36 md:h-48 rounded-md bg-neutral-50 overflow-hidden relative">
                         {imageUrl ? (
                           <img
                             src={imageUrl}
@@ -402,31 +402,34 @@ export default function CartPage() {
                         )}
                       </div>
                     </Link>
-                    <div className="flex-1 flex flex-col justify-between py-1">
+                    <div className="flex-1 flex flex-col justify-between py-2">
                       <div className="flex justify-between items-start gap-4">
                         <div>
                           <Link to={getLink(`/product/${item.product?.slug || ''}`)}>
-                            <h3 className="font-serif text-lg text-neutral-900 hover:text-neutral-600 transition-colors line-clamp-2">
+                            <h3 className="font-serif text-xl tracking-tight text-neutral-900 hover:text-neutral-600 transition-colors line-clamp-2 pr-8">
                               {item.product?.name || 'Product'}
                             </h3>
                           </Link>
-                          <p className="text-neutral-500 mt-1">₹{item.unit_price.toFixed(2)}</p>
+                          <p className="text-neutral-500 mt-2 text-sm">₹{item.unit_price.toFixed(2)}</p>
                         </div>
-                        <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-black hover:bg-transparent -mt-2 -mr-2" onClick={() => removeItem(item.id)}>
+                        <button
+                          className="absolute top-8 right-0 md:static md:top-auto md:right-auto text-neutral-400 hover:text-red-500 transition-colors p-2 -mr-2 -mt-2 md:m-0"
+                          onClick={() => removeItem(item.id)}
+                        >
                           <Trash2 className="w-4 h-4" />
-                        </Button>
+                        </button>
                       </div>
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="flex items-center border border-neutral-200">
-                          <button className="px-3 py-1 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
+                      <div className="flex items-end justify-between mt-auto pt-4">
+                        <div className="flex items-center border border-neutral-200 rounded-md overflow-hidden bg-white">
+                          <button className="px-3 py-2 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-10 text-center text-sm">{item.qty}</span>
-                          <button className="px-3 py-1 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
+                          <span className="w-10 text-center text-sm font-medium">{item.qty}</span>
+                          <button className="px-3 py-2 text-neutral-500 hover:text-black hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty + 1)}>
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
-                        <div className="font-medium text-lg text-neutral-900">
+                        <div className="font-serif font-medium text-xl text-neutral-900">
                           ₹{(item.unit_price * item.qty).toFixed(2)}
                         </div>
                       </div>
@@ -436,19 +439,19 @@ export default function CartPage() {
               })}
             </div>
 
-            <div className="w-full lg:w-[380px] shrink-0">
-              <div className="bg-neutral-50 p-8 sticky top-24">
-                <h3 className="font-serif tracking-tight text-xl mb-6">Order Summary</h3>
+            <div className="w-full lg:w-[380px] shrink-0 xl:w-[420px]">
+              <div className="bg-neutral-50 rounded-xl p-8 lg:p-10 sticky top-28 shadow-sm border border-neutral-100">
+                <h3 className="font-serif tracking-tight text-2xl mb-8">Summary</h3>
 
                 {/* Free Delivery Banner */}
                 {freeDeliveryThreshold && (
-                  <div className={`mb-6 p-4 rounded-none border flex flex-col gap-2 ${isEligibleForFreeDelivery
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-white border-neutral-200'
+                  <div className={`mb-8 p-4 rounded-lg flex flex-col gap-2 ${isEligibleForFreeDelivery
+                    ? 'bg-green-100/50 text-green-800'
+                    : 'bg-white border text-neutral-700'
                     }`}>
-                    <div className="flex items-center gap-2">
-                      <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-neutral-600'}`} />
-                      <p className={`text-sm font-medium ${isEligibleForFreeDelivery ? 'text-green-700' : 'text-neutral-700'}`}>
+                    <div className="flex items-center gap-3">
+                      <Truck className={`w-5 h-5 ${isEligibleForFreeDelivery ? 'text-green-600' : 'text-neutral-400'}`} />
+                      <p className={`text-sm font-medium tracking-wide`}>
                         {isEligibleForFreeDelivery
                           ? '🎉 You get FREE delivery!'
                           : `Add ₹${amountToFreeDelivery.toFixed(0)} more for FREE delivery`
@@ -458,32 +461,34 @@ export default function CartPage() {
                   </div>
                 )}
 
-                <div className="space-y-4 text-neutral-600 mb-6">
-                  <div className="flex justify-between">
+                <div className="space-y-4 text-neutral-600 mb-8 border-b border-neutral-200 pb-6">
+                  <div className="flex justify-between text-base">
                     <span>Subtotal</span>
-                    <span>₹{subtotal.toFixed(2)}</span>
+                    <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-base">
                     <span>Shipping</span>
-                    <span>Calculated at checkout</span>
+                    <span className="text-neutral-500">Calculated at checkout</span>
                   </div>
                 </div>
-                <div className="border-t border-neutral-200 pt-4 flex justify-between font-medium text-lg mb-8 text-neutral-900">
-                  <span>Total</span>
+
+                <div className="flex justify-between items-end font-serif text-2xl mb-8 text-neutral-900">
+                  <span className="text-lg font-sans text-neutral-500">Total</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
                 <Link to={getLink('/checkout')}>
-                  <Button className="w-full rounded-none py-6 tracking-widest uppercase bg-black text-white hover:bg-neutral-800">
-                    Proceed to Checkout
+                  <Button className="w-full rounded-full h-14 tracking-widest uppercase bg-[#222] text-white hover:bg-black shadow-lg shadow-black/5 hover:shadow-black/10 transition-all font-bold">
+                    Checkout Now
                   </Button>
                 </Link>
+                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                  <ShieldCheck className="w-4 h-4" /> Secure checkout
+                </div>
               </div>
             </div>
           </div>
         )}
       </main>
-
-      <StoreFooter storeName={tenant.store_name} storeSlug={tenant.store_slug} address={tenant.address} phone={tenant.phone} />
     </div>
   );
 }
