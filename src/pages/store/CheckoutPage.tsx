@@ -1371,7 +1371,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery</span>
-                  <span>Calculated at checkout</span>
+                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : ''}>
+                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
+                  </span>
                 </div>
               </div>
 

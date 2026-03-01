@@ -58,6 +58,8 @@ interface Product {
   category_id: string | null;
   category: { name: string } | null;
   brand: { name: string } | null;
+  product_delivery_fee_enabled?: boolean;
+  product_delivery_fee?: number | null;
 }
 
 interface Variant {
@@ -101,6 +103,7 @@ export default function ProductDetail() {
   const [deliveryStatus, setDeliveryStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [deliveryData, setDeliveryData] = useState<any>(null);
   const [deliveryError, setDeliveryError] = useState('');
+  const [d2cDeliverySettings, setD2cDeliverySettings] = useState<any>(null);
 
   // Use either the URL slug or the custom domain tenant slug
   const effectiveSlug = slug || customDomainTenant?.store_slug;
@@ -163,6 +166,16 @@ export default function ProductDetail() {
           .maybeSingle();
 
         setHasShiprocket(!!integrations?.has_shiprocket_password);
+
+        // Fetch D2C Delivery Settings
+        if (currentTenant.business_type === 'ecommerce') {
+          const { data: d2cSettings } = await supabaseStore
+            .from('tenant_delivery_settings_d2c')
+            .select('*')
+            .eq('tenant_id', currentTenant.id)
+            .maybeSingle();
+          if (d2cSettings) setD2cDeliverySettings(d2cSettings);
+        }
       }
 
       if (!productSlug) return;
@@ -618,6 +631,35 @@ export default function ProductDetail() {
                   </div>
                 )}
 
+                {/* Dynamic Shipping Fee Display */}
+                {(() => {
+                  if (product.product_delivery_fee_enabled && product.product_delivery_fee != null) {
+                    return (
+                      <div className="mb-6 flex items-center gap-3 text-sm text-neutral-900 font-medium">
+                        <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
+                        Shipping Charge: <span className="text-green-600">₹{product.product_delivery_fee}</span>
+                      </div>
+                    );
+                  }
+                  if (d2cDeliverySettings?.fixed_delivery_fee_enabled) {
+                    return (
+                      <div className="mb-6 flex items-center gap-3 text-sm text-neutral-900 font-medium">
+                        <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
+                        Shipping Charge: <span className="text-green-600">₹{d2cDeliverySettings.fixed_delivery_fee}</span>
+                      </div>
+                    );
+                  }
+                  if (d2cDeliverySettings?.free_delivery_enabled) {
+                    return (
+                      <div className="mb-6 flex items-center gap-3 text-sm text-green-600 font-medium">
+                        <Truck className="w-5 h-5 text-green-600" strokeWidth={1.5} />
+                        Free Shipping
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Check Delivery Date - Functional */}
                 {hasShiprocket && (
                   <div className="mb-8">
@@ -656,10 +698,6 @@ export default function ProductDetail() {
                     )}
 
                     <div className="mt-5 space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
-                        <Truck className="w-5 h-5 text-neutral-500" strokeWidth={1.5} />
-                        Free Shipping
-                      </div>
                       <div className="flex items-center gap-3 text-sm text-neutral-700 font-medium">
                         <div className="border border-neutral-500 rounded p-[2px] flex items-center font-bold text-[10px] uppercase">
                           COD
