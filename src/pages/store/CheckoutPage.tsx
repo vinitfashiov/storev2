@@ -1406,8 +1406,8 @@ export default function CheckoutPage() {
                           id="fullName"
                           value={form.name}
                           onChange={e => setForm({ ...form, name: e.target.value })}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="Full Name *"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="fullName"
@@ -1423,14 +1423,14 @@ export default function CheckoutPage() {
                           id="phoneNumber"
                           value={form.phone}
                           onChange={e => setForm({ ...form, phone: e.target.value })}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="10-digit mobile number"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="phoneNumber"
                           className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
                         >
-                          Mobile Number *
+                          10-digit mobile number *
                         </Label>
                       </div>
 
@@ -1440,14 +1440,14 @@ export default function CheckoutPage() {
                           id="line1"
                           value={form.line1}
                           onChange={e => setForm({ ...form, line1: e.target.value })}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="House/Flat No., Building Name *"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="line1"
                           className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
                         >
-                          Flat / House No. / Building Area *
+                          House/Flat No., Building Name *
                         </Label>
                       </div>
 
@@ -1456,8 +1456,8 @@ export default function CheckoutPage() {
                           id="line2"
                           value={form.line2}
                           onChange={e => setForm({ ...form, line2: e.target.value })}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="Locality, Area, Street"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="line2"
@@ -1474,22 +1474,22 @@ export default function CheckoutPage() {
                           value={form.pincode}
                           onChange={e => setForm({ ...form, pincode: e.target.value })}
                           maxLength={6}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="6-digit pincode *"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="pincode"
                           className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
                         >
-                          Pin Code *
+                          6-digit pincode *
                         </Label>
                       </div>
 
                       <div className="relative">
                         <Input
                           id="landmark"
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="Landmark (optional)"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="landmark"
@@ -1499,14 +1499,14 @@ export default function CheckoutPage() {
                         </Label>
                       </div>
 
-                      <div className="md:col-span-2 relative">
+                      <div className="relative">
                         <Input
                           required
                           id="city"
                           value={form.city}
                           onChange={e => setForm({ ...form, city: e.target.value })}
-                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-neutral-50/50 px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all placeholder-transparent focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
-                          placeholder="City *"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
                         <Label
                           htmlFor="city"
@@ -1516,15 +1516,21 @@ export default function CheckoutPage() {
                         </Label>
                       </div>
 
-                      <div>
-                        <Label className="text-[13px] font-semibold text-neutral-700 mb-2 block">State *</Label>
+                      <div className="relative">
                         <Input
                           required
+                          id="state"
                           value={form.state}
                           onChange={e => setForm({ ...form, state: e.target.value })}
-                          className="h-12 border-neutral-300 rounded-md focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c] text-[15px] px-4 shadow-sm bg-neutral-50/50"
-                          placeholder="State"
+                          className="peer h-[52px] w-full border-neutral-300 rounded-md bg-white px-4 pt-5 pb-2 text-[15px] shadow-sm outline-none transition-all focus-visible:ring-1 focus-visible:ring-[#ff3f6c] focus-visible:border-[#ff3f6c]"
+                          placeholder=" "
                         />
+                        <Label
+                          htmlFor="state"
+                          className="absolute left-4 top-2 text-[11px] font-semibold text-neutral-500 transition-all peer-placeholder-shown:top-[16px] peer-placeholder-shown:text-[15px] peer-placeholder-shown:font-normal peer-focus:top-2 peer-focus:text-[11px] peer-focus:font-semibold peer-focus:text-[#ff3f6c] pointer-events-none m-0"
+                        >
+                          State *
+                        </Label>
                       </div>
                     </div>
                   </div>
