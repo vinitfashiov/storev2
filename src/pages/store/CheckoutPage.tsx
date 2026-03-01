@@ -1328,8 +1328,8 @@ export default function CheckoutPage() {
                         key={addr.id}
                         onClick={() => handleAddressSelect(addr.id)}
                         className={`p-4 rounded-md border-2 cursor-pointer transition-all ${selectedAddressId === addr.id
-                            ? 'border-[#ff3f6c] bg-pink-50/50'
-                            : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                          ? 'border-[#ff3f6c] bg-pink-50/50'
+                          : 'border-neutral-200 hover:border-neutral-300 bg-white'
                           }`}
                       >
                         <div className="flex items-start justify-between">
@@ -1493,8 +1493,8 @@ export default function CheckoutPage() {
                       onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
                       disabled={!razorpayConfigured}
                       className={`p-4 text-left flex items-center justify-between transition-all ${paymentMethod === 'razorpay'
-                          ? 'bg-white border-l-4 border-l-black font-semibold'
-                          : 'hover:bg-neutral-50 text-neutral-600 border-l-4 border-l-transparent'
+                        ? 'bg-white border-l-4 border-l-black font-semibold'
+                        : 'hover:bg-neutral-50 text-neutral-600 border-l-4 border-l-transparent'
                         } ${!razorpayConfigured ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       <div className="flex items-center gap-3">
