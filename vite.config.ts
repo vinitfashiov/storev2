@@ -4,6 +4,11 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import { loadEnv } from "vite";
+import dns from "node:dns";
+
+// Fix for IPv6 routing issues on certain ISPs (like Jio/Fiber in India)
+// Node 18+ prefers IPv6 by default, which causes the Vite proxy to hang if the ISP drops IPv6 packets.
+dns.setDefaultResultOrder('ipv4first');
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
