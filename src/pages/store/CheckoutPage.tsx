@@ -1261,9 +1261,9 @@ export default function CheckoutPage() {
     );
   }
 
-  // E-commerce Checkout (Modern D2C)
+  // E-commerce Checkout (Modern D2C - Clean Professional)
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex flex-col">
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
       <StoreHeader
         storeName={tenant.store_name}
         storeSlug={tenant.store_slug}
@@ -1272,75 +1272,67 @@ export default function CheckoutPage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
-      <main className="flex-1 container mx-auto px-4 py-6 lg:py-12 max-w-7xl">
+      <main className="flex-1 container mx-auto px-4 py-6 lg:py-8 max-w-7xl">
         {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center gap-2 lg:gap-4 mb-4">
+        <div className="mb-6">
+          <div className="flex items-center justify-center gap-3 lg:gap-6 mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-                <Check className="w-5 h-5" />
+              <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-xs">
+                <Check className="w-4 h-4" />
               </div>
-              <span className="text-sm font-semibold text-green-600 hidden sm:block">Cart</span>
+              <span className="text-xs lg:text-sm font-medium text-green-600 hidden sm:block">Cart</span>
             </div>
-            <div className="w-8 lg:w-16 h-1 bg-gradient-to-r from-purple-400 to-pink-400"></div>
+            <div className="w-12 lg:w-20 h-0.5 bg-[#ff3f6c]"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+              <div className="w-7 h-7 rounded-full bg-[#ff3f6c] flex items-center justify-center text-white font-semibold text-xs">
                 2
               </div>
-              <span className="text-sm font-semibold text-purple-600 hidden sm:block">Checkout</span>
+              <span className="text-xs lg:text-sm font-medium text-[#ff3f6c] hidden sm:block">Checkout</span>
             </div>
-            <div className="w-8 lg:w-16 h-1 bg-neutral-300"></div>
+            <div className="w-12 lg:w-20 h-0.5 bg-neutral-300"></div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-600 font-bold text-sm">
+              <div className="w-7 h-7 rounded-full bg-neutral-300 flex items-center justify-center text-neutral-600 font-semibold text-xs">
                 3
               </div>
-              <span className="text-sm font-medium text-neutral-500 hidden sm:block">Done</span>
+              <span className="text-xs lg:text-sm font-medium text-neutral-500 hidden sm:block">Payment</span>
             </div>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent text-center">
-            Secure Checkout
-          </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          <div className="flex-1 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+          <div className="flex-1 space-y-4">
 
             {/* Contact Details */}
-            <section className="bg-white rounded-3xl shadow-lg p-6 lg:p-8 border border-neutral-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 flex items-center justify-center">
-                  <span className="text-purple-600 font-bold text-lg">1</span>
-                </div>
-                <h2 className="font-bold text-xl text-neutral-900">Contact Information</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
+              <h2 className="font-bold text-base lg:text-lg text-neutral-900 mb-4 pb-3 border-b border-neutral-200">Contact Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Full Name *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Full Name *</Label>
                   <Input
                     required
                     value={form.name}
                     onChange={e => setForm({ ...form, name: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
                     placeholder="Enter your full name"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Phone Number *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Phone Number *</Label>
                   <Input
                     required
                     value={form.phone}
                     onChange={e => setForm({ ...form, phone: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
                     placeholder="10-digit mobile number"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Email (Optional)</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Email (Optional)</Label>
                   <Input
                     type="email"
                     value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
                     placeholder="your.email@example.com"
                   />
                 </div>
@@ -1348,61 +1340,58 @@ export default function CheckoutPage() {
             </section>
 
             {/* Delivery Address */}
-            <section className="bg-white rounded-3xl shadow-lg p-6 lg:p-8 border border-neutral-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-purple-600" />
-                </div>
-                <h2 className="font-bold text-xl text-neutral-900">Delivery Address</h2>
+            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-neutral-200">
+                <h2 className="font-bold text-base lg:text-lg text-neutral-900">Delivery Address</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Address Line 1 *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Address Line 1 *</Label>
                   <Input
                     required
                     value={form.line1}
                     onChange={e => setForm({ ...form, line1: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
                     placeholder="House/Flat No., Building Name"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Address Line 2</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Address Line 2</Label>
                   <Input
                     value={form.line2}
                     onChange={e => setForm({ ...form, line2: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
                     placeholder="Street, Area, Landmark (Optional)"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">City *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">City *</Label>
                   <Input
                     required
                     value={form.city}
                     onChange={e => setForm({ ...form, city: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
-                    placeholder="City name"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
+                    placeholder="City"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">State *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">State *</Label>
                   <Input
                     required
                     value={form.state}
                     onChange={e => setForm({ ...form, state: e.target.value })}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4"
-                    placeholder="State name"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3"
+                    placeholder="State"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-semibold text-neutral-700 mb-2 block">Pincode *</Label>
+                  <Label className="text-sm font-medium text-neutral-700 mb-1.5 block">Pincode *</Label>
                   <Input
                     required
                     value={form.pincode}
                     onChange={e => setForm({ ...form, pincode: e.target.value })}
                     maxLength={6}
-                    className="h-12 rounded-xl border-2 border-neutral-200 focus:border-purple-500 focus-visible:ring-purple-500 text-base px-4 w-full md:w-1/2"
+                    className="h-11 rounded-md border border-neutral-300 focus:border-[#ff3f6c] focus-visible:ring-1 focus-visible:ring-[#ff3f6c] text-sm px-3 w-full md:w-1/2"
                     placeholder="6-digit pincode"
                   />
                 </div>
@@ -1410,107 +1399,88 @@ export default function CheckoutPage() {
             </section>
 
             {/* Payment Method */}
-            <section className="bg-white rounded-3xl shadow-lg p-6 lg:p-8 border border-neutral-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-100 to-pink-100 flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-purple-600" />
-                </div>
-                <h2 className="font-bold text-xl text-neutral-900">Payment Method</h2>
-              </div>
-              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-4">
+            <section className="bg-white rounded-lg shadow-sm p-5 lg:p-6 border border-neutral-200">
+              <h2 className="font-bold text-base lg:text-lg text-neutral-900 mb-4 pb-3 border-b border-neutral-200">Payment Options</h2>
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
                 <div
-                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                  className={`p-4 rounded-md border transition-all cursor-pointer ${
                     paymentMethod === 'cod'
-                      ? 'border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-md'
-                      : 'border-neutral-200 hover:border-purple-300 bg-white'
+                      ? 'border-[#ff3f6c] bg-pink-50'
+                      : 'border-neutral-300 hover:border-neutral-400 bg-white'
                   }`}
                   onClick={() => setPaymentMethod('cod')}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <RadioGroupItem value="cod" id="cod-ecom" className={paymentMethod === 'cod' ? 'border-purple-600 text-purple-600' : ''} />
-                      <Label htmlFor="cod-ecom" className="flex items-center gap-3 cursor-pointer font-semibold text-neutral-900 text-base">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === 'cod' ? 'bg-purple-100' : 'bg-neutral-100'}`}>
-                          <Truck className={`w-5 h-5 ${paymentMethod === 'cod' ? 'text-purple-600' : 'text-neutral-600'}`} />
-                        </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="cod" id="cod-ecom" className={paymentMethod === 'cod' ? 'border-[#ff3f6c] text-[#ff3f6c]' : ''} />
+                      <Label htmlFor="cod-ecom" className="flex items-center gap-2.5 cursor-pointer font-medium text-neutral-900 text-sm">
+                        <Truck className="w-5 h-5 text-neutral-600" />
                         Cash on Delivery
                       </Label>
                     </div>
                     {paymentMethod === 'cod' && (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
+                      <Check className="w-5 h-5 text-[#ff3f6c]" />
                     )}
                   </div>
-                  {paymentMethod === 'cod' && (
-                    <p className="text-sm text-neutral-600 mt-3 ml-14">Pay with cash when your order is delivered to your doorstep</p>
-                  )}
                 </div>
                 <div
-                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                  className={`p-4 rounded-md border transition-all cursor-pointer ${
                     !razorpayConfigured
-                      ? 'opacity-50 cursor-not-allowed'
+                      ? 'opacity-50 cursor-not-allowed bg-neutral-50'
                       : paymentMethod === 'razorpay'
-                        ? 'border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 shadow-md'
-                        : 'border-neutral-200 hover:border-purple-300 bg-white'
+                        ? 'border-[#ff3f6c] bg-pink-50'
+                        : 'border-neutral-300 hover:border-neutral-400 bg-white'
                   }`}
                   onClick={() => razorpayConfigured && setPaymentMethod('razorpay')}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <RadioGroupItem value="razorpay" id="razorpay-ecom" disabled={!razorpayConfigured} className={paymentMethod === 'razorpay' ? 'border-purple-600 text-purple-600' : ''} />
-                      <Label htmlFor="razorpay-ecom" className="flex items-center gap-3 cursor-pointer font-semibold text-neutral-900 text-base">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentMethod === 'razorpay' ? 'bg-purple-100' : 'bg-neutral-100'}`}>
-                          <CreditCard className={`w-5 h-5 ${paymentMethod === 'razorpay' ? 'text-purple-600' : 'text-neutral-600'}`} />
-                        </div>
+                    <div className="flex items-center space-x-3">
+                      <RadioGroupItem value="razorpay" id="razorpay-ecom" disabled={!razorpayConfigured} className={paymentMethod === 'razorpay' ? 'border-[#ff3f6c] text-[#ff3f6c]' : ''} />
+                      <Label htmlFor="razorpay-ecom" className="flex items-center gap-2.5 cursor-pointer font-medium text-neutral-900 text-sm">
+                        <CreditCard className="w-5 h-5 text-neutral-600" />
                         <div>
-                          Pay Online
-                          {!razorpayConfigured && <span className="block text-xs text-neutral-500 font-normal">Currently unavailable</span>}
+                          Pay Online (UPI, Cards, Net Banking)
+                          {!razorpayConfigured && <span className="block text-xs text-neutral-500 font-normal">Not available</span>}
                         </div>
                       </Label>
                     </div>
-                    {paymentMethod === 'razorpay' && (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
+                    {paymentMethod === 'razorpay' && razorpayConfigured && (
+                      <Check className="w-5 h-5 text-[#ff3f6c]" />
                     )}
                   </div>
-                  {paymentMethod === 'razorpay' && razorpayConfigured && (
-                    <p className="text-sm text-neutral-600 mt-3 ml-14">Pay securely using UPI, Cards, Net Banking & more</p>
-                  )}
                 </div>
               </RadioGroup>
             </section>
           </div>
 
           {/* Right Column - Order Summary */}
-          <div className="w-full lg:w-[440px] shrink-0">
-            <div className="bg-white rounded-3xl shadow-2xl p-6 lg:p-8 sticky top-24 border border-neutral-100">
-              <h3 className="font-bold text-2xl mb-6 text-neutral-900">Order Summary</h3>
+          <div className="w-full lg:w-[400px] shrink-0">
+            <div className="bg-white rounded-lg shadow-sm p-5 lg:p-6 sticky top-24 border border-neutral-200">
+              <h3 className="font-bold text-base lg:text-lg mb-5 text-neutral-900 pb-4 border-b border-neutral-200">Order Summary</h3>
 
               {/* Cart Items Preview */}
-              <div className="space-y-4 max-h-[35vh] overflow-y-auto pr-2 mb-6 pb-6 border-b border-neutral-200">
+              <div className="space-y-3.5 max-h-[32vh] overflow-y-auto mb-5 pb-5 border-b border-neutral-200">
                 {cart.items.map(item => {
                   const imageUrl = getImageUrl(item.product?.images);
                   return (
-                    <div key={item.id} className="flex gap-3 group">
-                      <div className="w-20 h-24 rounded-xl bg-gradient-to-br from-neutral-100 to-neutral-200 overflow-hidden shrink-0 shadow-sm relative">
+                    <div key={item.id} className="flex gap-3">
+                      <div className="w-16 h-20 rounded-md border border-neutral-200 overflow-hidden shrink-0 bg-neutral-50 relative">
                         {imageUrl ? (
                           <img src={imageUrl} alt={item.product?.name || 'Product'} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-6 h-6 text-neutral-400" />
+                            <Package className="w-5 h-5 text-neutral-300" />
                           </div>
                         )}
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full flex items-center justify-center text-xs font-bold shadow-md">
+                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-neutral-800 text-white rounded-full flex items-center justify-center text-xs font-semibold">
                           {item.qty}
                         </div>
                       </div>
                       <div className="flex-1 flex flex-col justify-between min-w-0">
-                        <span className="font-semibold text-sm text-neutral-900 line-clamp-2">{item.product?.name}</span>
+                        <span className="font-medium text-xs text-neutral-900 line-clamp-2">{item.product?.name}</span>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-neutral-500">₹{item.unit_price.toFixed(2)} each</span>
-                          <span className="text-sm font-bold text-purple-600">₹{(item.unit_price * item.qty).toFixed(2)}</span>
+                          <span className="text-xs text-neutral-500">₹{item.unit_price.toFixed(2)}</span>
+                          <span className="text-sm font-semibold text-neutral-900">₹{(item.unit_price * item.qty).toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -1519,29 +1489,29 @@ export default function CheckoutPage() {
               </div>
 
               {/* Bill Details */}
-              <div className="space-y-3 text-base mb-6 pb-6 border-b border-neutral-200">
+              <div className="space-y-3 text-sm mb-5 pb-5 border-b border-neutral-200">
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Subtotal</span>
-                  <span className="font-semibold text-neutral-900">₹{subtotal.toFixed(2)}</span>
+                  <span className="text-neutral-700">Subtotal</span>
+                  <span className="font-medium text-neutral-900">₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-600">Delivery Charges</span>
-                  <span className={deliveryFee === 0 ? 'text-green-600 font-semibold' : 'text-neutral-900 font-semibold'}>
+                  <span className="text-neutral-700">Delivery Fee</span>
+                  <span className={deliveryFee === 0 ? 'text-green-600 font-medium' : 'text-neutral-900 font-medium'}>
                     {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`}
                   </span>
                 </div>
                 {deliveryFee === 0 && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded-xl border border-green-200">
+                  <div className="flex items-center gap-2 p-2.5 bg-green-50 rounded-md">
                     <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">You saved delivery charges!</span>
+                    <span className="text-xs font-medium text-green-700">Free delivery applied!</span>
                   </div>
                 )}
               </div>
 
               {/* Total */}
-              <div className="flex justify-between items-center mb-6 pb-6 border-b border-neutral-200">
-                <span className="text-lg font-semibold text-neutral-700">Total Amount</span>
-                <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-base font-bold text-neutral-900">Total Amount</span>
+                <span className="text-2xl font-bold text-neutral-900">
                   ₹{total.toFixed(2)}
                 </span>
               </div>
@@ -1549,7 +1519,7 @@ export default function CheckoutPage() {
               {/* Place Order Button */}
               <Button
                 type="submit"
-                className="w-full rounded-full h-14 text-base font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600 text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-[1.02] mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-md h-12 text-base font-bold bg-[#ff3f6c] hover:bg-[#ff1744] text-white transition-colors mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={submitting || cart.items.length === 0}
               >
                 {submitting ? (
@@ -1562,31 +1532,9 @@ export default function CheckoutPage() {
               </Button>
 
               {/* Trust Indicators */}
-              <div className="flex items-center justify-center gap-2 text-sm text-neutral-600 mb-4">
-                <ShieldCheck className="w-5 h-5 text-green-500" />
-                <span className="font-medium">100% Secure Payment</span>
-              </div>
-
-              {/* Security Badges */}
-              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-neutral-100">
-                <div className="text-center">
-                  <div className="w-8 h-8 mx-auto mb-1 bg-green-100 rounded-full flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-green-600" />
-                  </div>
-                  <p className="text-xs text-neutral-600 font-medium">Safe</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-8 h-8 mx-auto mb-1 bg-blue-100 rounded-full flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <p className="text-xs text-neutral-600 font-medium">Secure</p>
-                </div>
-                <div className="text-center">
-                  <div className="w-8 h-8 mx-auto mb-1 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Truck className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <p className="text-xs text-neutral-600 font-medium">Fast</p>
-                </div>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 pt-3 border-t border-neutral-100">
+                <ShieldCheck className="w-4 h-4 text-green-600" />
+                <span>Safe and Secure Payments</span>
               </div>
             </div>
           </div>
