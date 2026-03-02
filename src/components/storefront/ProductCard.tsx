@@ -70,7 +70,7 @@ export function ProductCard({
             <img
               src={imageUrl}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-contain p-4 lg:p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -142,7 +142,7 @@ export function ProductCard({
 
         {/* Product Name */}
         <Link to={getLink(`/product/${product.slug}`)}>
-          <h3 className="font-medium text-neutral-800 line-clamp-2 hover:text-amber-700 transition-colors text-sm md:text-base">
+          <h3 className="font-semibold text-neutral-900 line-clamp-2 hover:text-amber-700 transition-colors text-[13px] md:text-sm min-h-[2.5rem] leading-tight mb-2">
             {product.name}
           </h3>
         </Link>
@@ -159,12 +159,12 @@ export function ProductCard({
         </div>
 
         {/* Price */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-neutral-900">
+        <div className="flex items-end gap-2 flex-wrap">
+          <span className="font-bold text-lg text-neutral-900 leading-none">
             ₹{product.price.toLocaleString('en-IN')}
           </span>
           {product.compare_at_price && (
-            <span className="text-sm text-neutral-400 line-through">
+            <span className="text-sm text-neutral-500 line-through leading-none mb-[2px]">
               ₹{product.compare_at_price.toLocaleString('en-IN')}
             </span>
           )}

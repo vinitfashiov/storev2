@@ -96,7 +96,7 @@ export function UnifiedProductCard({
           <img
             src={getImageUrl(product.images[0])}
             alt={product.name}
-            className="w-full h-full object-contain p-2"
+            className="w-full h-full object-contain p-4 lg:p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
         ) : (
@@ -120,25 +120,24 @@ export function UnifiedProductCard({
         )}
       </div>
 
-      {/* Info */}
       <h3 className={cn(
-        "font-medium text-neutral-800 leading-tight mb-2",
-        variant === 'compact' ? 'text-sm line-clamp-2 min-h-[2.5rem]' : 'text-base line-clamp-2'
+        "font-semibold text-neutral-900 leading-tight mb-2",
+        variant === 'compact' ? 'text-[13px] line-clamp-2 min-h-[2.5rem]' : 'text-sm md:text-base line-clamp-2'
       )}>
         {product.name}
       </h3>
 
       {/* Price & Add Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between">
         <div>
           <span className={cn(
-            "font-bold text-neutral-900",
-            variant === 'compact' ? 'text-sm' : 'text-lg'
+            "font-bold text-neutral-900 leading-none block",
+            variant === 'compact' ? 'text-lg' : 'text-xl'
           )}>
             ₹{effectivePrice}
           </span>
           {product.compare_at_price && (
-            <span className="text-xs text-neutral-400 line-through ml-1">
+            <span className="text-xs text-neutral-500 line-through ml-1 leading-none mt-1 inline-block">
               ₹{product.compare_at_price}
             </span>
           )}
