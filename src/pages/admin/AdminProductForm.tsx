@@ -540,6 +540,9 @@ export default function AdminProductForm({ tenantId, productId, disabled }: Admi
         <Card>
           <CardHeader>
             <CardTitle>Images</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              For best results on the storefront, upload images with a <b>1:1 (Square) aspect ratio</b>. We recommend a minimum size of <b>800x800 pixels</b>. Uploads with solid white backgrounds are supported and will blend seamlessly.
+            </p>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
