@@ -25,6 +25,17 @@ interface CartItem {
     product_delivery_fee_enabled?: boolean;
     product_delivery_fee?: number | null;
   } | null;
+  variant_id?: string | null;
+  variant?: {
+    id: string;
+    sku: string | null;
+    price: number;
+    stock_qty: number;
+    variant_attributes?: {
+      attribute: { name: string };
+      attribute_value: { value: string };
+    }[];
+  };
 }
 
 interface Cart {
@@ -67,7 +78,8 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         .from('cart_items')
         .select(`
           *,
-          product:products(id, name, slug, price, images, stock_qty, product_delivery_fee_enabled, product_delivery_fee)
+          product:products(id, name, slug, price, images, stock_qty, product_delivery_fee_enabled, product_delivery_fee),
+          variant:product_variants(id, sku, price, stock_qty, variant_attributes(attribute:attributes(name), attribute_value:attribute_values(value)))
         `)
         .eq('cart_id', cartId);
 
@@ -117,7 +129,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
     }
   }, [tenantId, storeSlug]);
 
-  const addToCart = useCallback(async (productId: string, price: number, qty: number = 1) => {
+  const addToCart = useCallback(async (productId: string, price: number, qty: number = 1, variantId?: string) => {
     if (!tenantId) {
       toast.error('Missing Tenant ID in cart hook');
       return false;
@@ -133,7 +145,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
         }
       }
 
-      const existingItem = currentCart.items.find(item => item.product_id === productId);
+      const existingItem = currentCart.items.find(item => item.product_id === productId && (variantId ? item.variant_id === variantId : true));
 
       // INSTANT optimistic update with proper temp ID handling
       const newQty = existingItem ? existingItem.qty + qty : qty;
@@ -150,9 +162,11 @@ export function useCart(storeSlug: string, tenantId: string | null) {
           : [...prev.items, {
             id: tempId,
             product_id: productId,
+            variant_id: variantId,
             qty,
             unit_price: price,
-            product: null
+            product: null,
+            variant: undefined
           }];
         return { ...prev, items: updatedItems };
       });
@@ -174,6 +188,7 @@ export function useCart(storeSlug: string, tenantId: string | null) {
               tenant_id: tenantId,
               cart_id: currentCart.id,
               product_id: productId,
+              variant_id: variantId,
               qty,
               unit_price: price
             })

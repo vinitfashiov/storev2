@@ -468,7 +468,7 @@ export default function CartPage() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="flex-1 lg:max-w-[1200px] lg:mx-auto w-full lg:px-4 py-0 lg:py-6">
+      <main className="flex-1 lg:max-w-[1200px] lg:mx-auto w-full lg:px-4 pb-28 pt-0 lg:py-6">
 
         <CheckoutStepper currentStep={1} />
 
@@ -578,25 +578,42 @@ export default function CartPage() {
                             </button>
                           </div>
 
-                          <div className="flex items-center gap-2 mt-4 text-xs font-medium text-neutral-700">
-                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[80px] cursor-pointer hover:border-neutral-300">
-                              <span>size: 128gb</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
-                            </div>
-                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[80px] cursor-pointer hover:border-neutral-300">
-                              <div className="flex items-center gap-1.5">
-                                <span>color:</span>
-                                <div className="w-3 h-3 bg-black rounded-sm border border-neutral-300"></div>
+                          <div className="flex flex-wrap items-center gap-2 mt-4 text-xs font-medium text-neutral-700">
+                            {/* Dynamic variants rendering */}
+                            {item.variant?.variant_attributes && item.variant.variant_attributes.length > 0 && item.variant.variant_attributes.map((attr, idx) => (
+                              <div key={idx} className="flex items-center justify-between border border-neutral-200 bg-white rounded px-2 py-1.5 min-w-fit hover:border-neutral-300">
+                                <span className="text-neutral-500 mr-1">{attr.attribute.name.toLowerCase()}:</span>
+                                <span>
+                                  {attr.attribute.name.toLowerCase() === 'color' ? (
+                                    <div className="flex items-center">
+                                      {/* Try to use the value directly if it's a valid color, else fallback to text */}
+                                      {attr.attribute_value.value.startsWith('#') || /^[a-zA-Z]+$/.test(attr.attribute_value.value) ? (
+                                        <div className="w-3 h-3 rounded-full border border-neutral-300" style={{ backgroundColor: attr.attribute_value.value.toLowerCase() }}></div>
+                                      ) : (
+                                        attr.attribute_value.value.toLowerCase()
+                                      )}
+                                    </div>
+                                  ) : attr.attribute_value.value.toLowerCase()}
+                                </span>
                               </div>
-                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
-                            </div>
-                            <div className="flex items-center justify-between border border-neutral-200 rounded px-2 py-1.5 min-w-[70px] cursor-pointer hover:border-neutral-300">
-                              <span className="mr-1">Qty: {item.qty}</span>
-                              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
+                            ))}
+
+                            <div className="relative border border-neutral-200 bg-white rounded px-2 py-1.5 min-w-[70px] hover:border-neutral-300 cursor-pointer">
+                              <select
+                                className="w-full h-full absolute inset-0 opacity-0 cursor-pointer"
+                                value={item.qty}
+                                onChange={(e) => updateQuantity(item.id, parseInt(e.target.value))}
+                              >
+                                {[...Array(10)].map((_, i) => (
+                                  <option key={i + 1} value={i + 1}>{i + 1}</option>
+                                ))}
+                              </select>
+                              <div className="flex items-center justify-between pointer-events-none">
+                                <span className="mr-1">Qty: {item.qty}</span>
+                                <ChevronRight className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
+                              </div>
                             </div>
                           </div>
-
-                          {/* Mobile Qty Controls (optional since we have the dropdown above, keeping minimal for now) */}
                           <div className="hidden items-center justify-between mt-auto pt-3">
                             <div className="flex items-center border border-neutral-300 rounded-sm bg-white">
                               <button className="px-3 py-1 text-xl font-light hover:bg-neutral-50 transition-colors" onClick={() => updateQuantity(item.id, item.qty - 1)}>-</button>
@@ -684,10 +701,7 @@ export default function CartPage() {
                   </div>
                   <div className="flex justify-between border-b border-dashed border-neutral-200 pb-4">
                     <span className="text-neutral-600">Delivery fee</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-neutral-400 line-through">₹99</span>
-                      <span className="text-[#03a685] text-xs font-bold">FREE</span>
-                    </div>
+                    <span className="text-neutral-500 text-[13px] text-right">Calculated at checkout</span>
                   </div>
 
                   {appliedCoupon && (
@@ -734,12 +748,12 @@ export default function CartPage() {
 
         {/* Mobile Sticky Footer */}
         {cart && cart.items.length > 0 && (
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 flex items-center justify-between safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 p-3 flex items-center justify-between shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] pb-[max(12px,env(safe-area-inset-bottom))]">
             <div>
               <p className="text-sm font-bold text-neutral-900">₹{finalTotal.toFixed(0)}</p>
               <p className="text-xs text-[#03a685] font-bold underline cursor-pointer decoration-dotted underline-offset-4">View price details</p>
             </div>
-            <Link to={getLink('/checkout')} className="w-1/2 ml-4">
+            <Link to={getLink('/checkout')} className="w-1/2 ml-4 relative z-10">
               <Button className="w-full h-11 bg-[#1e1e24] hover:bg-black text-white font-bold text-sm rounded-sm">
                 Continue
               </Button>

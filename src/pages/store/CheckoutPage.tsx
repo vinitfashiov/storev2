@@ -170,12 +170,9 @@ export default function CheckoutPage() {
       // Logic for custom domain from context
       if (isCustomDomain && cdTenant) {
         setTenant(cdTenant as Tenant);
-        const { data: integration } = await supabaseStore
-          .from('tenant_integrations')
-          .select('razorpay_key_id, razorpay_key_secret')
-          .eq('tenant_id', cdTenant.id)
-          .maybeSingle();
-        setRazorpayConfigured(!!(integration?.razorpay_key_id && integration?.razorpay_key_secret));
+        const { data: razorpayKey } = await supabaseStore
+          .rpc('get_tenant_razorpay_key', { p_tenant_id: cdTenant.id });
+        setRazorpayConfigured(!!razorpayKey);
 
         if (cdTenant.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
@@ -217,12 +214,9 @@ export default function CheckoutPage() {
       const { data } = await supabaseStore.from('tenants').select('id, store_name, store_slug, business_type').eq('store_slug', slug).eq('is_active', true).maybeSingle();
       if (data) {
         setTenant(data as Tenant);
-        const { data: integration } = await supabaseStore
-          .from('tenant_integrations')
-          .select('razorpay_key_id, razorpay_key_secret')
-          .eq('tenant_id', data.id)
-          .maybeSingle();
-        setRazorpayConfigured(!!(integration?.razorpay_key_id && integration?.razorpay_key_secret));
+        const { data: razorpayKey } = await supabaseStore
+          .rpc('get_tenant_razorpay_key', { p_tenant_id: data.id });
+        setRazorpayConfigured(!!razorpayKey);
 
         if (data.business_type === 'grocery') {
           const [settingsRes, zonesRes, slotsRes] = await Promise.all([
@@ -1330,7 +1324,7 @@ export default function CheckoutPage() {
 
             {/* Step 2: Delivery Address */}
             {checkoutStep === 2 && (
-              <section className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 p-0 lg:p-6 lg:shadow-sm">
+              <section className="bg-white lg:rounded-sm lg:border lg:border-neutral-200 p-4 lg:p-6 lg:shadow-sm">
 
                 {/* Header Actions */}
                 <div className="flex items-center justify-between mb-6 pb-3 border-b border-neutral-200 lg:border-none lg:pb-0">
