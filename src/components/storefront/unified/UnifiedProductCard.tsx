@@ -91,12 +91,12 @@ export function UnifiedProductCard({
       )}
     >
       {/* Image */}
-      <div className="relative bg-neutral-50 rounded-xl mb-3 overflow-hidden aspect-square">
+      <div className="relative bg-neutral-50 rounded-xl mb-3 overflow-hidden aspect-square flex items-center justify-center p-4 lg:p-6">
         {product.images && product.images[0] ? (
           <img
             src={getImageUrl(product.images[0])}
             alt={product.name}
-            className="w-full h-full object-contain p-4 lg:p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+            className="max-w-full max-h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
         ) : (

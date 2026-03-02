@@ -65,12 +65,12 @@ export function ProductCard({
   return (
     <div className="group bg-white rounded-xl overflow-hidden border border-neutral-100 hover:shadow-lg transition-all duration-300">
       <Link to={getLink(`/product/${product.slug}`)}>
-        <div className="aspect-square bg-neutral-50 relative overflow-hidden">
+        <div className="aspect-square bg-neutral-50 relative overflow-hidden flex items-center justify-center p-4 lg:p-6">
           {imageUrl ? (
             <img
               src={imageUrl}
               alt={product.name}
-              className="w-full h-full object-contain p-4 lg:p-6 mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
+              className="max-w-full max-h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
